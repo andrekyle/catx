@@ -34,7 +34,7 @@
         cursor: pointer; text-decoration: none;
         transition: color .15s, border-color .15s;
     }
-    .qx-thin-btn:hover { color: #0078D4; border-color: #0078D4; }
+    .qx-thin-btn:hover { color: #4ea3ff; border-color: #4ea3ff; }
 
     /* Transparent table — no card wrapper */
     table.qx-table { width: 100%; border-collapse: collapse; }
@@ -61,10 +61,10 @@
         background: transparent; border: 0; padding: 0;
         white-space: nowrap;
     }
-    .qx-pill-course { color: #0078D4; }
-    .qx-pill-mc    { color: #0078D4; }
-    .qx-pill-dd    { color: #D97706; }
-    .qx-pill-match { color: #9b51c7; }
+    .qx-pill-course { color: #4ea3ff; }
+    .qx-pill-mc    { color: #4ea3ff; }
+    .qx-pill-dd    { color: #f0b454; }
+    .qx-pill-match { color: #5cd6c0; }
 
     .qx-num {
         font-weight: 500; font-size: 14px;
@@ -89,15 +89,15 @@
         transition: color .15s, border-color .15s;
         padding: 0;
     }
-    .qx-icon-btn:hover { color: #0078D4; border-color: #0078D4; }
-    .qx-icon-btn.danger:hover { color: #C42B1C; border-color: #C42B1C; }
+    .qx-icon-btn:hover { color: #4ea3ff; border-color: #4ea3ff; }
+    .qx-icon-btn.danger:hover { color: #ff7a6b; border-color: #ff7a6b; }
 
     .qx-empty {
         padding: 56px 20px; text-align: center;
         color: var(--text-tertiary); font-size: 14px;
         border: 1px dashed var(--separator-light); border-radius: 14px;
     }
-    .qx-empty a { color: #0078D4; font-weight: 500; text-decoration: none; }
+    .qx-empty a { color: #4ea3ff; font-weight: 500; text-decoration: none; }
 
     @media (max-width: 720px) {
         .qx-table th:nth-child(3),
@@ -149,7 +149,7 @@
             <td>
                 <div class="qx-actions">
                     <a href="{{ url_for('admin_questions', quiz_id=quiz.id) }}" class="qx-icon-btn" title="Questions"><i class="fas fa-list-ul"></i></a>
-                    <a href="{{ url_for('admin_quiz_edit', quiz_id=quiz.id) }}" class="qx-icon-btn" title="Edit"><img src="{{ url_for('static', filename='images/edit.png') }}" alt="Edit" width="14" height="14"></a>
+                    <a href="{{ url_for('admin_quiz_edit', quiz_id=quiz.id) }}" class="qx-icon-btn" title="Edit"><i class="fas fa-pen"></i></a>
                     <form method="POST" action="{{ url_for('admin_quiz_delete', quiz_id=quiz.id) }}" onsubmit="return confirm('Delete this quiz?')" style="margin:0; display:inline;">
                         <button type="submit" class="qx-icon-btn danger" title="Delete"><i class="fas fa-trash"></i></button>
                     </form>
