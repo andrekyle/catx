@@ -1,0 +1,774 @@
+﻿{% extends "lms_base.html" %}
+{% block title %}{{ lesson.title }} - {{ lesson.course.title }}{% endblock %}
+{% block content %}
+<style>
+/* ====================================================================== */
+/*  Microsoft Learn-style lesson layout  (full-bleed, 3 columns)           */
+/* ====================================================================== */
+
+/* Hide the site navbar + footer on lesson pages for a distraction-free reading mode. */
+body > nav.navbar { display: none !important; }
+body > footer     { display: none !important; }
+main             { padding-top: 0 !important; }
+[data-theme="dark"] body { background: #1B1A19; }
+
+/* Break out of the 1080px .container so we can go edge-to-edge like MS Learn. */
+.ms-breakout {
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    margin-top: -28px;
+}
+
+/* ---------- Module banner (full-width strip) ----------------------- */
+.ms-banner {
+    background: #F5F5F5;
+    border-bottom: 1px solid #E1DFDD;
+    padding: 10px 32px 16px;
+    font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+}
+.ms-banner-nav {
+    max-width: 1600px; margin: 0 auto 10px;
+    display: flex; align-items: center; gap: 4px;
+    position: relative; z-index: 2;
+}
+.ms-banner-nav a {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 4px;
+    color: #242424; text-decoration: none;
+    font-size: 12.5px; font-weight: 500;
+    transition: background .15s;
+}
+.ms-banner-nav a:hover { background: rgba(0,0,0,0.06); color: #0078D4; }
+.ms-banner-nav a i { font-size: 11px; color: #0078D4; }
+.ms-banner-inner {
+    max-width: 1600px; margin: 0 auto;
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.ms-banner-icon {
+    width: 44px; height: 44px; border-radius: 6px;
+    background: #0078D4; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+}
+.ms-banner-text { flex: 1; min-width: 240px; }
+.ms-banner-kicker {
+    font-size: 11px; font-weight: 700; color: #605E5C;
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;
+}
+.ms-banner-title {
+    font-size: 18px; font-weight: 600; color: #242424;
+    line-height: 1.25; letter-spacing: -0.2px;
+}
+.ms-banner-progress { min-width: 220px; max-width: 320px; flex: 1; }
+.ms-banner-progress-bar {
+    background: #E1DFDD; height: 6px; border-radius: 3px;
+    overflow: hidden; margin-bottom: 4px;
+}
+.ms-banner-progress-bar > span {
+    display: block; height: 100%; background: #0078D4;
+    border-radius: 3px; transition: width .3s ease;
+}
+.ms-banner-progress-text {
+    font-size: 12px; color: #605E5C; font-weight: 500;
+    display: flex; justify-content: space-between;
+}
+.ms-banner-progress-text strong { color: #242424; font-weight: 600; }
+
+/* ---------- Two-column shell (right TOC removed) ------------------- */
+.ms-shell {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 0;
+    max-width: 1400px; margin: 0 auto;
+    align-items: start;
+}
+.ms-shell .ms-toc-col { display: none !important; }
+@media (max-width: 960px) {
+    .ms-shell { grid-template-columns: 1fr; }
+    .ms-shell .ms-sidebar { display: none; }
+}
+
+/* ---------- Left sidebar (unit list) ------------------------------- */
+.ms-sidebar {
+    position: sticky; top: 60px;
+    max-height: calc(100vh - 80px); overflow-y: auto;
+    border-right: 1px solid #E1DFDD;
+    padding: 28px 20px 48px;
+    font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+    background: #fff;
+}
+.ms-sidebar-kicker {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #605E5C; margin: 0 0 8px 4px;
+}
+.ms-sidebar-meta {
+    display: flex; gap: 12px; font-size: 12px;
+    color: #605E5C; margin: 0 0 22px 4px;
+}
+.ms-sidebar-meta span i { color: #0078D4; margin-right: 4px; }
+
+.ms-unit-list { list-style: none; padding: 0; margin: 0; }
+.ms-unit-list > li { margin: 0; }
+.ms-unit-list a.unit {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 4px;
+    color: #242424; text-decoration: none;
+    font-size: 13.5px; line-height: 1.35;
+    border-left: 3px solid transparent;
+    margin-left: -3px;
+    transition: background .15s ease;
+}
+.ms-unit-list a.unit:hover { background: #F3F2F1; }
+.ms-unit-list a.unit.current {
+    background: #F0F6FC; border-left-color: #0078D4;
+    color: #004578; font-weight: 600;
+}
+.ms-unit-list .u-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1.5px solid #C8C6C4; background: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: #605E5C;
+    flex-shrink: 0;
+}
+.ms-unit-list a.unit.current .u-num { border-color: #0078D4; color: #0078D4; }
+.ms-unit-list a.unit.done .u-num {
+    background: #107C10; border-color: #107C10; color: #fff; font-size: 10px;
+}
+.ms-unit-list a.unit .u-num i { display: none; }
+.ms-unit-list a.unit.done .u-num i { display: inline; }
+.ms-unit-list a.unit.done .u-num span { display: none; }
+
+.ms-unit-list .u-title { min-width: 0; }
+.ms-unit-list .u-time {
+    font-size: 11px; color: #605E5C; font-weight: 500;
+    text-align: right; white-space: nowrap;
+}
+.ms-unit-list a.unit.current .u-time { color: #0078D4; }
+
+.ms-section-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #605E5C;
+    margin: 24px 4px 8px; padding: 0;
+}
+.ms-unit-list a.quiz .u-num {
+    background: #F0F6FC; border-color: #C7E0F4; color: #0078D4;
+    font-size: 11px;
+}
+.ms-unit-list a.quiz.exam .u-num {
+    background: #F5F0FA; border-color: #D9C7EC; color: #8764B8;
+}
+.ms-unit-list a.quiz.done .u-num { background: #DFF6DD; border-color: #9FD89F; color: #107C10; }
+
+.ms-sidebar-footer {
+    margin-top: 28px; padding-top: 16px; border-top: 1px solid #E1DFDD;
+    font-size: 13px;
+}
+.ms-sidebar-footer a {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: #0078D4; text-decoration: none; padding: 6px 10px;
+    border-radius: 4px;
+}
+.ms-sidebar-footer a:hover { background: #F3F2F1; }
+
+/* ---------- Right "in this unit" TOC ------------------------------- */
+.ms-toc-col {
+    position: sticky; top: 60px;
+    max-height: calc(100vh - 80px); overflow-y: auto;
+    padding: 28px 24px 48px 20px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.ms-toc-title {
+    font-size: 13px; font-weight: 600; color: #242424;
+    margin: 0 0 10px; padding-bottom: 8px;
+    border-bottom: 1px solid #E1DFDD;
+}
+.ms-toc { list-style: none; padding: 0; margin: 0; }
+.ms-toc li { margin: 0; }
+.ms-toc a {
+    display: block; padding: 6px 0 6px 12px;
+    font-size: 13px; line-height: 1.4; color: #605E5C;
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    margin-left: -1px;
+}
+.ms-toc a:hover { color: #0078D4; }
+.ms-toc a.active { color: #0078D4; font-weight: 600; border-left-color: #0078D4; }
+.ms-toc .h3 a { padding-left: 26px; font-size: 12.5px; }
+
+/* ---------- Main column -------------------------------------------- */
+.ms-main {
+    padding: 28px 56px 80px;
+    min-width: 0; background: #fff;
+}
+@media (max-width: 1240px) { .ms-main { padding: 28px 40px 64px; } }
+@media (max-width: 960px)  { .ms-main { padding: 20px 20px 48px; } }
+
+.ms-crumb {
+    font-size: 13px; color: #605E5C; margin: 0 0 18px;
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+.ms-crumb a { color: #0078D4; text-decoration: none; }
+.ms-crumb a:hover { text-decoration: underline; }
+.ms-crumb .sep { color: #A19F9D; font-size: 11px; }
+.ms-crumb .current { color: #242424; font-weight: 500; }
+
+.ms-unit-kicker { margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+.ms-unit-kicker .badge {
+    background: #F0F6FC; color: #0078D4;
+    padding: 2px 10px; border-radius: 12px;
+    font-weight: 600; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.8px;
+}
+.ms-title {
+    font-size: 34px; font-weight: 600; letter-spacing: -0.4px;
+    color: #242424; line-height: 1.15; margin: 0 0 12px;
+    max-width: 72ch;
+}
+.ms-subline {
+    display: flex; gap: 14px; font-size: 13px; color: #605E5C;
+    margin-bottom: 10px; flex-wrap: wrap; align-items: center;
+}
+.ms-subline .dot { width: 3px; height: 3px; background: #A19F9D; border-radius: 50%; }
+.ms-subline i { color: #0078D4; margin-right: 4px; }
+.ms-complete-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #DFF6DD; color: #0E6A0E;
+    padding: 3px 10px; border-radius: 980px;
+    font-size: 12px; font-weight: 600;
+}
+.ms-divider { border: 0; border-top: 1px solid #E1DFDD; margin: 20px 0 28px; }
+
+/* ===== Content typography ========================================== */
+.lesson-body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui,
+                 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px; line-height: 1.6; color: #242424;
+    max-width: 100%;
+}
+.lesson-body > *:first-child { margin-top: 0; }
+.lesson-body > *:last-child  { margin-bottom: 0; }
+.lesson-body h2 {
+    font-size: 26px; font-weight: 600; letter-spacing: -0.2px;
+    color: #242424; margin: 44px 0 10px;
+    padding-bottom: 6px; border-bottom: 1px solid #E1DFDD;
+    scroll-margin-top: 80px;
+}
+.lesson-body h2:first-child { margin-top: 8px; }
+.lesson-body h3 { font-size: 20px; font-weight: 600; color: #242424; margin: 30px 0 10px; scroll-margin-top: 80px; }
+.lesson-body h4 { font-size: 16px; font-weight: 600; color: #242424; margin: 20px 0 6px; }
+.lesson-body p  { margin: 0 0 14px; color: #242424; }
+.lesson-body ul, .lesson-body ol { margin: 8px 0 18px; padding-left: 24px; color: #242424; }
+.lesson-body li { margin-bottom: 6px; color: #242424; }
+.lesson-body strong { color: #242424; font-weight: 600; }
+.lesson-body em { color: #242424; font-style: italic; }
+.lesson-body a { color: #0078D4; text-decoration: none; border-bottom: 1px solid transparent; }
+.lesson-body a:hover { border-bottom-color: #0078D4; }
+.lesson-body code {
+    background: #F3F2F1; color: #D13438; padding: 2px 6px; border-radius: 4px;
+    font-family: 'Cascadia Code','Consolas',Menlo,monospace;
+    font-size: 14px; font-weight: 500; border: 0; white-space: nowrap;
+}
+.lesson-body table {
+    width: 100%; border-collapse: collapse; margin: 14px 0 22px;
+    font-size: 15px; background: #fff; border: 1px solid #E1DFDD;
+}
+.lesson-body table th {
+    background: #FAFAFA; color: #242424; font-weight: 600;
+    padding: 10px 14px; text-align: left; border-bottom: 2px solid #D2D0CE;
+}
+.lesson-body table td {
+    padding: 10px 14px; border-top: 1px solid #EDEBE9;
+    color: #242424; vertical-align: top;
+}
+.lesson-body table tr:first-child td { border-top: none; }
+.lesson-body table tr:hover td { background: #FAFAFA; }
+
+.callout {
+    display: flex; gap: 12px; padding: 12px 16px; border-radius: 2px;
+    margin: 18px 0; line-height: 1.55;
+    background: #FAFAFA; border-left: 3px solid #0078D4;
+    border-top: 1px solid #EDEBE9; border-right: 1px solid #EDEBE9; border-bottom: 1px solid #EDEBE9;
+    color: #242424;
+}
+.callout .ico {
+    flex: 0 0 18px; width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #0078D4; margin-top: 3px;
+}
+.callout .body { flex: 1; min-width: 0; color: #242424; font-size: 14.5px; }
+.callout .body strong { color: #242424; font-weight: 600; }
+.callout .body strong:first-child {
+    display: block; font-size: 13px; margin-bottom: 2px;
+    text-transform: none; letter-spacing: 0; color: #242424;
+}
+/* Long code samples / formulas wrap inside callouts and the main body
+   instead of overflowing horizontally. */
+.lesson-body code,
+.callout .body code {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+.lesson-body pre,
+.callout .body pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    overflow-x: auto;
+}
+/* All callouts share the same neutral near-white background; only the left bar + icon color changes. */
+.callout.tip  { border-left-color: #107C10; }
+.callout.tip .ico { color: #107C10; }
+.callout.info { border-left-color: #0078D4; }
+.callout.info .ico { color: #0078D4; }
+.callout.warn { border-left-color: #F7630C; }
+.callout.warn .ico { color: #F7630C; }
+.callout.try  { border-left-color: #8764B8; }
+.callout.try .ico { color: #8764B8; }
+.callout.key  { border-left-color: #605E5C; }
+.callout.key .ico { color: #605E5C; }
+
+.kbd {
+    display: inline-block; padding: 1px 7px; min-width: 20px; text-align: center;
+    background: #fff; border: 1px solid #C8C6C4; border-bottom-width: 2px;
+    border-radius: 3px;
+    font-family: 'Cascadia Code','Consolas',Menlo,monospace;
+    font-size: 13px; font-weight: 600; color: #242424; margin: 0 1px;
+}
+.kbd-combo { display: inline-flex; align-items: center; gap: 3px; }
+.kbd-combo .plus { color: #605E5C; font-size: 12px; }
+
+.lesson-intro {
+    padding: 14px 18px; border-radius: 4px;
+    background: #F0F6FC; border-left: 4px solid #0078D4;
+    margin-bottom: 24px; color: #242424;
+}
+.lesson-intro .label {
+    font-size: 12px; font-weight: 600; color: #0078D4;
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;
+}
+.lesson-intro p { margin: 0; font-size: 15.5px; line-height: 1.55; color: #242424; }
+
+.lesson-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 16px 0 22px; }
+@media (min-width: 640px) { .lesson-grid { grid-template-columns: 1fr 1fr; } }
+.lesson-grid .card-mini { background: #fff; border: 1px solid #E1DFDD; border-radius: 4px; padding: 16px 18px; }
+.lesson-grid .card-mini h4 { margin: 0 0 6px; font-size: 15px; font-weight: 600; color: #242424; }
+.lesson-grid .card-mini h4 i { color: #0078D4; margin-right: 6px; }
+.lesson-grid .card-mini p { font-size: 14.5px; margin: 0; color: #424242; line-height: 1.5; }
+
+.steps { counter-reset: step; list-style: none; padding-left: 0; margin: 18px 0; }
+.steps li {
+    counter-increment: step; position: relative;
+    padding: 14px 18px 14px 52px; margin-bottom: 8px;
+    background: #fff; border: 1px solid #E1DFDD; border-radius: 4px;
+    color: #242424; font-size: 15.5px; line-height: 1.55;
+}
+.steps li::before {
+    content: counter(step);
+    position: absolute; left: 14px; top: 12px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #0078D4; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 13px;
+}
+
+/* ---------- Continue/Next action (compact MS Learn bar) ----------- */
+.ms-continue-bar {
+    margin-top: 32px; padding: 12px 16px;
+    background: transparent; border-top: 1px solid #E1DFDD;
+    border-bottom: 1px solid #E1DFDD; border-radius: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap;
+}
+.ms-continue-bar .left { flex: 1; min-width: 180px; }
+.ms-continue-bar .kicker {
+    font-size: 10px; font-weight: 600; color: #605E5C;
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 2px;
+}
+.ms-continue-bar .title { font-size: 13.5px; font-weight: 600; color: #242424; line-height: 1.3; }
+.ms-continue-btn {
+    background: #0078D4; color: #fff;
+    padding: 6px 14px; border: 0; border-radius: 2px;
+    font-size: 13px; font-weight: 600;
+    font-family: 'Segoe UI', system-ui, sans-serif; cursor: pointer;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background .15s;
+    line-height: 1.4;
+}
+.ms-continue-btn:hover { background: #106EBE; color: #fff; }
+.ms-continue-btn i { font-size: 11px; }
+
+/* ---------- Prev/next simple pager --------------------------------- */
+.ms-pager { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 640px) { .ms-pager { grid-template-columns: 1fr; } }
+.ms-pager a.pager-btn,
+.ms-pager .pager-placeholder {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 8px 12px; border: 1px solid #E1DFDD;
+    border-radius: 4px; background: #fff;
+    text-decoration: none; color: #242424;
+    transition: border-color .15s, background .15s;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+.ms-pager a.pager-btn:hover { border-color: #0078D4; background: #F5FAFD; }
+.ms-pager .pager-dir {
+    font-size: 10px; color: #605E5C; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 5px;
+}
+.ms-pager .pager-dir i { color: #0078D4; font-size: 10px; }
+.ms-pager .pager-title { font-size: 13px; font-weight: 500; color: #0078D4; line-height: 1.3; }
+.ms-pager a.next { text-align: right; }
+.ms-pager a.next .pager-dir { justify-content: flex-end; }
+
+/* ===== Dark mode =================================================== */
+[data-theme="dark"] .ms-banner { background: #1F1E1D; border-bottom-color: #3B3A39; }
+[data-theme="dark"] .ms-banner-nav a { color: #E6E6E6; }
+[data-theme="dark"] .ms-banner-nav a:hover { background: rgba(255,255,255,0.08); color: #4CC2FF; }
+[data-theme="dark"] .ms-banner-nav a i { color: #4CC2FF; }
+[data-theme="dark"] .ms-banner-kicker { color: #A19F9D; }
+[data-theme="dark"] .ms-banner-title { color: #FFFFFF; }
+[data-theme="dark"] .ms-banner-progress-bar { background: #3B3A39; }
+[data-theme="dark"] .ms-banner-progress-bar > span { background: #4CC2FF; }
+[data-theme="dark"] .ms-banner-progress-text { color: #A19F9D; }
+[data-theme="dark"] .ms-banner-progress-text strong { color: #FFFFFF; }
+
+[data-theme="dark"] .ms-sidebar { background: #252424; border-right-color: #3B3A39; }
+[data-theme="dark"] .ms-sidebar-kicker,
+[data-theme="dark"] .ms-section-label { color: #A19F9D; }
+[data-theme="dark"] .ms-sidebar-meta { color: #A19F9D; }
+[data-theme="dark"] .ms-sidebar-meta span i { color: #4CC2FF; }
+[data-theme="dark"] .ms-unit-list a.unit { color: #E6E6E6; }
+[data-theme="dark"] .ms-unit-list a.unit:hover { background: #2B2B2B; }
+[data-theme="dark"] .ms-unit-list a.unit.current { background: rgba(0,120,212,0.18); color: #4CC2FF; border-left-color: #4CC2FF; }
+[data-theme="dark"] .ms-unit-list .u-num { border-color: #605E5C; background: #323130; color: #A19F9D; }
+[data-theme="dark"] .ms-unit-list a.unit.current .u-num { border-color: #4CC2FF; color: #4CC2FF; }
+[data-theme="dark"] .ms-unit-list a.unit.done .u-num { background: #6CCB5F; border-color: #6CCB5F; color: #1F1E1D; }
+[data-theme="dark"] .ms-unit-list .u-time { color: #A19F9D; }
+[data-theme="dark"] .ms-unit-list a.unit.current .u-time { color: #4CC2FF; }
+[data-theme="dark"] .ms-unit-list a.quiz .u-num { background: rgba(0,120,212,0.16); border-color: rgba(76,194,255,0.4); color: #4CC2FF; }
+[data-theme="dark"] .ms-unit-list a.quiz.exam .u-num { background: rgba(135,100,184,0.18); border-color: rgba(180,140,224,0.45); color: #B48CE0; }
+[data-theme="dark"] .ms-unit-list a.quiz.done .u-num { background: rgba(108,203,95,0.16); border-color: rgba(108,203,95,0.45); color: #6CCB5F; }
+
+[data-theme="dark"] .ms-sidebar-footer { border-top-color: #3B3A39; }
+[data-theme="dark"] .ms-sidebar-footer a { color: #4CC2FF; }
+[data-theme="dark"] .ms-sidebar-footer a:hover { background: #2B2B2B; }
+
+[data-theme="dark"] .ms-main { background: #1B1A19; }
+[data-theme="dark"] .ms-toc-title { color: #FFFFFF; border-bottom-color: #3B3A39; }
+[data-theme="dark"] .ms-toc a { color: #A19F9D; }
+[data-theme="dark"] .ms-toc a:hover { color: #4CC2FF; }
+[data-theme="dark"] .ms-toc a.active { color: #4CC2FF; border-left-color: #4CC2FF; }
+
+[data-theme="dark"] .ms-crumb { color: #A19F9D; }
+[data-theme="dark"] .ms-crumb a { color: #4CC2FF; }
+[data-theme="dark"] .ms-crumb .current { color: #FFFFFF; }
+[data-theme="dark"] .ms-crumb .sep { color: #605E5C; }
+
+[data-theme="dark"] .ms-unit-kicker .badge { background: rgba(0,120,212,0.2); color: #4CC2FF; }
+[data-theme="dark"] .ms-title { color: #FFFFFF; }
+[data-theme="dark"] .ms-subline { color: #A19F9D; }
+[data-theme="dark"] .ms-subline i { color: #4CC2FF; }
+[data-theme="dark"] .ms-divider { border-top-color: #3B3A39; }
+[data-theme="dark"] .ms-complete-pill { background: rgba(16,124,16,0.2); color: #6CCB5F; }
+
+[data-theme="dark"] .lesson-body { color: #E6E6E6; }
+[data-theme="dark"] .lesson-body h2,
+[data-theme="dark"] .lesson-body h3,
+[data-theme="dark"] .lesson-body h4 { color: #FFFFFF; }
+[data-theme="dark"] .lesson-body h2 { border-bottom-color: #3B3A39; }
+[data-theme="dark"] .lesson-body p,
+[data-theme="dark"] .lesson-body ul,
+[data-theme="dark"] .lesson-body ol,
+[data-theme="dark"] .lesson-body li,
+[data-theme="dark"] .lesson-body em { color: #E6E6E6; }
+[data-theme="dark"] .lesson-body strong { color: #FFFFFF; }
+[data-theme="dark"] .lesson-body a { color: #4CC2FF; }
+[data-theme="dark"] .lesson-body a:hover { border-bottom-color: #4CC2FF; }
+[data-theme="dark"] .lesson-body code { background: #2B2B2B; color: #F48771; border: 0; }
+[data-theme="dark"] .lesson-body table { background: #252424; border-color: #3B3A39; }
+[data-theme="dark"] .lesson-body table th { background: #323130; color: #FFFFFF; border-bottom-color: #605E5C; }
+[data-theme="dark"] .lesson-body table td { background: #252424; color: #E6E6E6; border-top-color: #3B3A39; }
+[data-theme="dark"] .lesson-body table tr:hover td { background: #2F2E2D; }
+
+[data-theme="dark"] .lesson-intro { background: rgba(0,120,212,0.14); color: #E6E6E6; }
+[data-theme="dark"] .lesson-intro p { color: #E6E6E6; }
+[data-theme="dark"] .lesson-intro .label { color: #4CC2FF; }
+[data-theme="dark"] .lesson-grid .card-mini { background: #252424; border-color: #3B3A39; }
+[data-theme="dark"] .lesson-grid .card-mini h4 { color: #FFFFFF; }
+[data-theme="dark"] .lesson-grid .card-mini h4 i { color: #4CC2FF; }
+[data-theme="dark"] .lesson-grid .card-mini p { color: #D6D6D6; }
+[data-theme="dark"] .steps li { background: #252424; border-color: #3B3A39; color: #E6E6E6; }
+
+[data-theme="dark"] .callout {
+    background: #252424; color: #E6E6E6;
+    border-top-color: #3B3A39; border-right-color: #3B3A39; border-bottom-color: #3B3A39;
+}
+[data-theme="dark"] .callout .body { color: #E6E6E6; }
+[data-theme="dark"] .callout .body strong,
+[data-theme="dark"] .callout .body strong:first-child { color: #FFFFFF; }
+[data-theme="dark"] .callout.tip  { border-left-color: #6CCB5F; }
+[data-theme="dark"] .callout.tip .ico { color: #6CCB5F; }
+[data-theme="dark"] .callout.info { border-left-color: #4CC2FF; }
+[data-theme="dark"] .callout.info .ico { color: #4CC2FF; }
+[data-theme="dark"] .callout.warn { border-left-color: #FDB10D; }
+[data-theme="dark"] .callout.warn .ico { color: #FDB10D; }
+[data-theme="dark"] .callout.try  { border-left-color: #B48CE0; }
+[data-theme="dark"] .callout.try .ico { color: #B48CE0; }
+[data-theme="dark"] .callout.key  { border-left-color: #A19F9D; }
+[data-theme="dark"] .callout.key .ico { color: #A19F9D; }
+[data-theme="dark"] .kbd { background: #323130; border-color: #605E5C; color: #FFFFFF; }
+[data-theme="dark"] .kbd-combo .plus { color: #A19F9D; }
+
+[data-theme="dark"] .ms-continue-bar { background: transparent; border-top-color: #3B3A39; border-bottom-color: #3B3A39; }
+[data-theme="dark"] .ms-continue-bar .kicker { color: #A19F9D; }
+[data-theme="dark"] .ms-continue-bar .title { color: #FFFFFF; }
+
+[data-theme="dark"] .ms-pager a.pager-btn,
+[data-theme="dark"] .ms-pager .pager-placeholder { background: #252424; border-color: #3B3A39; color: #E6E6E6; }
+[data-theme="dark"] .ms-pager a.pager-btn:hover { border-color: #4CC2FF; background: #2B2B2B; }
+[data-theme="dark"] .ms-pager .pager-dir { color: #A19F9D; }
+[data-theme="dark"] .ms-pager .pager-dir i,
+[data-theme="dark"] .ms-pager .pager-title { color: #4CC2FF; }
+</style>
+
+{% set total = lessons|length %}
+{% set done_count = completed_ids|length %}
+{% set pct = (done_count / total * 100)|round(0, 'floor') if total else 0 %}
+{% set total_minutes = namespace(n=0) %}
+{% for l in lessons %}{% set total_minutes.n = total_minutes.n + l.duration_minutes %}{% endfor %}
+
+<div class="ms-breakout">
+
+    <!-- ================== TOP MODULE BANNER (with nav) ================== -->
+    <div class="ms-banner">
+        <div class="ms-banner-nav">
+            <a href="{{ url_for('index') }}"><i class="ph-thin ph-house"></i> Home</a>
+            <a href="{{ url_for('grade_courses', grade_number=lesson.course.grade.number) }}"><i class="ph-thin ph-arrow-left"></i> Back to {{ lesson.course.grade.name }}</a>
+        </div>
+        <div class="ms-banner-inner">
+            <div class="ms-banner-icon">
+                <i class="fas {{ lesson.course.icon or 'fa-graduation-cap' }}"></i>
+            </div>
+            <div class="ms-banner-text">
+                <p class="ms-banner-kicker">
+                    <a href="{{ url_for('grade_courses', grade_number=lesson.course.grade.number) }}"
+                       style="color:inherit; text-decoration:none;">{{ lesson.course.grade.name }}</a>
+                    &nbsp;&middot;&nbsp; Module
+                </p>
+                <p class="ms-banner-title">{{ lesson.course.title }}</p>
+            </div>
+            {% if enrollment or current_user.is_admin %}
+            <div class="ms-banner-progress">
+                <div class="ms-banner-progress-bar"><span style="width: {{ pct }}%;"></span></div>
+                <div class="ms-banner-progress-text">
+                    <span><strong>{{ done_count }}</strong> of <strong>{{ total }}</strong> units complete</span>
+                    <span>{{ pct }}%</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ================== THREE-COLUMN SHELL ================== -->
+    <div class="ms-shell">
+
+        <!-- LEFT SIDEBAR -->
+        <aside class="ms-sidebar">
+            <p class="ms-sidebar-kicker">Training module</p>
+            <div class="ms-sidebar-meta">
+                <span><i class="ph-thin ph-clock"></i>{{ total_minutes.n }} min</span>
+                <span><i class="ph-thin ph-book-open"></i>{{ total }} units</span>
+                {% if quizzes %}<span><i class="ph-thin ph-clipboard-text"></i>{{ quizzes|length }}</span>{% endif %}
+            </div>
+
+            <p class="ms-section-label">Units</p>
+            <ul class="ms-unit-list">
+                {% for l in lessons %}
+                <li>
+                    <a href="{{ url_for('lesson_view', lesson_id=l.id) }}"
+                       class="unit {% if l.id == lesson.id %}current{% endif %} {% if l.id in completed_ids %}done{% endif %}">
+                        <span class="u-num">
+                            <span>{{ loop.index }}</span>
+                            <i class="fas fa-check"></i>
+                        </span>
+                        <span class="u-title">{{ l.title }}</span>
+                        <span class="u-time">{{ l.duration_minutes }} min</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+
+            {% if quizzes %}
+            <p class="ms-section-label">Knowledge checks</p>
+            <ul class="ms-unit-list">
+                {% for q in quizzes %}
+                <li>
+                    <a href="{{ url_for('quiz_start', quiz_id=q.id) }}" class="unit quiz{% if q.quiz_type == 'exam' %} exam{% endif %}{% if q.id in (passed_quiz_ids or []) %} done{% endif %}">
+                        <span class="u-num"><i class="ph-thin ph-{% if q.id in (passed_quiz_ids or []) %}check{% else %}{{ 'trophy' if q.quiz_type == 'exam' else 'clipboard' }}{% endif %}"></i></span>
+                        <span class="u-title">{{ q.title }}</span>
+                        <span class="u-time">{% if q.id in (passed_quiz_ids or []) %}Passed{% elif q.id in (attempted_quiz_ids or []) %}Retry{% elif q.time_limit_minutes %}{{ q.time_limit_minutes }} min{% else %}—{% endif %}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <div class="ms-sidebar-footer">
+                <a href="{{ url_for('grade_courses', grade_number=lesson.course.grade.number) }}">
+                    <i class="ph-thin ph-arrow-left"></i> Back to {{ lesson.course.grade.name }}
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN COLUMN -->
+        <section class="ms-main">
+
+            <nav class="ms-crumb" aria-label="Breadcrumb">
+                <a href="{{ url_for('index') }}">Learn</a>
+                <span class="sep">›</span>
+                {% if lesson.course.grade %}
+                <a href="{{ url_for('grade_courses', grade_number=lesson.course.grade.number) }}">{{ lesson.course.grade.name }}</a>
+                <span class="sep">›</span>
+                {% endif %}
+                <a href="{{ url_for('course_detail', course_id=lesson.course.id) }}">{{ lesson.course.title }}</a>
+                <span class="sep">›</span>
+                <span class="current">{{ lesson.title }}</span>
+            </nav>
+
+            <p class="ms-unit-kicker">
+                <span class="badge">Unit {{ lesson.order }} of {{ total }}</span>
+            </p>
+            <h1 class="ms-title">{{ lesson.title }}</h1>
+            <div class="ms-subline">
+                <span><i class="ph-thin ph-clock"></i>{{ lesson.duration_minutes }} minutes</span>
+                <span class="dot"></span>
+                <span><i class="ph-thin ph-stack"></i>{{ lesson.course.grade.name }}</span>
+                {% if is_completed %}
+                <span class="dot"></span>
+                <span class="ms-complete-pill"><i class="ph-thin ph-check-circle"></i> Completed</span>
+                {% endif %}
+            </div>
+            <hr class="ms-divider">
+
+            <div class="lesson-body" id="lesson-body">
+                {{ lesson.content|safe }}
+            </div>
+
+            <!-- Continue / Complete bar (MS Learn signature component) -->
+            <div class="ms-continue-bar">
+                <div class="left">
+                    {% if next_lesson %}
+                        <p class="kicker">Next unit</p>
+                        <p class="title">{{ next_lesson.title }}</p>
+                    {% elif quizzes %}
+                        <p class="kicker">Knowledge check</p>
+                        <p class="title">{{ quizzes[0].title }}</p>
+                    {% else %}
+                        <p class="kicker">Module</p>
+                        <p class="title">You've reached the last unit in this module.</p>
+                    {% endif %}
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    {% if enrollment and not is_completed %}
+                    <form method="POST" action="{{ url_for('complete_lesson', lesson_id=lesson.id) }}" style="margin:0;">
+                        <button type="submit" class="ms-continue-btn">
+                            <i class="ph-thin ph-check"></i>
+                            {% if next_lesson %}Continue{% else %}Complete this unit{% endif %}
+                        </button>
+                    </form>
+                    {% elif next_lesson %}
+                    <a href="{{ url_for('lesson_view', lesson_id=next_lesson.id) }}" class="ms-continue-btn primary">
+                        Continue <i class="ph-thin ph-arrow-right"></i>
+                    </a>
+                    {% elif quizzes %}
+                    <a href="{{ url_for('quiz_start', quiz_id=quizzes[0].id) }}" class="ms-continue-btn primary">
+                        Take knowledge check <i class="ph-thin ph-arrow-right"></i>
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('course_detail', course_id=lesson.course.id) }}" class="ms-continue-btn primary">
+                        Back to module <i class="ph-thin ph-arrow-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Prev/next simple cards -->
+            <nav class="ms-pager" aria-label="Lesson navigation">
+                {% if prev_lesson %}
+                <a href="{{ url_for('lesson_view', lesson_id=prev_lesson.id) }}" class="pager-btn prev">
+                    <span class="pager-dir"><i class="ph-thin ph-caret-left"></i> Previous unit</span>
+                    <span class="pager-title">{{ prev_lesson.title }}</span>
+                </a>
+                {% else %}
+                <div class="pager-placeholder" style="opacity:.6;">
+                    <span class="pager-dir">Start</span>
+                    <span class="pager-title" style="color:#605E5C;">This is the first unit</span>
+                </div>
+                {% endif %}
+                {% if next_lesson %}
+                <a href="{{ url_for('lesson_view', lesson_id=next_lesson.id) }}" class="pager-btn next">
+                    <span class="pager-dir">Next unit <i class="ph-thin ph-caret-right"></i></span>
+                    <span class="pager-title">{{ next_lesson.title }}</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('course_detail', course_id=lesson.course.id) }}" class="pager-btn next">
+                    <span class="pager-dir">Finish <i class="ph-thin ph-flag"></i></span>
+                    <span class="pager-title">Back to module</span>
+                </a>
+                {% endif %}
+            </nav>
+        </section>
+
+        <!-- RIGHT TOC -->
+        <aside class="ms-toc-col">
+            <p class="ms-toc-title">In this unit</p>
+            <ul class="ms-toc" id="ms-toc"></ul>
+        </aside>
+    </div>
+</div>
+
+<script>
+(function(){
+    // Auto-generate "In this unit" TOC from h2/h3 inside the lesson body
+    var body = document.getElementById('lesson-body');
+    var tocEl = document.getElementById('ms-toc');
+    if (!body || !tocEl) return;
+    var heads = body.querySelectorAll('h2, h3');
+    var items = [];
+    heads.forEach(function(h, i){
+        if (!h.id) {
+            var slug = (h.textContent||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,40);
+            h.id = 'sec-' + i + (slug ? '-' + slug : '');
+        }
+        var li = document.createElement('li');
+        li.className = h.tagName === 'H3' ? 'h3' : 'h2';
+        var a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = h.textContent;
+        li.appendChild(a);
+        tocEl.appendChild(li);
+        items.push({a:a, el:h});
+    });
+    if (items.length === 0) {
+        tocEl.innerHTML = '<li><span style="color:#605E5C; font-size:12.5px; padding-left:12px;">No sections</span></li>';
+        return;
+    }
+    function onScroll(){
+        var y = window.scrollY + 120;
+        var active = items[0];
+        for (var i=0; i<items.length; i++){
+            if (items[i].el.offsetTop <= y) active = items[i];
+        }
+        items.forEach(function(it){ it.a.classList.toggle('active', it === active); });
+    }
+    window.addEventListener('scroll', onScroll, {passive:true});
+    onScroll();
+})();
+</script>
+{% endblock %}

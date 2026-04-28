@@ -1,0 +1,1693 @@
+{% extends "teacher/_layout.html" %}
+{% block t_title %}Year planner — Grade {{ grade }} · {{ year }}{% endblock %}
+{% block t_sub %}CAPS programme of assessment for Computer Applications Technology — aligned to the {{ year }} Johannesburg (inland) school calendar.{% endblock %}
+{% block t_action %}
+    <a class="t-thin-btn" href="{{ url_for('teacher_planner_edit') }}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        Add custom item
+    </a>
+{% endblock %}
+
+{% block t_body %}
+
+{# ─── CAPS programme of assessment (from CAT CAPS 2024 Update) ─── #}
+{% set caps = {
+    10: {
+        'sba_split': '40% Term 1+2+3 SBA · 20% PAT · 40% End-of-year exams',
+        'pat': [
+            {'term': 1, 'phase': 'PAT introduced', 'note': 'Brief learners on the Practical Assessment Task.'},
+            {'term': 3, 'phase': 'PAT Phase 1', 'note': 'Information management — sources, questions, processing. Complete before end of Term 3.'},
+            {'term': 4, 'phase': 'PAT Phase 2', 'note': 'Final solution & presentation. Complete before end-of-year exams.'},
+        ],
+        'terms': {
+            1: [
+                {'task': 'Task 1', 'name': 'Theory Test', 'kind': 'test', 'marks': 50, 'time': '60 min', 'weight': '15%', 'note': 'Content per CAPS teaching plan, before end of Term 1.'},
+            ],
+            2: [
+                {'task': 'Task 2', 'name': 'Practical Test', 'kind': 'test', 'marks': 50, 'time': '60 min', 'weight': '15%', 'note': 'Practical test administered during the term.'},
+                {'task': 'Task 3', 'name': 'Mid-Year Practical Exam (P1)', 'kind': 'exam', 'marks': 100, 'time': '2.5 hours', 'weight': '20%', 'note': 'Mid-year examination — practical paper.'},
+                {'task': 'Task 3', 'name': 'Mid-Year Theory Exam (P2)', 'kind': 'exam', 'marks': 100, 'time': '2.5 hours', 'weight': '20%', 'note': 'Mid-year examination — theory paper.'},
+            ],
+            3: [
+                {'task': 'Task 4', 'name': 'Practical Test', 'kind': 'test', 'marks': 50, 'time': '60 min', 'weight': '15%', 'note': 'Practical test before end of Term 3.'},
+                {'task': 'Task 5', 'name': 'Alternative Task', 'kind': 'assignment', 'marks': 50, 'time': '60 min', 'weight': '15%', 'note': 'Open book test, case study or survey.'},
+            ],
+            4: [
+                {'task': 'Task 6', 'name': 'Year-End Practical Exam (P1)', 'kind': 'exam', 'marks': 120, 'time': '2.5 hours', 'weight': '—', 'note': 'End-of-year examination — practical paper.'},
+                {'task': 'Task 6', 'name': 'Year-End Theory Exam (P2)', 'kind': 'exam', 'marks': 120, 'time': '2.5 hours', 'weight': '—', 'note': 'End-of-year examination — theory paper.'},
+            ],
+        },
+    },
+    11: {
+        'sba_split': '40% Term 1+2+3 SBA · 20% PAT · 40% End-of-year exams',
+        'pat': [
+            {'term': 1, 'phase': 'PAT introduced', 'note': 'Brief learners on the Practical Assessment Task.'},
+            {'term': 2, 'phase': 'PAT Phase 1', 'note': 'Information management — define the task, plan and gather sources.'},
+            {'term': 3, 'phase': 'PAT Phase 2', 'note': 'Process and analyse information.'},
+            {'term': 4, 'phase': 'PAT Phase 3', 'note': 'Final solution & presentation. Complete before end-of-year exams.'},
+        ],
+        'terms': {
+            1: [
+                {'task': 'Task 1', 'name': 'Theory Test', 'kind': 'test', 'marks': 50, 'time': '60 min', 'weight': '15%', 'note': 'Content per CAPS teaching plan, before end of Term 1.'},
+            ],
+            2: [
+                {'task': 'Task 2', 'name': 'Practical Test', 'kind': 'test', 'marks': 50, 'time': '60 min', 'weight': '15%', 'note': 'Practical test administered during the term.'},
+                {'task': 'Task 3', 'name': 'Mid-Year Practical Exam (P1)', 'kind': 'exam', 'marks': 120, 'time': '2.5 hours', 'weight': '20%', 'note': 'Mid-year examination — practical paper.'},
+                {'task': 'Task 3', 'name': 'Mid-Year Theory Exam (P2)', 'kind': 'exam', 'marks': 120, 'time': '2.5 hours', 'weight': '20%', 'note': 'Mid-year examination — theory paper.'},
+            ],
+            3: [
+                {'task': 'Task 4', 'name': 'Practical Test', 'kind': 'test', 'marks': 50, 'time': '60 min', 'weight': '15%', 'note': 'Practical test before end of Term 3.'},
+                {'task': 'Task 5', 'name': 'Alternative Task', 'kind': 'assignment', 'marks': 50, 'time': '60 min', 'weight': '15%', 'note': 'Open book test, case study or survey.'},
+            ],
+            4: [
+                {'task': 'Task 6', 'name': 'Year-End Practical Exam (P1)', 'kind': 'exam', 'marks': 150, 'time': '3 hours', 'weight': '—', 'note': 'Final examination — practical paper.'},
+                {'task': 'Task 6', 'name': 'Year-End Theory Exam (P2)', 'kind': 'exam', 'marks': 150, 'time': '3 hours', 'weight': '—', 'note': 'Final examination — theory paper.'},
+            ],
+        },
+    },
+    12: {
+        'sba_split': '25% SBA · 25% PAT · 50% External exams (P1 25% + P2 25%)',
+        'pat': [
+            {'term': 1, 'phase': 'PAT Phase 1', 'note': 'Information management — define task, plan & gather. Complete before end of Term 1.'},
+            {'term': 2, 'phase': 'PAT Phase 2', 'note': 'Process & analyse information. Complete before end of Term 2.'},
+            {'term': 3, 'phase': 'PAT Phase 3', 'note': 'Final solution & presentation. Complete before prelim exams.'},
+        ],
+        'terms': {
+            1: [
+                {'task': 'Task 1', 'name': 'Theory Test', 'kind': 'test', 'marks': 50, 'time': '60 min', 'weight': '—', 'note': 'Content per CAPS teaching plan.'},
+                {'task': 'Task 2', 'name': 'Practical Test', 'kind': 'test', 'marks': 50, 'time': '60 min', 'weight': '—', 'note': 'Practical test during the term.'},
+                {'task': 'Task 3', 'name': 'Alternative Task', 'kind': 'assignment', 'marks': 50, 'time': '60 min', 'weight': '—', 'note': 'Open book test, case study, advert interpretation or survey.'},
+            ],
+            2: [
+                {'task': 'Task 4', 'name': 'Mid-Year Practical Exam (P1)', 'kind': 'exam', 'marks': 150, 'time': '3 hours', 'weight': '—', 'note': 'Mid-year examination — practical paper.'},
+                {'task': 'Task 4', 'name': 'Mid-Year Theory Exam (P2)', 'kind': 'exam', 'marks': 150, 'time': '3 hours', 'weight': '—', 'note': 'Mid-year examination — theory paper.'},
+            ],
+            3: [
+                {'task': 'Task 5', 'name': 'Prelim Practical Exam (P1)', 'kind': 'exam', 'marks': 150, 'time': '3 hours', 'weight': '—', 'note': 'Preliminary examination — practical paper.'},
+                {'task': 'Task 5', 'name': 'Prelim Theory Exam (P2)', 'kind': 'exam', 'marks': 150, 'time': '3 hours', 'weight': '—', 'note': 'Preliminary examination — theory paper.'},
+            ],
+            4: [
+                {'task': 'External', 'name': 'Year-End Practical Exam (P1)', 'kind': 'exam', 'marks': 150, 'time': '3 hours', 'weight': '25%', 'note': 'NSC external practical examination.'},
+                {'task': 'External', 'name': 'Year-End Theory Exam (P2)', 'kind': 'exam', 'marks': 150, 'time': '3 hours', 'weight': '25%', 'note': 'NSC external theory examination.'},
+            ],
+        },
+    },
+} %}
+{% set kind_meta = {
+    'test':       {'label': 'Test',       'color': '#3B82F6'},
+    'exam':       {'label': 'Exam',       'color': '#A855F7'},
+    'assignment': {'label': 'Assignment', 'color': '#F59E0B'},
+    'pat':        {'label': 'PAT',        'color': '#10B981'},
+    'lesson':     {'label': 'Lesson',     'color': '#0078D4'},
+    'event':      {'label': 'Event',      'color': '#64748B'},
+    'task':       {'label': 'Task',       'color': '#EC4899'},
+} %}
+{% set g = caps[grade] %}
+{# South African public-school calendar — inland cluster (Gauteng/Johannesburg, NW, MP, LP, FS). Source: DBE gov.za #}
+{% set term_dates_by_year = {
+    2022: {1: {'start':'Wed 12 Jan','end':'Thu 17 Mar','weeks':10}, 2: {'start':'Tue 5 Apr','end':'Fri 24 Jun','weeks':12}, 3: {'start':'Tue 19 Jul','end':'Fri 30 Sep','weeks':11}, 4: {'start':'Tue 11 Oct','end':'Wed 14 Dec','weeks':10}},
+    2023: {1: {'start':'Wed 11 Jan','end':'Fri 24 Mar','weeks':11}, 2: {'start':'Wed 12 Apr','end':'Fri 23 Jun','weeks':11}, 3: {'start':'Tue 18 Jul','end':'Fri 29 Sep','weeks':11}, 4: {'start':'Tue 10 Oct','end':'Wed 13 Dec','weeks':10}},
+    2024: {1: {'start':'Wed 17 Jan','end':'Wed 20 Mar','weeks':10}, 2: {'start':'Wed 3 Apr','end':'Fri 14 Jun','weeks':11},  3: {'start':'Tue 9 Jul','end':'Fri 20 Sep','weeks':11},  4: {'start':'Tue 1 Oct','end':'Wed 11 Dec','weeks':11}},
+    2025: {1: {'start':'Wed 15 Jan','end':'Fri 28 Mar','weeks':11}, 2: {'start':'Tue 8 Apr','end':'Fri 27 Jun','weeks':12},  3: {'start':'Tue 22 Jul','end':'Fri 3 Oct','weeks':11},  4: {'start':'Mon 13 Oct','end':'Wed 10 Dec','weeks':9}},
+    2026: {1: {'start':'Wed 14 Jan','end':'Fri 27 Mar','weeks':11}, 2: {'start':'Wed 8 Apr','end':'Fri 26 Jun','weeks':12},  3: {'start':'Tue 21 Jul','end':'Wed 23 Sep','weeks':10}, 4: {'start':'Tue 6 Oct','end':'Fri 11 Dec','weeks':10}},
+    2027: {1: {'start':'Wed 13 Jan','end':'Fri 19 Mar','weeks':10}, 2: {'start':'Tue 6 Apr','end':'Fri 25 Jun','weeks':12},  3: {'start':'Tue 20 Jul','end':'Fri 1 Oct','weeks':11},  4: {'start':'Mon 11 Oct','end':'Fri 10 Dec','weeks':9}},
+} %}
+{% set term_dates = term_dates_by_year.get(year, term_dates_by_year[2026]) %}
+
+<style>
+.t-shell .t-title {
+    font-size: clamp(36px, 4.2vw, 56px) !important;
+    font-weight: 700 !important;
+    letter-spacing: -1px !important;
+    line-height: 1.05 !important;
+}
+
+.yp-toolbar { display:flex; gap:14px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; }
+.yp-summary { font-size:13px; color:var(--text-secondary); margin:0 0 18px; }
+.yp-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(360px,1fr));
+    grid-template-rows: auto auto auto auto auto;
+    gap: 16px;
+    align-items: stretch;
+}
+@media (max-width: 1540px){ .yp-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+@media (max-width: 780px){ .yp-grid { grid-template-columns:1fr; } }
+/* Keep section rows aligned across terms: header, summary, SBA, PAT, scheduled. */
+.yp-term {
+    background: #FFFFFF;
+    border: 1px solid rgba(15,23,42,0.08);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    padding: 0;
+    display: grid;
+    grid-template-rows: auto auto minmax(320px, auto) minmax(120px, auto) minmax(220px, auto);
+    grid-row: span 5;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+}
+@supports (grid-template-rows: subgrid) {
+    .yp-term {
+        grid-template-rows: subgrid;
+    }
+}
+.yp-term-h { padding:18px 20px 16px; border-bottom:1px solid rgba(15,23,42,0.06); display:flex; justify-content:space-between; align-items:center; gap:12px; min-width:0; }
+.yp-term-h-title { display:flex; align-items:center; gap:12px; min-width:0; }
+.yp-term-chip {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #FFFFFF;
+    letter-spacing: -0.01em; flex: 0 0 auto;
+    box-shadow: 0 4px 10px -4px rgba(15,23,42,0.25);
+}
+.yp-term.t-1 .yp-term-chip { background: linear-gradient(135deg, #FF7849, #FFB088); }
+.yp-term.t-2 .yp-term-chip { background: linear-gradient(135deg, #10B981, #6EE7B7); }
+.yp-term.t-3 .yp-term-chip { background: linear-gradient(135deg, #0EA5E9, #7DD3FC); }
+.yp-term.t-4 .yp-term-chip { background: linear-gradient(135deg, #8B5CF6, #C4B5FD); }
+.yp-term-overview {
+    padding: 12px 20px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #475569;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
+    background: transparent;
+}
+.yp-term-overview strong { color: #0F172A; font-weight: 700; }
+/* Each .yp-section is now a direct grid child of .yp-term */
+.yp-term > .yp-section { padding: 0 20px 14px; min-width:0; }
+.yp-term > .yp-section.is-empty { padding: 0; }
+.yp-term-num { font-size:12px; font-weight:500; color:#94A3B8; margin-top:3px; letter-spacing:0; text-transform:none; }
+.yp-term-title { font-size:16px; font-weight:700; letter-spacing:-0.01em; color:#0F172A; margin:0; line-height:1.2; }
+.yp-section { display:flex; flex-direction:column; }
+.yp-section-h {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94A3B8;
+    margin: 16px 0 10px;
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+.yp-section-count {
+    color: #94A3B8;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+.yp-section-h:first-child { margin-top:0; }
+.yp-term-ysi .yp-section-h { margin-top:0; }
+
+/* SBA section: stronger contrast for better readability. */
+.yp-section-sba .yp-section-h {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94A3B8;
+    border-bottom-color: transparent;
+}
+.yp-section-pat .yp-section-h {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94A3B8;
+    border-bottom-color: transparent;
+}
+.yp-section-pat .yp-task-facts {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #94A3B8;
+}
+.yp-section-pat .yp-task-note {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #475569;
+}
+.yp-section-sba .yp-task-name {
+    color: #0F172A;
+    font-weight: 700;
+}
+.yp-section-sba .yp-task-meta,
+.yp-section-sba .yp-task-brief,
+.yp-section-sba .yp-task-facts {
+    color: #475569;
+}
+.yp-section-sba .yp-task-note {
+    color: #475569;
+}
+.yp-section-sba .yp-note-label {
+    color: #0F172A;
+}
+.yp-section-sba .yp-sba-list {
+    display: grid;
+    grid-template-columns: 1fr;
+}
+.yp-section-sba .yp-sba-list > .yp-task {
+    height: auto;
+    min-height: 110px;
+    margin: 0;
+    padding: 12px 0;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
+}
+.yp-section-sba .yp-sba-list > .yp-task:last-child {
+    border-bottom: none;
+}
+.yp-section-sba .yp-task-row1 {
+    min-height: auto;
+    flex-wrap: nowrap;
+    align-items: baseline;
+}
+.yp-section-sba .yp-task-name {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.yp-section-sba .yp-task-meta {
+    font-size: 14px;
+    line-height: 1.4;
+    flex: 0 0 auto;
+    margin-left: 10px;
+}
+.yp-section-sba .yp-task-brief,
+.yp-section-sba .yp-task-facts {
+    font-size: 14px;
+    line-height: 1.45;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.yp-section-sba .yp-task-note {
+    font-size: 14px;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0;
+}
+.yp-task {
+    padding: 12px 0;
+    margin-bottom: 0;
+    min-height: 106px;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
+    background: transparent;
+}
+.yp-task:last-child { margin-bottom: 0; border-bottom: none; }
+.yp-task-row1 { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px; flex-wrap:wrap; }
+.yp-task-name { font-size:15px; font-weight:700; color:#0F172A; letter-spacing:-0.01em; line-height:1.35; }
+.yp-task-meta { font-size:12px; color:#475569; white-space:nowrap; font-variant-numeric:tabular-nums; font-weight:600; }
+.yp-task-brief { font-size:13px; color:#94A3B8; line-height:1.45; margin:0 0 4px; }
+.yp-task-facts { font-size:13px; color:#94A3B8; line-height:1.45; margin:0 0 6px; }
+.yp-task-note { font-size:14px; color:#475569; line-height:1.5; margin:0 0 6px; }
+.yp-note-label { font-weight:700; color:#0F172A; margin-right:4px; }
+.yp-pat {
+    padding: 12px 0;
+    margin-bottom: 0;
+    min-height: 86px;
+    border-bottom: 1px solid rgba(15,23,42,0.06);
+    background: transparent;
+}
+.yp-pat:last-child { margin-bottom: 0; border-bottom: none; }
+.yp-custom {
+    padding: 10px 0;
+    margin-bottom: 8px;
+    min-height: 98px;
+    border-bottom: 1px solid rgba(127,127,127,0.20);
+    background: transparent;
+    display:flex;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+}
+.yp-custom:last-child { margin-bottom: 0; border-bottom: none; }
+.yp-custom > div:first-child { min-width:0; flex:1 1 auto; display:block; }
+.yp-custom .yp-task-name {
+    font-size: 16px;
+    line-height: 1.4;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+.yp-custom .t-icon-btn {
+    width: 22px;
+    height: 22px;
+    border: none !important;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none !important;
+    margin-left: 0;
+    padding: 0;
+    color: #5A5A5A;
+}
+.yp-custom .t-icon-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 1.3;
+}
+.yp-custom .t-icon-btn:hover {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #0078D4;
+}
+.yp-custom .t-icon-btn.danger {
+    border: none !important;
+    background: transparent !important;
+    color: #A4262C;
+}
+.yp-custom .t-icon-btn.danger:hover {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #C42B1C !important;
+}
+.yp-custom .t-icon-btn.danger:hover svg {
+    stroke: currentColor;
+}
+.yp-custom .t-icon-btn.danger:active {
+    border: none !important;
+    background: transparent !important;
+}
+.yp-custom-meta {
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #355D84;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.yp-meta-pill {
+    display: inline;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: 0.02em;
+    color: #355D84;
+}
+.yp-meta-pill + .yp-meta-pill::before { content: ' · '; color: #8A9099; font-weight: 400; }
+.yp-meta-pill strong {
+    margin-right: 6px;
+    font-weight: 700;
+    color: #1F446A;
+}
+.yp-custom > div:last-child { flex:0 0 auto; display:flex; gap:4px; align-items:center; }
+.yp-empty { font-size:13px; color:#4F6D8C; padding:8px 2px; }
+
+/* Override shared banner styling for planner blocks to reduce visual heaviness. */
+.t-shell .yp-grid .yp-term-h {
+    margin: 0 !important;
+    padding: 18px 20px 16px !important;
+    background: #FFFFFF !important;
+    border-bottom: 1px solid rgba(15,23,42,0.06) !important;
+    box-shadow: none !important;
+}
+.t-shell.t-shell .yp-grid .yp-term-title { color: #0F172A !important; }
+.t-shell.t-shell .yp-grid .yp-term-num { color: #94A3B8 !important; }
+.t-shell.t-shell .yp-grid .yp-term-chip { color: #FFFFFF !important; }
+
+.t-shell .yp-grid .yp-section-h {
+    margin: 18px 0 10px !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    text-align: left !important;
+}
+.t-shell.t-shell .yp-grid .yp-section-h,
+.t-shell.t-shell .yp-grid .yp-section-h * { color: #94A3B8 !important; }
+
+/* Typography consistency: one font family and a stable type scale across planner sections. */
+.yp-grid,
+.cap-tables {
+    font-family: "Inter", "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle scrollbars across the planner page */
+html, body,
+.yp-layout, .yp-layout *,
+.yp-grid, .yp-grid * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15,23,42,0.18) transparent;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.yp-layout *::-webkit-scrollbar,
+.yp-grid *::-webkit-scrollbar { width: 8px; height: 8px; }
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+.yp-layout *::-webkit-scrollbar-track,
+.yp-grid *::-webkit-scrollbar-track { background: transparent; }
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+.yp-layout *::-webkit-scrollbar-thumb,
+.yp-grid *::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.14); border-radius: 999px; border: none; }
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+.yp-layout *::-webkit-scrollbar-thumb:hover,
+.yp-grid *::-webkit-scrollbar-thumb:hover { background: rgba(15,23,42,0.28); }
+
+.yp-term-overview,
+.yp-task-name,
+.yp-task-meta,
+.yp-task-brief,
+.yp-task-facts,
+.yp-task-note,
+.yp-custom .yp-task-name,
+.yp-custom-meta,
+.yp-meta-pill,
+.yp-empty,
+.cap-table,
+.cap-table td,
+.cap-table .cap-pct,
+.cap-table .cap-cat,
+.cap-table td p {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+}
+
+.yp-section-h,
+.yp-section-sba .yp-section-h,
+.yp-section-pat .yp-section-h,
+.cap-wrap h3.cap-heading-grade {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: #94A3B8 !important;
+}
+.cap-wrap h3.cap-heading-grade {
+    font-size: 18px !important;
+    letter-spacing: -0.2px !important;
+    text-transform: none !important;
+    color: #FFFFFF !important;
+}
+.cap-table thead th {
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+}
+
+.yp-section--ysi .yp-section-h {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 1.4 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: #94A3B8 !important;
+}
+
+.yp-section-pat .yp-section-h {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 1.4 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: #94A3B8 !important;
+}
+
+.yp-section-sba .yp-section-h {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    line-height: 1.4 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: #94A3B8 !important;
+}
+
+.yp-term-overview {
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+    padding: 14px 20px !important;
+    color: #64748B !important;
+    background: #FAFBFC !important;
+    border-bottom: 1px solid rgba(15,23,42,0.05) !important;
+}
+.yp-term-overview strong { font-size: 13px !important; color: #0F172A !important; font-weight: 700 !important; }
+
+.yp-task-name,
+.yp-custom .yp-task-name {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1.35 !important;
+    letter-spacing: -0.01em;
+    color: #0F172A !important;
+}
+
+.yp-task-meta,
+.yp-task-brief,
+.yp-task-facts {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+    color: #94A3B8 !important;
+}
+.yp-task-note { font-size: 14px !important; line-height: 1.55 !important; color: #475569 !important; }
+.yp-note-label { color: #0F172A !important; }
+
+/* Row layout (Popular-products style) for SBA + PAT items */
+.yp-row {
+    display: grid !important;
+    grid-template-columns: 40px 1fr auto;
+    column-gap: 14px;
+    align-items: center;
+    padding: 14px 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    border-bottom: 1px solid rgba(15,23,42,0.05) !important;
+    transition: padding-left .15s ease;
+}
+.yp-row:last-child { border-bottom: none !important; }
+.yp-row:hover { padding-left: 4px !important; }
+.yp-row-thumb {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent;
+    color: #64748B;
+    flex: 0 0 auto;
+    transition: transform .15s ease;
+}
+.yp-row:hover .yp-row-thumb { transform: scale(1.04); }
+.yp-row-thumb-exam { background: transparent; color: #C2410C; }
+.yp-row-thumb-test { background: transparent; color: #1D4ED8; }
+.yp-row-thumb-pat  { background: transparent; color: #6D28D9; }
+.yp-row-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.yp-row-title {
+    font-size: 14px !important; font-weight: 600 !important;
+    color: #0F172A !important; line-height: 1.35 !important;
+    letter-spacing: -0.005em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.yp-row-sub {
+    font-size: 12px !important; font-weight: 500;
+    color: #94A3B8 !important; line-height: 1.4 !important;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.yp-row-note {
+    font-size: 12px !important; color: #64748B !important;
+    line-height: 1.5 !important; margin-top: 2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    white-space: normal;
+}
+.yp-row-value { text-align: right; flex: 0 0 auto; min-width: 56px; padding-left: 6px; }
+.yp-row-value-num {
+    font-size: 15px; font-weight: 700; color: #0F172A;
+    font-variant-numeric: tabular-nums; line-height: 1;
+    letter-spacing: -0.01em;
+}
+.yp-row-value-lbl {
+    font-size: 10px; font-weight: 600; color: #94A3B8;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px;
+}
+.yp-row-tag {
+    display: inline-flex; align-items: center;
+    background: rgba(139,92,246,0.10); color: #6D28D9;
+    font-size: 10px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+}
+</style>
+
+<form method="get" class="t-card yp-toolbar">
+    <div class="t-field" style="flex:0 0 160px;">
+        <label>Grade</label>
+        <div class="fdd" data-fdd="single" data-auto-submit="1">
+            <button type="button" class="fdd-toggle">
+                <span class="fdd-label">Grade {{ grade }}</span>
+                <span class="caret">▾</span>
+            </button>
+            <input type="hidden" name="grade" value="{{ grade }}">
+            <div class="fdd-panel">
+                {% for gv in [10,11,12] %}<div class="fdd-item" data-value="{{ gv }}">Grade {{ gv }}</div>{% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="t-field" style="flex:0 0 140px;">
+        <label>Year</label>
+        <div class="fdd" data-fdd="single" data-auto-submit="1">
+            <button type="button" class="fdd-toggle">
+                <span class="fdd-label">{{ year }}</span>
+                <span class="caret">▾</span>
+            </button>
+            <input type="hidden" name="year" value="{{ year }}">
+            <div class="fdd-panel">
+                {% for y in [2027, 2026, 2025, 2024, 2023, 2022] %}<div class="fdd-item" data-value="{{ y }}">{{ y }}</div>{% endfor %}
+            </div>
+        </div>
+    </div>
+</form>
+
+<p class="yp-summary"><strong>Promotion weighting:</strong> {{ g.sba_split }}</p>
+
+<div class="yp-layout">
+<aside class="yp-side" id="ypSide" aria-label="Term navigation">
+    <div class="yp-side-h">
+        <div class="yp-side-h-mark">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+        </div>
+        <div>
+            <div class="yp-side-eyebrow">Year planner</div>
+            <div class="yp-side-title">{{ year }} · Grade {{ grade }}</div>
+        </div>
+    </div>
+    <nav class="yp-side-nav">
+        <button type="button" class="yp-side-link is-active" data-yp-filter="all">
+            <span class="yp-side-link-label">
+                <span class="yp-side-link-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>
+                <span>Dashboard</span>
+            </span>
+        </button>
+        {% for term_num in [1,2,3,4] %}
+            {% set _term_tasks = g.terms[term_num] %}
+            {% set _term_pat = g.pat | selectattr('term', 'equalto', term_num) | list %}
+            {% set _term_sched = by_term[term_num] %}
+            {% set _term_total = _term_tasks|length + _term_pat|length + _term_sched|length %}
+            <div class="yp-side-section" data-yp-section="{{ term_num }}">
+                <button type="button" class="yp-side-link yp-side-section-h" data-yp-filter="{{ term_num }}" data-yp-toggle="1">
+                    <span class="yp-side-link-label">
+                        <span class="yp-side-link-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></span>
+                        <span>Term {{ term_num }}</span>
+                    </span>
+                    <svg class="yp-side-caret" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+                <div class="yp-side-children">
+                    {% set _seq = namespace(n=0) %}
+                    {% for t in _term_tasks %}
+                        {% set _seq.n = _seq.n + 1 %}
+                        <button type="button" class="yp-side-sublink" data-yp-filter="{{ term_num }}" data-yp-task="{{ loop.index }}">
+                            <span class="yp-side-num">{{ _seq.n }}</span>
+                            <span class="yp-side-sublink-text">{{ t.name }}</span>
+                        </button>
+                    {% endfor %}
+                    {% for p in _term_pat %}
+                        {% set _seq.n = _seq.n + 1 %}
+                        <button type="button" class="yp-side-sublink" data-yp-filter="{{ term_num }}">
+                            <span class="yp-side-num">{{ _seq.n }}</span>
+                            <span class="yp-side-sublink-text">{{ p.phase }}</span>
+                        </button>
+                    {% endfor %}
+                    {% for it in _term_sched %}
+                        {% set _seq.n = _seq.n + 1 %}
+                        <button type="button" class="yp-side-sublink" data-yp-filter="{{ term_num }}">
+                            <span class="yp-side-num">{{ _seq.n }}</span>
+                            <span class="yp-side-sublink-text">{{ it.title }}</span>
+                        </button>
+                    {% endfor %}
+                    {% if not _term_tasks and not _term_pat and not _term_sched %}
+                        <div class="yp-side-empty">No items</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </nav>
+</aside>
+
+<div class="yp-main">
+
+{# ── Dashboard summary (shown when no term is selected) ── #}
+{% set total_sba = (g.terms[1]|length) + (g.terms[2]|length) + (g.terms[3]|length) + (g.terms[4]|length) %}
+{% set total_marks = (g.terms[1] | map(attribute='marks') | sum) + (g.terms[2] | map(attribute='marks') | sum) + (g.terms[3] | map(attribute='marks') | sum) + (g.terms[4] | map(attribute='marks') | sum) %}
+{% set total_pat = g.pat|length %}
+{% set total_sched = (by_term[1]|length) + (by_term[2]|length) + (by_term[3]|length) + (by_term[4]|length) %}
+<div class="yp-dash" data-yp-dash>
+    {# Overview card — two big metrics like the reference #}
+    <section class="yp-ov">
+        <header class="yp-ov-h">
+            <h2>Overview</h2>
+            <div class="yp-ov-pill">{{ year }}</div>
+        </header>
+        <div class="yp-ov-stats">
+            <div class="yp-ov-stat">
+                <div class="yp-ov-stat-h">
+                    <span class="yp-ov-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                    <span class="yp-ov-label">SBA tasks</span>
+                </div>
+                <div class="yp-ov-row">
+                    <div class="yp-ov-num">{{ total_sba }}</div>
+                    <div class="yp-ov-badge yp-ov-badge-pos">{{ total_marks }} marks</div>
+                </div>
+                <div class="yp-ov-foot">across all 4 terms</div>
+            </div>
+            <div class="yp-ov-stat">
+                <div class="yp-ov-stat-h">
+                    <span class="yp-ov-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+                    <span class="yp-ov-label">Planned items</span>
+                </div>
+                <div class="yp-ov-row">
+                    <div class="yp-ov-num">{{ total_pat + total_sched }}</div>
+                    <div class="yp-ov-badge yp-ov-badge-neutral">{{ total_pat }} PAT · {{ total_sched }} scheduled</div>
+                </div>
+                <div class="yp-ov-foot">SBA weighting · {{ g.sba_split }}</div>
+            </div>
+        </div>
+
+        <div class="yp-ov-subline">Jump straight to a term</div>
+        <div class="yp-ov-subsub">Click any term below to see its full plan.</div>
+        <div class="yp-ov-avatars">
+            {% for term_num in [1,2,3,4] %}
+                <button type="button" class="yp-ov-av t-{{ term_num }}" data-yp-filter="{{ term_num }}" title="Term {{ term_num }}">
+                    <span class="yp-ov-av-circle">T{{ term_num }}</span>
+                    <span class="yp-ov-av-name">Term {{ term_num }}</span>
+                </button>
+            {% endfor %}
+            <button type="button" class="yp-ov-av yp-ov-av-all" data-yp-scroll-terms>
+                <span class="yp-ov-av-circle yp-ov-av-arrow"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
+                <span class="yp-ov-av-name">View all</span>
+            </button>
+        </div>
+    </section>
+
+    {# Terms at a glance — like Product view section #}
+    <section class="yp-pv" id="ypTermsAtAGlance">
+        <header class="yp-pv-h">
+            <h2>Terms at a glance</h2>
+            <div class="yp-ov-pill">All terms</div>
+        </header>
+        <div class="yp-dash-grid">
+            {% for term_num in [1,2,3,4] %}
+                {% set _t = g.terms[term_num] %}
+                {% set _p = g.pat | selectattr('term', 'equalto', term_num) | list %}
+                {% set _s = by_term[term_num] %}
+                {% set _m = _t | map(attribute='marks') | sum %}
+                {% set _items = (_t|length) + (_p|length) + (_s|length) %}
+                <button type="button" class="yp-dash-card t-{{ term_num }}" data-yp-filter="{{ term_num }}">
+                    <div class="yp-dash-card-h">
+                        <div class="yp-dash-card-title">
+                            <span class="yp-dash-card-chip">T{{ term_num }}</span>
+                            <div>
+                                <div class="yp-dash-card-eyebrow">Term {{ term_num }}</div>
+                                <div class="yp-dash-card-dates">{{ term_dates[term_num].start }} – {{ term_dates[term_num].end }}</div>
+                            </div>
+                        </div>
+                        <div class="yp-dash-card-weeks">{{ term_dates[term_num].weeks }} <span>weeks</span></div>
+                    </div>
+                    <div class="yp-dash-card-rows">
+                        <div><strong>{{ _t|length }}</strong><span>SBA</span></div>
+                        <div><strong>{{ _m }}</strong><span>Marks</span></div>
+                        <div><strong>{{ _p|length }}</strong><span>PAT</span></div>
+                        <div><strong>{{ _s|length }}</strong><span>Scheduled</span></div>
+                    </div>
+                    {% if _items > 0 %}
+                    <ul class="yp-dash-card-list">
+                        {% for t in _t[:2] %}
+                            <li><span class="yp-side-dot" style="background:#FF7849;"></span>{{ t.name }}</li>
+                        {% endfor %}
+                        {% for p in _p[:1] %}
+                            <li><span class="yp-side-dot" style="background:#10B981;"></span>{{ p.phase }}</li>
+                        {% endfor %}
+                        {% if _items > 3 %}<li class="yp-dash-card-more">+ {{ _items - 3 }} more</li>{% endif %}
+                    </ul>
+                    {% else %}
+                    <div class="yp-dash-card-empty">No items planned yet</div>
+                    {% endif %}
+                    <div class="yp-dash-card-cta">View full term <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+                </button>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<div class="yp-grid">
+    {% for term_num in [1,2,3,4] %}
+        {% set term_pat = g.pat | selectattr('term', 'equalto', term_num) | list %}
+        {% set term_tasks = g.terms[term_num] %}
+        {% set term_total_marks = term_tasks | map(attribute='marks') | sum %}
+        {% set term_scheduled_count = by_term[term_num] | length %}
+        <div class="yp-term t-{{ term_num }}"
+             data-yp-term="{{ term_num }}"
+             data-yp-start="{{ term_dates[term_num].start }} {{ year }}"
+             data-yp-end="{{ term_dates[term_num].end }} {{ year }}"
+             data-yp-weeks="{{ term_dates[term_num].weeks }}"
+             role="button" tabindex="0" aria-label="Open term {{ term_num }} side panel">
+            <div class="yp-term-h">
+                <div class="yp-term-h-title">
+                    <span class="yp-term-chip">T{{ term_num }}</span>
+                    <div>
+                        <div class="yp-term-title">Term {{ term_num }}</div>
+                        <div class="yp-term-num">{{ term_dates[term_num].start }} – {{ term_dates[term_num].end }} · {{ term_dates[term_num].weeks }} weeks</div>
+                    </div>
+                </div>
+                <button type="button" class="yp-open-btn" title="Open term panel" aria-label="Open term {{ term_num }} side panel">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </div>
+
+            <div class="yp-term-overview">
+                <strong>Summary:</strong>
+                {{ term_tasks|length }} SBA tasks · {{ term_total_marks }} marks · {{ term_pat|length }} PAT phases · {{ term_scheduled_count }} scheduled items
+            </div>
+
+            <div class="yp-section yp-section-sba">
+            <div class="yp-section-h">SBA Tasks ({{ term_tasks|length }})</div>
+            <div class="yp-sba-list">
+            {% for t in term_tasks %}
+                {% set km = kind_meta[t.kind] %}
+                <div class="yp-task yp-row">
+                    <span class="yp-row-thumb yp-row-thumb-{{ t.kind }}" aria-hidden="true">
+                        {% if t.kind == 'exam' %}
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 14h6M9 17h4"/></svg>
+                        {% elif t.kind == 'test' %}
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>
+                        {% else %}
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                        {% endif %}
+                    </span>
+                    <div class="yp-row-body">
+                        <div class="yp-row-title">{{ t.name }}</div>
+                        <div class="yp-row-sub">{{ km.label }} · {{ t.time }}{% if t.weight and t.weight != '—' %} · {{ t.weight }}{% endif %}</div>
+                        {% if t.note %}<div class="yp-row-note">{{ t.note }}</div>{% endif %}
+                    </div>
+                    <div class="yp-row-value">
+                        <div class="yp-row-value-num">{{ t.marks }}</div>
+                        <div class="yp-row-value-lbl">marks</div>
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+            </div>
+
+            {% if term_pat %}
+            <div class="yp-section yp-section-pat">
+                <div class="yp-section-h">Practical Assessment Task ({{ term_pat|length }})</div>
+                {% for p in term_pat %}
+                    <div class="yp-pat yp-row">
+                        <span class="yp-row-thumb yp-row-thumb-pat" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+                        </span>
+                        <div class="yp-row-body">
+                            <div class="yp-row-title">{{ p.phase }}</div>
+                            {% if p.note %}<div class="yp-row-note">{{ p.note }}</div>{% endif %}
+                        </div>
+                        <div class="yp-row-tag">PAT</div>
+                    </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="yp-section is-empty" aria-hidden="true"></div>
+            {% endif %}
+
+            <div class="yp-section yp-section--ysi">
+            <div class="yp-section-h">Your Scheduled Items ({{ term_scheduled_count }})</div>
+            {% if by_term[term_num] %}
+                {% for it in by_term[term_num] %}
+                    <div class="yp-custom"
+                         data-date="{{ it.start_date.isoformat() }}"
+                         {% if it.end_date %}data-end-date="{{ it.end_date.isoformat() }}"{% endif %}
+                         data-kind="{{ it.kind }}"
+                         data-title="{{ it.title }}">
+                        <div style="min-width:0; flex:1;">
+                            <div class="yp-task-name">{{ it.title }}</div>
+                            <div class="yp-custom-meta">
+                                <span class="yp-meta-pill"><strong>Date</strong>{{ it.start_date.strftime('%a %d %b') }}{% if it.end_date %} → {{ it.end_date.strftime('%a %d %b') }}{% endif %}</span>
+                                <span class="yp-meta-pill"><strong>Type</strong>{{ it.kind|title }}</span>
+                                {% if it.grade %}<span class="yp-meta-pill"><strong>Grade</strong>{{ it.grade }}</span>{% endif %}
+                            </div>
+                        </div>
+                        <div style="white-space:nowrap;">
+                            <a class="t-icon-btn" title="Edit" href="{{ url_for('teacher_planner_edit', item_id=it.id) }}">
+                                <img src="{{ url_for('static', filename='images/edit.png') }}" alt="Edit" width="14" height="14">
+                            </a>
+                            <form method="post" action="{{ url_for('teacher_planner_delete', item_id=it.id) }}" style="display:inline;" data-confirm="Delete this planner item?">
+                                <button class="t-icon-btn danger" title="Delete">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="yp-empty">No scheduled items for this term yet.</div>
+            {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+</div>
+</div>
+</div>
+
+{# ─── Formal Assessment weighting tables (CAPS) ─── #}
+<style>
+.cap-tables { margin-top:28px; display:grid; grid-template-columns:1fr; gap:22px; }
+.cap-wrap h3 { font-size:14px; font-weight:600; letter-spacing:-0.2px; color:var(--text); margin:0 0 8px; }
+.cap-wrap h3.cap-heading-grade { font-size:16px; font-weight:700; }
+.cap-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text);
+    border: 1px solid rgba(127,127,127,0.30);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #FFFFFF;
+}
+.cap-table th, .cap-table td {
+    border-right: 1px solid rgba(127,127,127,0.30);
+    border-bottom: 1px solid rgba(127,127,127,0.30);
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+.cap-table tr > *:last-child { border-right: none; }
+.cap-table tbody tr:last-child td { border-bottom: none; }
+.cap-table thead th { background:var(--az-blue); color:#FFFFFF; font-weight:700; font-size:17px; text-align:center; border-color:var(--az-blue); }
+.cap-table .cap-pct { text-align:center; font-weight:600; color:var(--text); }
+.cap-table .cap-cat { text-align:center; font-weight:600; }
+.cap-table tbody tr:nth-child(even) td { background: rgba(0,120,212,0.03); }
+.cap-table tbody tr:hover td,
+[data-theme="dark"] .cap-table tbody tr:hover td { background: rgba(0,120,212,0.09) !important; }
+.cap-table td strong { display:block; margin-bottom:4px; font-weight:600; }
+.cap-table td p { margin:0 0 4px; color:var(--text-secondary); font-size:12px; line-height:1.45; }
+</style>
+<div class="cap-tables">
+
+    <div class="cap-wrap">
+        <h3 class="cap-heading-grade">Grade 10 and 11</h3>
+        <table class="cap-table">
+            <thead>
+                <tr><th colspan="4">Formal Assessment</th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="cap-cat">During the Year</td><td class="cap-cat" colspan="3">End-of-Year Examination</td></tr>
+                <tr><td class="cap-pct">40%</td><td class="cap-pct" colspan="3">60%</td></tr>
+                <tr><td class="cap-cat">SBA tasks</td><td class="cap-cat">Practical Assessment Task</td><td class="cap-cat" colspan="2">End-of-Year Exam Papers (50%)</td></tr>
+                <tr><td class="cap-pct">40%</td><td class="cap-pct">20%</td><td class="cap-pct">20%</td><td class="cap-pct">20%</td></tr>
+                <tr>
+                    <td>
+                        <p>4 tests (1 alternative form of assessment, test, open book test, case study or survey)</p>
+                        <p>1 exam (mid-year)</p>
+                    </td>
+                    <td>
+                        <strong>Project</strong>
+                        <p>Information management project based on providing a solution to a specific scenario by using the applications as indicated under Solution Development</p>
+                    </td>
+                    <td>
+                        <strong>Practical exam</strong>
+                        <p>2.5 – 3 hours</p>
+                        <p>Solution Development</p>
+                    </td>
+                    <td>
+                        <strong>Written exam</strong>
+                        <p>2.5 – 3 hours</p>
+                        <p>Theory aspects of all content, concepts and skills of all topics</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="cap-wrap">
+        <h3 class="cap-heading-grade">Grade 12</h3>
+        <table class="cap-table">
+            <thead>
+                <tr><th colspan="4">Formal Assessment</th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="cap-cat">During the Year</td><td class="cap-cat" colspan="3">End-of-Year Examination</td></tr>
+                <tr><td class="cap-pct">25%</td><td class="cap-pct" colspan="3">75%</td></tr>
+                <tr><td class="cap-cat">SBA</td><td class="cap-cat">Practical Assessment Task</td><td class="cap-cat" colspan="2">End-of-Year Exam Papers (50%)</td></tr>
+                <tr><td class="cap-pct">25%</td><td class="cap-pct">25%</td><td class="cap-pct">25%</td><td class="cap-pct">25%</td></tr>
+                <tr>
+                    <td>
+                        <p>3 tests (1 alternative form of assessment open book test or case study or survey)</p>
+                        <p>2 exams (mid-year and trial)</p>
+                    </td>
+                    <td>
+                        <strong>Project</strong>
+                        <p>Information management project based on providing a solution to a specific scenario by using the applications as indicated under Solution Development</p>
+                    </td>
+                    <td>
+                        <strong>Practical exam</strong>
+                        <p>3 hours</p>
+                        <p>Solution Development</p>
+                    </td>
+                    <td>
+                        <strong>Written exam</strong>
+                        <p>3 hours</p>
+                        <p>Theory aspects of all content, concepts and skills of all topics</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% if by_term[0] %}
+<div class="t-card" style="margin-top:18px;">
+    <h3 style="margin:0 0 12px;">Unscheduled (no term)</h3>
+    {% for it in by_term[0] %}
+        <div class="yp-custom">
+            <div style="min-width:0; flex:1;">
+                <div class="yp-task-name">{{ it.title }}</div>
+                <div class="yp-custom-meta">
+                    <span class="yp-meta-pill"><strong>Date</strong>{{ it.start_date.strftime('%a %d %b %Y') }}</span>
+                    <span class="yp-meta-pill"><strong>Type</strong>{{ it.kind|title }}</span>
+                    {% if it.grade %}<span class="yp-meta-pill"><strong>Grade</strong>{{ it.grade }}</span>{% endif %}
+                </div>
+            </div>
+            <div style="white-space:nowrap;">
+                <a class="t-icon-btn" title="Edit" href="{{ url_for('teacher_planner_edit', item_id=it.id) }}">
+                    <img src="{{ url_for('static', filename='images/edit.png') }}" alt="Edit" width="14" height="14">
+                </a>
+                <form method="post" action="{{ url_for('teacher_planner_delete', item_id=it.id) }}" style="display:inline;" data-confirm="Delete this planner item?">
+                    <button class="t-icon-btn danger" title="Delete">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<style>
+/* ── Year planner — clean dashboard-style left sidebar ─────── */
+.yp-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+@media (max-width: 980px) {
+    .yp-layout { grid-template-columns: 1fr; gap: 16px; }
+    .yp-side { position: static; max-height: none; }
+}
+
+.yp-side {
+    --yp-ink: #1A1A1A;
+    --yp-ink-soft: #6B7280;
+    --yp-muted: #9CA3AF;
+    --yp-line: rgba(15,23,42,0.06);
+    position: sticky; top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: transparent;
+    border: none;
+    padding: 16px 8px;
+    box-shadow: none;
+    font-family: "Inter","Segoe UI","Segoe UI Variable",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing: antialiased;
+    scrollbar-width: thin;
+}
+.yp-side::-webkit-scrollbar { width: 6px; }
+.yp-side::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.12); border-radius: 999px; }
+
+.yp-side-h { padding: 4px 12px 18px; margin-bottom: 4px; }
+.yp-side-h-mark { display: none; }
+.yp-side-eyebrow {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.10em; color: var(--yp-muted);
+}
+.yp-side-title { font-size: 14px; font-weight: 600; color: var(--yp-ink); margin-top: 4px; letter-spacing: -0.005em; }
+
+.yp-side-nav { display: flex; flex-direction: column; gap: 2px; }
+
+.yp-side-link {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%; padding: 10px 12px;
+    border-radius: 10px;
+    background: transparent; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: var(--yp-ink-soft);
+    text-align: left; font-family: inherit; letter-spacing: -0.005em;
+    transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.yp-side-link:hover { color: var(--yp-ink); }
+.yp-side-link.is-active {
+    color: var(--yp-ink);
+    background: #FFFFFF;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.05);
+    font-weight: 600;
+}
+.yp-side-link-label { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.yp-side-link-icon {
+    width: 18px; height: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: currentColor;
+    flex: 0 0 auto;
+}
+
+.yp-side-caret { color: var(--yp-muted); transition: transform .2s ease; flex: 0 0 auto; }
+.yp-side-section.is-open .yp-side-caret { transform: rotate(90deg); color: var(--yp-ink); }
+
+.yp-side-children {
+    margin: 2px 0 4px 30px; padding: 2px 0 2px 12px;
+    border-left: 1px solid var(--yp-line);
+    display: none;
+    animation: ypFadeIn .2s ease both;
+}
+.yp-side-section.is-open .yp-side-children { display: block; }
+
+.yp-side-sublink {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 6px 10px; border-radius: 6px; border: none; background: transparent; cursor: pointer;
+    color: var(--yp-ink-soft); font-size: 13px; font-weight: 500;
+    text-align: left; font-family: inherit;
+    overflow: hidden;
+    transition: background .15s ease, color .15s ease;
+}
+.yp-side-sublink:hover { background: rgba(15,23,42,0.04); color: var(--yp-ink); }
+.yp-side-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+.yp-side-num {
+    width: 20px; height: 20px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--yp-soft);
+    background: rgba(15,23,42,0.05);
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+}
+.yp-side-sublink-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.yp-side-empty { font-size: 12px; color: var(--yp-muted); padding: 6px 10px; font-style: italic; }
+
+/* Filtered state */
+.yp-layout.is-filtered .yp-grid { grid-template-columns: 1fr; }
+.yp-layout.is-filtered .yp-term { display: none; }
+.yp-layout.is-filtered .yp-term.is-shown { display: grid; animation: ypFadeIn .25s ease both; }
+@keyframes ypFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* Dashboard / grid visibility:
+   - Default ("all" filter) → show .yp-dash, hide .yp-grid
+   - Term selected (.is-filtered) → hide .yp-dash, show .yp-grid filtered to one term */
+.yp-main > .yp-grid { display: none; }
+.yp-layout.is-filtered .yp-dash { display: none; }
+.yp-layout.is-filtered .yp-main > .yp-grid { display: grid; }
+
+/* ── Dashboard summary ── */
+.yp-dash {
+    display: flex; flex-direction: column; gap: 20px;
+    font-family: "Inter","Segoe UI","Segoe UI Variable",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: #1A1A1A;
+    animation: ypFadeIn .25s ease both;
+}
+
+/* Overview / Product-view sections share container styling */
+.yp-ov, .yp-pv {
+    background: #FFFFFF;
+    border: 1px solid rgba(15,23,42,0.06);
+    border-radius: 20px;
+    padding: 22px 24px 24px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+.yp-ov-h, .yp-pv-h {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+}
+.yp-ov-h h2, .yp-pv-h h2 {
+    margin: 0; font-size: 18px; font-weight: 700;
+    color: #1A1A1A; letter-spacing: -0.01em;
+}
+.yp-ov-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #FFFFFF; border: 1px solid rgba(15,23,42,0.10);
+    color: #1A1A1A; font-size: 13px; font-weight: 500;
+    padding: 6px 12px; border-radius: 999px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+
+/* Two big stat cards (inline, like Customers / Balance) */
+.yp-ov-stats {
+    display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px;
+}
+@media (max-width: 880px){ .yp-ov-stats { grid-template-columns: 1fr; } }
+.yp-ov-stat {
+    background: #FFFFFF;
+    border: 1px solid rgba(15,23,42,0.08);
+    border-radius: 16px;
+    padding: 18px 20px 16px;
+}
+.yp-ov-stat-h {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+}
+.yp-ov-icon {
+    width: 18px; height: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #475569;
+}
+.yp-ov-label { font-size: 14px; font-weight: 600; color: #0F172A; }
+.yp-ov-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.yp-ov-num {
+    font-size: 44px; font-weight: 700; color: #0F172A;
+    letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.yp-ov-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600;
+    padding: 4px 10px; border-radius: 999px;
+    line-height: 1.4;
+}
+.yp-ov-badge-pos { background: rgba(16,185,129,0.10); color: #047857; }
+.yp-ov-badge-neg { background: rgba(255,120,73,0.10); color: #B43E0F; }
+.yp-ov-badge-neutral { background: rgba(15,23,42,0.06); color: #475569; }
+.yp-ov-foot { font-size: 12px; color: #94A3B8; margin-top: 6px; }
+
+/* Avatar row */
+.yp-ov-subline {
+    font-size: 16px; font-weight: 700; color: #0F172A;
+    margin-top: 22px; letter-spacing: -0.01em;
+}
+.yp-ov-subsub { font-size: 13px; color: #6B7280; margin-top: 2px; margin-bottom: 14px; }
+.yp-ov-avatars {
+    display: flex; gap: 18px; flex-wrap: wrap;
+}
+.yp-ov-av {
+    background: transparent; border: none; padding: 0; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    font-family: inherit;
+    transition: transform .15s ease;
+}
+.yp-ov-av:hover { transform: translateY(-2px); }
+.yp-ov-av-circle {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #FFFFFF; font-weight: 700; font-size: 16px;
+    letter-spacing: -0.01em;
+    box-shadow: 0 4px 10px -4px rgba(15,23,42,0.25);
+}
+.yp-ov-av.t-1 .yp-ov-av-circle { background: linear-gradient(135deg, #FF7849, #FFB088); }
+.yp-ov-av.t-2 .yp-ov-av-circle { background: linear-gradient(135deg, #10B981, #6EE7B7); }
+.yp-ov-av.t-3 .yp-ov-av-circle { background: linear-gradient(135deg, #0EA5E9, #7DD3FC); }
+.yp-ov-av.t-4 .yp-ov-av-circle { background: linear-gradient(135deg, #8B5CF6, #C4B5FD); }
+.yp-ov-av-arrow {
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+    border: 1px solid rgba(15,23,42,0.10);
+    box-shadow: none !important;
+}
+.yp-ov-av:hover .yp-ov-av-arrow { background: #0F172A !important; color: #FFFFFF !important; border-color: transparent; }
+.yp-ov-av-name { font-size: 13px; font-weight: 600; color: #0F172A; }
+
+/* Term cards */
+.yp-dash-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px;
+}
+@media (max-width: 780px){ .yp-dash-grid { grid-template-columns: 1fr; } }
+.yp-dash-card {
+    text-align: left; cursor: pointer; font-family: inherit; color: inherit;
+    background: #FFFFFF;
+    border: 1px solid rgba(15,23,42,0.08);
+    border-radius: 16px;
+    padding: 18px 20px 16px;
+    display: flex; flex-direction: column; gap: 14px;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    position: relative; overflow: hidden;
+}
+.yp-dash-card:hover { transform: translateY(-2px); box-shadow: 0 14px 32px -16px rgba(15,23,42,0.20); border-color: rgba(15,23,42,0.14); }
+.yp-dash-card-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.yp-dash-card-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.yp-dash-card-chip {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #FFFFFF;
+    letter-spacing: -0.01em; flex: 0 0 auto;
+    box-shadow: 0 4px 10px -4px rgba(15,23,42,0.25);
+}
+.yp-dash-card.t-1 .yp-dash-card-chip { background: linear-gradient(135deg, #FF7849, #FFB088); }
+.yp-dash-card.t-2 .yp-dash-card-chip { background: linear-gradient(135deg, #10B981, #6EE7B7); }
+.yp-dash-card.t-3 .yp-dash-card-chip { background: linear-gradient(135deg, #0EA5E9, #7DD3FC); }
+.yp-dash-card.t-4 .yp-dash-card-chip { background: linear-gradient(135deg, #8B5CF6, #C4B5FD); }
+.yp-dash-card-eyebrow { font-size: 16px; font-weight: 700; color: #0F172A; letter-spacing: -0.01em; line-height: 1.2; }
+.yp-dash-card-dates { font-size: 12px; color: #94A3B8; font-weight: 500; margin-top: 3px; }
+.yp-dash-card-weeks {
+    font-size: 22px; font-weight: 700; color: #0F172A;
+    letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+.yp-dash-card-weeks span { display: block; font-size: 10px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+.yp-dash-card-rows {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    padding: 14px 0; border-top: 1px solid rgba(15,23,42,0.06); border-bottom: 1px solid rgba(15,23,42,0.06);
+}
+.yp-dash-card-rows > div { display: flex; flex-direction: column; gap: 2px; }
+.yp-dash-card-rows strong { font-size: 18px; font-weight: 700; color: #0F172A; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.yp-dash-card-rows span { font-size: 10px; color: #94A3B8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.yp-dash-card-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.yp-dash-card-list li {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: #475569; font-weight: 500;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.yp-dash-card-list li .yp-side-dot { box-shadow: none; }
+.yp-dash-card-more { color: #94A3B8 !important; font-size: 12px !important; padding-left: 14px; }
+.yp-dash-card-empty { font-size: 12px; color: #94A3B8; font-style: italic; }
+.yp-dash-card-cta {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: #475569; margin-top: 2px;
+    transition: color .15s ease, gap .2s ease;
+}
+.yp-dash-card:hover .yp-dash-card-cta { color: #0F172A; gap: 10px; }
+
+/* Cards no longer act as drawer triggers */
+.yp-open-btn { display: none !important; }
+.yp-term { cursor: default; }
+.yp-term:hover { transform: none; }
+
+/* ================================================================
+   DARK THEME OVERRIDES — match teacher overview dashboard
+   ================================================================ */
+body                { background: #0A0A0A !important; }
+.t-shell            { background: #0A0A0A !important; }
+.t-head             { border-bottom-color: rgba(255,255,255,0.08) !important; }
+.t-shell,
+.t-shell *:not(.navbar):not(.navbar *) { color: rgba(255,255,255,0.85) !important; }
+.t-shell .t-eyebrow { color: rgba(255,255,255,0.40) !important; font-size: 12px !important; letter-spacing: 2.4px !important; }
+.t-shell .t-title   { color: #FFFFFF !important; font-size: clamp(36px, 4.2vw, 56px) !important; font-weight: 700 !important; letter-spacing: -1.8px !important; line-height: 1.02 !important; }
+.t-shell .t-sub     { color: rgba(255,255,255,0.50) !important; font-size: 15px !important; }
+.t-shell .t-tabs                  { border-bottom-color: rgba(255,255,255,0.08) !important; }
+.t-shell .t-tabs a                { color: rgba(255,255,255,0.50) !important; border-color: transparent !important; background: transparent !important; }
+.t-shell .t-tabs a:hover          { color: rgba(255,255,255,0.85) !important; background: rgba(255,255,255,0.05) !important; }
+.t-shell .t-tabs a.is-active,
+.t-shell .t-tabs a.is-active *    { color: #A8C5FF !important; border-bottom-color: #A8C5FF !important; background: transparent !important; }
+.t-shell .t-thin-btn,
+.t-shell .t-thin-btn * {
+    background: #161616 !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    color: rgba(255,255,255,0.70) !important;
+}
+.t-shell .t-thin-btn:hover,
+.t-shell .t-thin-btn:hover * { color: #A8C5FF !important; border-color: #A8C5FF !important; background: rgba(79,139,245,0.08) !important; }
+
+/* Toolbar (filters card) */
+.t-shell .yp-toolbar.t-card {
+    background: #161616 !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 22px !important;
+}
+.t-shell .yp-toolbar label,
+.t-shell .yp-toolbar .fdd-label,
+.t-shell .yp-toolbar .caret { color: rgba(255,255,255,0.85) !important; }
+.t-shell .yp-toolbar .fdd-toggle {
+    background: #0F0F0F !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    color: rgba(255,255,255,0.85) !important;
+}
+.fdd-panel {
+    background: #161616 !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: rgba(255,255,255,0.85) !important;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.55) !important;
+}
+.fdd-item {
+    color: rgba(255,255,255,0.80) !important;
+    background: transparent !important;
+}
+.fdd-item:hover,
+.fdd-item.is-active,
+.fdd-item.is-selected {
+    background: rgba(255,255,255,0.06) !important;
+    color: #FFFFFF !important;
+}
+
+/* Layout / Sidebar */
+.yp-layout { background: transparent !important; }
+.yp-side {
+    background: #161616 !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 22px !important;
+    color: rgba(255,255,255,0.85) !important;
+}
+.yp-side-h, .yp-side-h * { color: rgba(255,255,255,0.40) !important; font-size: 11px !important; letter-spacing: 1.8px !important; text-transform: uppercase !important; }
+.yp-side-link {
+    background: transparent !important;
+    color: rgba(255,255,255,0.70) !important;
+    border-radius: 10px !important;
+}
+.yp-side-link:hover { background: transparent !important; color: rgba(255,255,255,0.70) !important; }
+.yp-side-link.is-active,
+.yp-side-link.is-active * { color: #A8C5FF !important; background: transparent !important; }
+.yp-side-section.is-open .yp-side-section-h { background: transparent !important; }
+.yp-side-link-icon, .yp-side-caret { color: rgba(255,255,255,0.50) !important; }
+.yp-side-children { border-left-color: rgba(255,255,255,0.10) !important; }
+.yp-side-sublink {
+    color: rgba(255,255,255,0.60) !important;
+    background: transparent !important;
+}
+.yp-side-sublink:hover { color: rgba(255,255,255,0.60) !important; background: transparent !important; }
+.yp-side-sublink.is-active { color: #A8C5FF !important; background: transparent !important; }
+.yp-side-num {
+    background: rgba(255,255,255,0.06) !important;
+    color: rgba(255,255,255,0.70) !important;
+}
+.yp-side-empty { color: rgba(255,255,255,0.30) !important; }
+
+/* Overview & Terms-at-a-glance card containers */
+.yp-ov, .yp-pv {
+    background: #161616 !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 22px !important;
+    box-shadow: none !important;
+}
+.yp-ov-h h2, .yp-pv-h h2 { color: #FFFFFF !important; }
+.yp-ov-pill {
+    background: #0F0F0F !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    color: rgba(255,255,255,0.70) !important;
+    box-shadow: none !important;
+}
+
+/* Inline stat cards inside Overview */
+.yp-ov-stat {
+    background: #0F0F0F !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 18px !important;
+}
+.yp-ov-label { color: rgba(255,255,255,0.85) !important; }
+.yp-ov-icon { color: rgba(255,255,255,0.50) !important; }
+.yp-ov-num { color: #FFFFFF !important; letter-spacing: -1.6px !important; }
+.yp-ov-foot { color: rgba(255,255,255,0.40) !important; }
+.yp-ov-badge-pos { background: rgba(108,203,95,0.18) !important; color: #6CCB5F !important; }
+.yp-ov-badge-neg { background: rgba(255,120,73,0.18) !important; color: #FFB088 !important; }
+.yp-ov-badge-neutral { background: rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.70) !important; }
+
+/* Avatar row */
+.yp-ov-subline { color: #FFFFFF !important; }
+.yp-ov-subsub { color: rgba(255,255,255,0.45) !important; }
+.yp-ov-av-name { color: rgba(255,255,255,0.85) !important; }
+.yp-ov-av-arrow {
+    background: #0F0F0F !important;
+    color: rgba(255,255,255,0.70) !important;
+    border: 1px solid rgba(255,255,255,0.10) !important;
+}
+.yp-ov-av:hover .yp-ov-av-arrow { background: #FFFFFF !important; color: #0A0A0A !important; border-color: transparent !important; }
+
+/* Mini term cards (Terms at a glance) */
+.yp-dash-card {
+    background: #0F0F0F !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 18px !important;
+    box-shadow: none !important;
+}
+.yp-dash-card:hover { border-color: rgba(255,255,255,0.18) !important; box-shadow: none !important; }
+.yp-dash-card-eyebrow { color: #FFFFFF !important; }
+.yp-dash-card-dates { color: rgba(255,255,255,0.40) !important; }
+.yp-dash-card-weeks { color: #FFFFFF !important; }
+.yp-dash-card-weeks span { color: rgba(255,255,255,0.40) !important; }
+.yp-dash-card-rows { border-color: rgba(255,255,255,0.06) !important; }
+.yp-dash-card-rows strong { color: #FFFFFF !important; }
+.yp-dash-card-rows span { color: rgba(255,255,255,0.40) !important; }
+.yp-dash-card-list li { color: rgba(255,255,255,0.70) !important; }
+.yp-dash-card-more { color: rgba(255,255,255,0.40) !important; }
+.yp-dash-card-empty { color: rgba(255,255,255,0.30) !important; }
+.yp-dash-card-cta { color: rgba(255,255,255,0.50) !important; }
+.yp-dash-card:hover .yp-dash-card-cta { color: #A8C5FF !important; }
+
+/* Full term cards (Term 1-4) */
+.yp-term {
+    background: #161616 !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 22px !important;
+    box-shadow: none !important;
+}
+.yp-term-h { border-bottom-color: rgba(255,255,255,0.06) !important; background: transparent !important; }
+.yp-term-title { color: #FFFFFF !important; }
+.yp-term-num { color: rgba(255,255,255,0.40) !important; }
+.yp-term-overview {
+    background: rgba(255,255,255,0.025) !important;
+    color: rgba(255,255,255,0.65) !important;
+    border-bottom-color: rgba(255,255,255,0.06) !important;
+}
+.yp-term-overview strong { color: #FFFFFF !important; }
+.t-shell .yp-grid .yp-term-h { background: transparent !important; border-bottom-color: rgba(255,255,255,0.06) !important; }
+.t-shell.t-shell .yp-grid .yp-term-title { color: #FFFFFF !important; }
+.t-shell.t-shell .yp-grid .yp-term-num { color: rgba(255,255,255,0.40) !important; }
+
+/* Section headers inside term cards */
+.yp-section-h,
+.yp-section-sba .yp-section-h,
+.yp-section-pat .yp-section-h,
+.yp-section--ysi .yp-section-h,
+.t-shell.t-shell .yp-grid .yp-section-h,
+.t-shell.t-shell .yp-grid .yp-section-h * { color: rgba(255,255,255,0.40) !important; }
+
+/* Rows */
+.yp-row { border-bottom-color: rgba(255,255,255,0.05) !important; }
+.yp-row-title,
+.yp-task-name,
+.yp-custom .yp-task-name { color: #FFFFFF !important; }
+.yp-row-sub { color: rgba(255,255,255,0.40) !important; }
+.yp-row-note,
+.yp-task-note { color: rgba(255,255,255,0.55) !important; }
+.yp-note-label { color: #FFFFFF !important; }
+.yp-row-value-num { color: #FFFFFF !important; }
+.yp-row-value-lbl { color: rgba(255,255,255,0.40) !important; }
+.yp-row-thumb-exam { color: #F2B53A !important; }
+.yp-row-thumb-test { color: #A8C5FF !important; }
+.yp-row-thumb-pat  { color: #C7A8F2 !important; }
+.yp-row-tag { background: rgba(199,168,242,0.14) !important; color: #C7A8F2 !important; }
+.yp-task-meta, .yp-task-brief, .yp-task-facts { color: rgba(255,255,255,0.40) !important; }
+.yp-empty { color: rgba(255,255,255,0.30) !important; }
+
+/* Custom scheduled items */
+.yp-custom { border-bottom-color: rgba(255,255,255,0.05) !important; }
+.yp-meta-pill { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.08) !important; color: rgba(255,255,255,0.70) !important; }
+.yp-meta-pill strong { color: #FFFFFF !important; }
+
+/* Formal Assessment tables */
+.cap-wrap h3, .cap-wrap h3.cap-heading-grade { color: #FFFFFF !important; }
+.cap-table {
+    background: #161616 !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    border-radius: 18px !important;
+    color: rgba(255,255,255,0.85) !important;
+    overflow: hidden;
+}
+.cap-table th, .cap-table td {
+    border-right: 1px solid rgba(255,255,255,0.16) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.16) !important;
+}
+.cap-table thead th {
+    background: #0F0F0F !important;
+    color: #FFFFFF !important;
+    border-color: rgba(255,255,255,0.16) !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.14em !important;
+    padding: 18px 16px !important;
+}
+.cap-table .cap-pct, .cap-table .cap-cat,
+.cap-table td strong { color: #FFFFFF !important; }
+.cap-table .cap-cat { font-size: 17px !important; font-weight: 700 !important; padding: 14px 12px !important; letter-spacing: -0.1px !important; }
+.cap-table .cap-pct { font-size: 16px !important; font-weight: 600 !important; padding: 12px !important; }
+.cap-table tbody tr td,
+.cap-table tbody tr:nth-child(even) td,
+.cap-table tbody tr:nth-child(odd) td { background: #161616 !important; }
+.cap-table tbody tr:hover td,
+[data-theme="dark"] .cap-table tbody tr:hover td { background: #161616 !important; }
+.cap-table td p, .cap-table td { color: rgba(255,255,255,0.65) !important; }
+
+.t-card { background: #161616 !important; border: 1px solid rgba(255,255,255,0.06) !important; border-radius: 22px !important; color: rgba(255,255,255,0.85) !important; }
+.t-card h3 { color: #FFFFFF !important; }
+
+/* Subtle scrollbars on dark */
+html, body,
+.yp-layout, .yp-layout *,
+.yp-grid, .yp-grid * {
+    scrollbar-color: rgba(255,255,255,0.18) transparent !important;
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+.yp-layout *::-webkit-scrollbar-thumb,
+.yp-grid *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14) !important; }
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+.yp-layout *::-webkit-scrollbar-thumb:hover,
+.yp-grid *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.32) !important; }
+</style>
+
+<script>
+(function(){
+    const layout = document.querySelector('.yp-layout');
+    if (!layout) return;
+    const sideLinks = layout.querySelectorAll('.yp-side-link[data-yp-filter]');
+    const terms = layout.querySelectorAll('.yp-term[data-yp-term]');
+
+    function applyFilter(value){
+        if (value === 'all'){
+            layout.classList.remove('is-filtered');
+            terms.forEach(t => t.classList.remove('is-shown'));
+        } else {
+            layout.classList.add('is-filtered');
+            terms.forEach(t => t.classList.toggle('is-shown', t.dataset.ypTerm === String(value)));
+        }
+        sideLinks.forEach(l => l.classList.toggle('is-active', l.dataset.ypFilter === String(value)));
+    }
+
+    sideLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            const value = link.dataset.ypFilter;
+            if (link.dataset.ypToggle){
+                const sec = link.closest('.yp-side-section');
+                if (sec){
+                    if (sec.classList.contains('is-open') && link.classList.contains('is-active')){
+                        sec.classList.remove('is-open');
+                    } else {
+                        sec.classList.add('is-open');
+                    }
+                }
+            }
+            applyFilter(value);
+        });
+    });
+
+    layout.querySelectorAll('.yp-side-sublink[data-yp-filter]').forEach(sl => {
+        sl.addEventListener('click', () => {
+            const value = sl.dataset.ypFilter;
+            applyFilter(value);
+            const target = layout.querySelector('.yp-term[data-yp-term="' + value + '"]');
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Dashboard term cards → filter to that term and open its sidebar section
+    layout.querySelectorAll('.yp-dash-card[data-yp-filter]').forEach(card => {
+        card.addEventListener('click', () => {
+            const value = card.dataset.ypFilter;
+            applyFilter(value);
+            const sec = layout.querySelector('.yp-side-section[data-yp-section="' + value + '"]');
+            layout.querySelectorAll('.yp-side-section').forEach(s => s.classList.remove('is-open'));
+            if (sec) sec.classList.add('is-open');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+
+    // Overview avatar buttons → filter to that term
+    layout.querySelectorAll('.yp-ov-av[data-yp-filter]').forEach(av => {
+        av.addEventListener('click', () => {
+            const value = av.dataset.ypFilter;
+            applyFilter(value);
+            const sec = layout.querySelector('.yp-side-section[data-yp-section="' + value + '"]');
+            layout.querySelectorAll('.yp-side-section').forEach(s => s.classList.remove('is-open'));
+            if (sec) sec.classList.add('is-open');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+    const scrollBtn = layout.querySelector('[data-yp-scroll-terms]');
+    if (scrollBtn){
+        scrollBtn.addEventListener('click', () => {
+            const target = layout.querySelector('#ypTermsAtAGlance');
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    const firstSection = layout.querySelector('.yp-side-section');
+    if (firstSection) firstSection.classList.add('is-open');
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,1095 @@
+{#-
+  DBE-style printable question paper / marking guidelines.
+  Mimics the exact look of the official DBE/SC-NSC CAT past papers:
+    * Arial body, 11pt, 1.15 line-height
+    * Cover page with "SENIOR CERTIFICATE EXAMINATIONS / NATIONAL SENIOR CERTIFICATE EXAMINATIONS"
+    * Running page header  "<Subject>/P<n>   <page>   DBE/<Month> <Year>"
+    *                       "SC/NSC Confidential"  (paper)  or  "SC/NSC – Marking Guidelines" (memo)
+    * Footer  "Copyright reserved   Please turn over"
+    * Each section -> one QUESTION whose items are numbered N.1, N.2, ...
+    * Marks shown in narrow right column as "(2)" per item, "[25]" per question, "TOTAL SECTION A: 25", "GRAND TOTAL: 150"
+    * Memo: same shell, items show "Answer ✓" + per-item mark count, no question-text restated as a rule
+-#}
+{% set p = paper %}
+{% set _exam_dt   = p.exam_date %}
+{% set _month     = _exam_dt.strftime('%B') if _exam_dt else 'Month' %}
+{% set _year      = _exam_dt.strftime('%Y')  if _exam_dt else '20XX' %}
+{% set _subject_raw = (p.subject or 'Subject') %}
+{# Paper number: explicit field wins, else parse from title, else 1.
+   Normalise so a value like "P2" / "p 2" / "Paper 2" still becomes just "2"
+   (otherwise the cover would show "PP2"). #}
+{% set _pno_raw = (p.paper_number or '').strip() %}
+{% set _pno = _pno_raw|regex_replace('(?i)^\\s*p(?:aper)?\\s*', '') if _pno_raw else '' %}
+{% if not _pno %}
+    {% set _pno = '1' %}
+    {% if 'P2' in (p.title or '') or 'Paper 2' in (p.title or '') %}{% set _pno = '2' %}{% endif %}
+    {% if 'P3' in (p.title or '') or 'Paper 3' in (p.title or '') %}{% set _pno = '3' %}{% endif %}
+{% endif %}
+{# Strip any trailing " Paper N" / " P N" / "/PN" already baked into the
+   subject so we don't end up with "Computer Applications Technology PP2". #}
+{% set _subject = _subject_raw|regex_replace('(?i)\\s*[/\\-]?\\s*(?:paper\\s*\\d+|p\\s*\\d+)\\s*$', '') %}
+{# Defensively strip an exactly-repeated subject string (e.g.
+   "Computer Applications TechnologyComputer Applications Technology"). #}
+{% set _subject = _subject|regex_replace('^(.+?)\\1+$', '\\1') %}
+{% set _short_subj = _subject ~ '/P' ~ _pno %}
+{% set _is_memo = with_memo %}
+
+{# Helper macro: expand {{page}}, {{subject}}, {{paperno}}, {{month}}, {{year}} placeholders #}
+{% macro tpl(s, page) -%}
+    {%- set out = (s or '') -%}
+    {%- set out = out.replace('{{page}}',    (page|string)) -%}
+    {%- set out = out.replace('{{subject}}', _subject) -%}
+    {%- set out = out.replace('{{paperno}}', _pno) -%}
+    {%- set out = out.replace('{{month}}',   _month) -%}
+    {%- set out = out.replace('{{year}}',    _year) -%}
+    {{- out -}}
+{%- endmacro %}
+
+{# Resolve customisable strings with DBE defaults #}
+{% set _cover_authority = (p.cover_authority or 'SENIOR CERTIFICATE EXAMINATIONS/\nNATIONAL SENIOR CERTIFICATE EXAMINATIONS') %}
+{# Confidential subtitle and sub-header are OPTIONAL: only fall back to the DBE
+   default when the field has never been set (None). An empty string means the
+   teacher cleared it intentionally and we must honour that. #}
+{% set _cover_subtitle  = (p.cover_subtitle if p.cover_subtitle is not none else ('' if _is_memo else 'Confidential')) %}
+{% set _memo_title      = (p.memo_title      or 'MARKING GUIDELINES') %}
+{% set _header_left_t   = (p.header_left     or '{{subject}}/P{{paperno}}') %}
+{% set _header_right_t  = (p.header_right    or 'DBE/{{month}} {{year}}') %}
+{% set _sub_header      = (p.sub_header     if p.sub_header     is not none else ('SC/NSC – Marking Guidelines' if _is_memo else 'SC/NSC Confidential')) %}
+{% set _footer_left     = (p.footer_left     or 'Copyright reserved') %}
+{% set _footer_center   = (p.footer_center   or '') %}
+{% set _footer_right    = (p.footer_right    or 'Please turn over') %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ p.title }}{% if _is_memo %} – Marking Guidelines{% endif %}</title>
+<style>
+* { box-sizing: border-box; }
+@page {
+    size: A4;
+    margin: 1.8cm 1.8cm 2cm 1.8cm;
+    /* Suppress browser-injected header/footer (URL, date, page count). */
+    @top-left { content: ""; }
+    @top-center { content: ""; }
+    @top-right { content: ""; }
+    @bottom-left { content: ""; }
+    @bottom-center { content: ""; }
+    @bottom-right { content: ""; }
+}
+html, body {
+    margin: 0; padding: 0;
+    background: #e9ecef;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt; color: #000; line-height: 1.25;
+}
+
+/* ============ Screen toolbar (hidden on print) ============ */
+.toolbar {
+    position: sticky; top: 0; z-index: 99;
+    background: #1f2937; color: #fff;
+    padding: 10px 18px;
+    display: flex; gap: 10px; align-items: center;
+    font-family: Arial, sans-serif;
+}
+.toolbar h1 { font-size: 14px; margin: 0; flex: 1; font-weight: 600; }
+.toolbar button, .toolbar a {
+    background: #fff; color: #111; border: none;
+    padding: 7px 14px; border-radius: 6px;
+    font-size: 13px; cursor: pointer; text-decoration: none;
+}
+
+/* ============ Page shell ============ */
+.page {
+    width: 21cm; min-height: 29.7cm;
+    padding: 1.8cm 1.8cm 3cm 1.8cm;
+    margin: 18px auto;
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    position: relative;
+    page-break-after: always;
+}
+.page:last-of-type { page-break-after: auto; }
+
+/* ============ Running header (DBE style) ============ */
+.run-hdr {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    font-size: 11pt;
+    font-style: italic;
+    margin-bottom: 4px;
+}
+.run-hdr > :nth-child(1) { text-align: left; }
+.run-hdr > :nth-child(2) { text-align: center; }
+.run-hdr > :nth-child(3) { text-align: right; }
+.run-sub {
+    text-align: center;
+    font-size: 11pt;
+    font-style: italic;
+    margin-bottom: 64px;
+}
+/* Keep a visible gap when sub-header text is intentionally blank. */
+.run-sub-spacer {
+    height: calc(2 * 1.25em);
+}
+
+/* ============ Footer ============ */
+.run-ftr {
+    position: absolute;
+    left: 1.8cm; right: 1.8cm; bottom: 0.9cm;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    font-size: 11pt;
+}
+.run-ftr > :nth-child(1) { text-align: left; }
+.run-ftr > :nth-child(2) { text-align: center; }
+.run-ftr > :nth-child(3) { text-align: right; }
+
+/* ============ Cover page ============ */
+.cover-confidential {
+    text-align: right; font-size: 10.5pt; font-style: italic; letter-spacing: 1px;
+    text-transform: uppercase; color: #b91c1c; margin-bottom: 6px;
+}
+.cover-school {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+    margin: 40px 0 0;
+}
+.cover-school img { max-height: 140px; width: auto; display: block; }
+.cover-school .school-name {
+    font-size: 22pt; font-weight: 900; line-height: 1.15;
+    text-transform: uppercase; color: #0f172a; letter-spacing: 0.5px;
+    text-align: center;
+    margin-top: 30px;
+}
+.cover-center { text-align: center; }
+.cover-center .nat {
+    font-size: 13pt; font-weight: bold; line-height: 1.4;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    margin: 60px 0 0; color: #111827;
+}
+.cover-info-box {
+    border: 1px solid #111827;
+    background: #e5e7eb;
+    padding: 28px 24px;
+    width: 78%;
+    text-align: center;
+    margin: 40px auto 0;
+    box-sizing: border-box;
+}
+.cover-info-box .subject {
+    font-size: 13pt; font-weight: bold; letter-spacing: 0.4px;
+    text-transform: uppercase; margin-bottom: 18px; color: #0f172a;
+}
+.cover-info-box .when {
+    font-size: 13pt; font-weight: bold; letter-spacing: 0.4px;
+    text-transform: uppercase; margin-bottom: 18px; color: #0f172a;
+}
+.cover-info-box .mg-tag {
+    font-size: 13pt; font-weight: bold; letter-spacing: 0.4px;
+    text-transform: uppercase; color: #0f172a;
+}
+.cover-marks {
+    text-align: right; font-size: 12pt; font-weight: bold;
+    margin: 80px 0 0; letter-spacing: 0.5px;
+}
+.cover-time {
+    text-align: right; font-size: 12pt; font-weight: bold;
+    margin: 4px 0 0; letter-spacing: 0.5px;
+}
+.cover-center .pages-note {
+    font-size: 11pt; font-weight: bold; color: #0f172a;
+    margin-top: 40px;
+}
+
+/* ============ Instructions page ============ */
+h2.section-head {
+    font-size: 11pt; font-weight: bold; text-transform: uppercase;
+    margin: 4px 0 10px;
+}
+.instr-list {
+    list-style: none; padding: 0; margin: 0;
+    counter-reset: instr;
+}
+.instr-list li {
+    display: flex; gap: 10px;
+    margin-bottom: 6px;
+    counter-increment: instr;
+    line-height: 1.3;
+}
+.instr-list li::before {
+    content: counter(instr) ".";
+    min-width: 22px; font-weight: normal;
+}
+.instr-list li .txt { flex: 1; }
+ul.instr-list li::before { content: "\2022"; }
+
+/* ============ Body sections / questions ============ */
+.section-banner {
+    text-align: left;
+    font-weight: bold; font-size: 11pt;
+    text-transform: uppercase;
+    margin: 14px 0 22px;
+    letter-spacing: 0.5px;
+}
+.q-head {
+    font-weight: bold; font-size: 11pt;
+    text-transform: uppercase;
+    margin: 18px 0 14px;
+    letter-spacing: 0.3px;
+    /* Keep the question heading with the next intro/item so it never
+       gets orphaned at the bottom of a printed page. */
+    page-break-after: avoid;
+    break-after: avoid;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+.q-intro {
+    margin: 2px 0 10px;
+    font-size: 11pt;
+    line-height: 1.35;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+.section-banner {
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+/* Each item = numbered row with marks column. Optional figure flows on a
+   second grid row spanning the body+marks columns so the number column stays
+   aligned to the question text. */
+.item {
+    display: grid;
+    grid-template-columns: 46px 1fr 44px;
+    column-gap: 10px;
+    margin-bottom: 18px;
+    page-break-inside: avoid;
+}
+.item.depth-3 {
+    /* Sub-items like 4.1.1 / 5.6.2 print indented so their number aligns
+       with the parent item's body text (parent num column = 46px + 10px gap). */
+    grid-template-columns: 56px 56px 1fr 44px;
+    column-gap: 10px;
+    margin-left: 0;
+}
+.item.depth-3 .num { grid-column: 2; }
+.item.depth-3 .body { grid-column: 3; }
+.item.depth-3 .marks { grid-column: 4; }
+.item.depth-3 .q-figure { grid-column: 3 / span 2; }
+.item .num { font-weight: normal; }
+.item .body {
+    white-space: pre-line;
+    line-height: 1.35;
+}
+.item .body .topic-prefix {
+    font-style: italic; color: #444; font-size: 10pt; display: block; margin-bottom: 2px;
+}
+.item .q-figure {
+    grid-column: 2 / span 2;
+    margin: 8px 0 6px;
+    text-align: center;
+    page-break-inside: avoid;
+}
+.q-figure img {
+    max-width: 100%;
+    max-height: 320px;
+    border: 1px solid #444;
+    background: #fff;
+    padding: 6px;
+}
+.item .marks {
+    text-align: right; font-weight: normal;
+    white-space: nowrap;
+}
+
+/* Shared "Options:" block printed once per matching-questions run */
+.match-options {
+    margin: 10px 0 14px 56px;
+    white-space: pre-line;
+    line-height: 1.45;
+    page-break-inside: avoid;
+}
+
+/* ============ True/False section block ============ */
+.tf-no-mark {
+    margin: 8px 0 12px;
+    font-size: 11pt;
+}
+.tf-examples-head {
+    font-weight: bold;
+    text-transform: uppercase;
+    margin: 10px 0 4px;
+    font-size: 11pt;
+}
+table.tf-examples {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 14px;
+    font-size: 11pt;
+}
+table.tf-examples th,
+table.tf-examples td {
+    border: 1px solid #000;
+    padding: 5px 10px;
+    vertical-align: top;
+}
+table.tf-examples th {
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+}
+table.tf-examples td:last-child { width: 140px; }
+
+/* DBE-style two-column matching table (Column A | Column B) */
+.match-block {
+    margin: 6px 0 12px 56px;
+    page-break-inside: avoid;
+}
+table.match-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11pt;
+    line-height: 1.35;
+}
+table.match-tbl th,
+table.match-tbl td {
+    border: 1px solid #b8b8b8;
+    padding: 4px 6px;
+    vertical-align: top;
+}
+table.match-tbl thead th {
+    text-align: center;
+    font-weight: bold;
+    background: #fff;
+}
+table.match-tbl td.ma-num   { width: 38px; white-space: nowrap; }
+table.match-tbl td.ma-desc  { width: auto; }
+table.match-tbl td.mb-letter{ width: 28px; white-space: nowrap; }
+table.match-tbl td.mb-term  { width: 38%; }
+.match-marks {
+    text-align: right;
+    margin-top: 2px;
+    font-size: 10.5pt;
+}
+
+/* MCQ-style choices */
+.choices {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    margin: 4px 0 4px 16px;
+    row-gap: 2px;
+}
+.choices .letter { font-weight: normal; }
+
+/* Per-question / per-section totals */
+.q-total {
+    text-align: right;
+    margin: 4px 0 8px;
+    font-weight: normal;
+}
+.section-total {
+    text-align: right;
+    padding-top: 4px;
+    margin: 40px 0 6px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.grand-total {
+    text-align: right;
+    border-top: 1.2px solid #000;
+    padding-top: 6px;
+    margin-top: 40px;
+    font-weight: bold;
+    font-size: 12pt;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+/* ============ Memo specific ============ */
+.memo-note {
+    margin: 4px 0 12px;
+    padding: 6px 10px;
+    border: 1px solid #000;
+    font-size: 10.5pt;
+}
+.memo-note .label { font-weight: bold; }
+
+/* Bordered marking-guideline table (one per question) */
+table.memo-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4px 0 6px;
+    font-size: 11pt;
+    line-height: 1.4;
+    page-break-inside: auto;
+}
+.memo-q-tbl-head {
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-size: 11pt;
+    margin: 10px 0 4px;
+}
+table.memo-tbl td.tf-note {
+    font-style: italic;
+    padding: 8px 12px;
+}
+table.memo-tbl td.tf-note > div { margin: 2px 0; }
+table.memo-tbl td {
+    border: 1px solid #000;
+    padding: 8px 10px;
+    vertical-align: top;
+}
+table.memo-tbl td.qno    { width: 64px; font-weight: normal; white-space: nowrap; text-align: left; }
+table.memo-tbl td.qno.depth-3 { padding-left: 14px; }
+table.memo-tbl td.ans    { padding: 8px 12px; }
+table.memo-tbl td.ans .q-heading { font-style: italic; font-weight: bold; margin: 0 0 6px; }
+table.memo-tbl td.ans .q-body    { white-space: normal; line-height: 1.45; }
+table.memo-tbl td.ans .q-body .li-num {
+    display: inline-block;
+    width: 2em;
+    text-indent: 0;
+    vertical-align: top;
+}
+table.memo-tbl td.ans .q-body .li-txt {
+    display: inline-block;
+    vertical-align: top;
+    width: calc(100% - 2.1em);
+}
+table.memo-tbl td.ans .q-body .memo-tail {
+    display: block;
+    text-align: right;
+    margin-top: 2px;
+}
+table.memo-tbl td.ans .q-body table.memo-cmp {
+    border-collapse: collapse;
+    width: auto;
+    max-width: 100%;
+    margin: 4px 0;
+    font-size: 10.5pt;
+    line-height: 1.4;
+}
+table.memo-tbl td.ans .q-body table.memo-cmp th,
+table.memo-tbl td.ans .q-body table.memo-cmp td {
+    border: 1px solid #000;
+    padding: 4px 8px;
+    vertical-align: top;
+    text-align: left;
+}
+table.memo-tbl td.ans .q-body table.memo-cmp th {
+    font-weight: bold;
+    font-style: normal;
+}
+table.memo-tbl td.ans .any-tag   { display: inline-block; float: right; font-style: italic; }
+table.memo-tbl td.marks  { width: 44px; text-align: center; font-weight: normal; }
+table.memo-tbl td.gtotal { width: 44px; text-align: center; font-weight: normal; }
+table.memo-tbl tr.section-row td {
+    border: 1px solid #000;
+    text-align: right;
+    font-weight: bold;
+    padding: 8px 12px;
+}
+table.memo-tbl tr { page-break-inside: avoid; }
+.memo-answer { white-space: pre-line; line-height: 1.4; }
+
+/* ===== Compact side-by-side memo grid (DBE-style marking schedule) ===== */
+.memo-section-banner {
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 11pt;
+    margin: 14px 0 6px;
+}
+.memo-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px 18px;
+    align-items: start;
+    margin-bottom: 14px;
+}
+.memo-card {
+    min-width: 0;
+    max-width: 100%;
+    page-break-inside: avoid;
+}
+.memo-card .memo-q-head {
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+    font-size: 10.5pt;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    min-height: 1.4em;
+    line-height: 1.4em;
+}
+table.memo-mini {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 10.5pt;
+    line-height: 1.3;
+}
+table.memo-mini td {
+    border: 1px solid #888;
+    padding: 4px 8px;
+    vertical-align: middle;
+}
+/* MCQ layout: 4 evenly-sized columns. */
+table.memo-mini.kind-mcq td.mn-num    { width: 28%; }
+table.memo-mini.kind-mcq td.mn-letter { width: 28%; }
+table.memo-mini.kind-mcq td.mn-tick   { width: 22%; text-align: center; }
+table.memo-mini.kind-mcq td.mn-marks  { width: 22%; text-align: center; }
+/* True/False layout: same as MCQ. */
+table.memo-mini.kind-true_false td.mn-num    { width: 28%; }
+table.memo-mini.kind-true_false td.mn-letter { width: 28%; }
+table.memo-mini.kind-true_false td.mn-tick   { width: 22%; text-align: center; }
+table.memo-mini.kind-true_false td.mn-marks  { width: 22%; text-align: center; }
+/* Matching: narrow num/letter/tick/marks; term takes the rest. */
+table.memo-mini.kind-matching td.mn-num    { width: 12%; }
+table.memo-mini.kind-matching td.mn-letter { width: 10%; }
+table.memo-mini.kind-matching td.mn-tick   { width: 8%;  text-align: center; }
+table.memo-mini.kind-matching td.mn-term   { width: 60%; text-align: left; }
+table.memo-mini.kind-matching td.mn-marks  { width: 10%; text-align: center; }
+table.memo-mini td.mn-num    { white-space: nowrap; font-weight: normal; padding: 4px 6px; }
+table.memo-mini td.mn-letter { white-space: nowrap; text-align: left; }
+table.memo-mini td.mn-tick   { text-align: center; }
+table.memo-mini td.mn-term   { text-align: left; }
+table.memo-mini td.mn-marks  { text-align: center; }
+table.memo-mini tr.memo-total-row td {
+    border: 1px solid #888;
+    text-align: right;
+    font-weight: bold;
+    padding: 4px 8px;
+}
+.memo-answer .qhead {
+    font-weight: bold;
+    margin-bottom: 3px;
+    color: #000;
+    font-size: 10.5pt;
+}
+.tick {
+    font-weight: bold;
+    color: #000;
+    padding: 0 1px;
+    /* Force a font with the ✓ glyph so it doesn't render as a missing-glyph box in PDF. */
+    font-family: "Segoe UI Symbol", "DejaVu Sans", "Arial Unicode MS", "Lucida Sans Unicode", "Apple Color Emoji", sans-serif;
+}
+.any-tag {
+    display: inline-block;
+    margin-top: 4px;
+    font-style: italic;
+    font-size: 10pt;
+    color: #333;
+}
+
+/* ============ Print ============ */
+@media print {
+    .toolbar { display: none; }
+    body { background: #fff; }
+    .page {
+        box-shadow: none; margin: 0;
+        width: auto; min-height: auto;
+        padding: 0 0 1.4cm 0;
+    }
+    .run-ftr { position: fixed; bottom: 0.6cm; left: 1cm; right: 1cm; }
+    @page { margin: 1.6cm 1.6cm 2.2cm 1.6cm; }
+    .item { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+{% set _show_pages_note = (request.args.get('pages_note') in ('1','true','yes','on')) %}
+
+<div class="toolbar"{% if request.args.get('embed') %} style="display:none"{% endif %}>
+    <h1>{{ p.title }}{% if _is_memo %} — MARKING GUIDELINES{% endif %}</h1>
+    <button onclick="window.print()">Print / Save as PDF</button>
+    <a href="{{ url_for('teacher_paper_edit', paper_id=p.id) }}">Edit</a>
+    {% set _qs = request.args.to_dict() %}
+    {% if _show_pages_note %}{% set _ = _qs.pop('pages_note', None) %}{% else %}{% set _ = _qs.update({'pages_note':'1'}) %}{% endif %}
+    <a href="?{{ _qs|urlencode }}">{% if _show_pages_note %}Hide pages note{% else %}Include pages note{% endif %}</a>
+    <a href="{{ url_for('teacher_papers_generated') }}">Close</a>
+</div>
+
+{# ============================================================ #}
+{# COVER PAGE                                                    #}
+{# ============================================================ #}
+<div class="page">
+    {% if _cover_subtitle %}<div class="cover-confidential">{{ _cover_subtitle }}</div>{% endif %}
+
+    {% if p.logo_path or p.school_name %}
+    <div class="cover-school">
+        {% if p.logo_path %}<img src="{{ url_for('static', filename=p.logo_path) }}" alt="logo">{% endif %}
+        {% if p.school_name %}<div class="school-name">{{ p.school_name }}</div>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="cover-center">
+        <div class="nat">{{ _cover_authority|replace('\n','<br>')|safe }}</div>
+
+        <div class="cover-info-box">
+            <div class="subject">{{ _subject|upper }} P{{ _pno }}</div>
+            <div class="when">{{ _month|upper }} {{ _year }}</div>
+            {% if _is_memo %}<div class="mg-tag">{{ _memo_title|upper }}</div>{% endif %}
+        </div>
+
+        <div class="cover-marks">MARKS:&nbsp;&nbsp;{{ p.total_marks or grand_marks }}</div>
+        {% if not _is_memo %}
+        {% set _dur_min = p.duration_minutes or 180 %}
+        {% set _hours = _dur_min // 60 %}
+        {% set _mins  = _dur_min % 60 %}
+        {% if _mins == 0 %}
+            {% set _time_str = _hours|string + ' Hour' + ('s' if _hours != 1 else '') %}
+        {% else %}
+            {% set _time_str = _hours|string + ' Hour' + ('s' if _hours != 1 else '') + ' ' + _mins|string + ' Min' + ('s' if _mins != 1 else '') %}
+        {% endif %}
+        <div class="cover-time">TIME:&nbsp;&nbsp;{{ _time_str }}</div>
+        {% endif %}
+
+        {% if _show_pages_note %}
+        <div class="pages-note">
+            {% if p.cover_extra_note %}{{ p.cover_extra_note }}
+            {% elif _is_memo %}These marking guidelines consist of {{ sections|length + 2 }} pages.
+            {% else %}This question paper consists of {{ sections|length + 2 }} pages.{% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="run-ftr">
+        <span>{{ _footer_left }}</span>
+        <span>{{ _footer_center }}</span>
+        <span>{{ _footer_right }}</span>
+    </div>
+</div>
+
+{# ============================================================ #}
+{# INSTRUCTIONS / SUGGESTIONS PAGE                              #}
+{# ============================================================ #}
+<div class="page">
+    <div class="run-hdr">
+        <span>{{ tpl(_header_left_t, 2) }}</span>
+        <span>2</span>
+        <span>{{ tpl(_header_right_t, 2) }}</span>
+    </div>
+    {% if _sub_header %}<div class="run-sub">
+        <span>{{ _sub_header }}</span>
+    </div>{% else %}
+    <div class="run-sub-spacer" aria-hidden="true"></div>
+    {% endif %}
+
+    {% if _is_memo %}
+        <h2 class="section-head">SUGGESTIONS AND RECOMMENDATIONS TO MARKERS</h2>
+        <ul class="instr-list" style="list-style: disc; padding-left: 20px;">
+            <li><span class="txt">Revisit the questions and the marking guidelines frequently during the marking session.</span></li>
+            <li><span class="txt">Read the question and the candidate's response together, so as not to be misled by phrasing.</span></li>
+            <li><span class="txt">A tick (<svg class="tick" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" style="vertical-align:-2px; display:inline-block;"><path d="M1.8 8.4 L4.5 8.0 L6.8 11.6 L13.0 1.6 L14.6 2.6 L7.6 14.0 L5.6 13.2 Z" fill="currentColor" stroke="currentColor" stroke-width="0.4" stroke-linejoin="round"/></svg>) marks each fact that earns a mark. Generally ONE mark per fact.</span></li>
+            <li><span class="txt">Accept correct answers expressed differently, e.g. 'slow' vs 'not fast'.</span></li>
+            <li><span class="txt">Mark the first <em>N</em> facts where N facts are required (e.g. first TWO facts if TWO are asked).</span></li>
+            <li><span class="txt">Where the marker symbol shows ✓✓ (Any two), award a mark per acceptable fact up to the limit.</span></li>
+        </ul>
+    {% else %}
+        <h2 class="section-head">INSTRUCTIONS AND INFORMATION</h2>
+        {# Only render instructions the teacher has explicitly added.
+           No built-in defaults are auto-populated. #}
+        {% set _custom = [] %}
+        {% if p.instructions %}
+            {% for raw in p.instructions.split('\n') %}
+                {% set ln = raw.strip() %}
+                {% if ln and not ln.startswith('[Auto]') %}
+                    {% set _ = _custom.append(ln) %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        <ol class="instr-list">
+            <li><span class="txt">This question paper consists of:
+                {% for sec in sections %}<br>SECTION {{ ['A','B','C','D','E','F','G'][loop.index0] }} ({{ sec.marks }}){% endfor %}
+            </span></li>
+            {% for c in _custom %}<li><span class="txt">{{ c }}</span></li>{% endfor %}
+        </ol>
+    {% endif %}
+
+    <div class="run-ftr">
+        <span>{{ _footer_left }}</span>        <span>{{ _footer_center }}</span>        <span>{{ _footer_right }}</span>
+    </div>
+</div>
+
+{# ============================================================ #}
+{# BODY: SECTIONS / QUESTIONS                                   #}
+{# ============================================================ #}
+{% set letters = ['A','B','C','D','E','F','G'] %}
+{% set page_num = namespace(n=2) %}
+{% set q_no     = namespace(n=0) %}
+
+{% if _is_memo %}
+    {# DBE-style marking guideline. MCQ / Matching / True-False groups (where
+       every answer is a short letter / single term) are rendered as compact
+       side-by-side cards. Long-answer groups (short_answer, structured, with
+       scenario stems and 3-level sub-items) are rendered as full-width
+       memo-tbl tables that respect grp.labels (4.10, 4.10.1, 4.10.2). #}
+    {% set _mp = namespace(page=2) %}
+    {% for sec in sections %}
+        {% set _mp.page = _mp.page + 1 %}
+        {% set sec_letter = letters[loop.index0] %}
+        {% set _qgroups = sec.qgroups if (sec.qgroups is defined and sec.qgroups) else [{'qn': loop.index, 'questions': sec.questions, 'marks': sec.marks, 'labels': [], 'title': sec.sub_title}] %}
+        {# Classify each group: a "card" group has every answer fitting the
+           letter+optional-term shape (no paragraphs). #}
+        {% set _cards = namespace(items=[]) %}
+        {% set _tables = namespace(items=[]) %}
+        {% for grp in _qgroups %}
+            {% set _is_card = namespace(v=true) %}
+            {% for q in grp.questions %}
+                {% set _qt = (q.question_type or '')|lower %}
+                {% if _qt not in ['mcq','matching','match_columns'] %}
+                    {% set _is_card.v = false %}
+                {% endif %}
+                {% if (q.answer_text or '')|length > 60 %}{% set _is_card.v = false %}{% endif %}
+            {% endfor %}
+            {% if _is_card.v %}
+                {% set _cards.items = _cards.items + [grp] %}
+            {% else %}
+                {% set _tables.items = _tables.items + [grp] %}
+            {% endif %}
+        {% endfor %}
+
+        {# Split this section across multiple A4 pages: one .page for the
+           cards block (if any), then one .page per long-answer Question. #}
+        {% set _has_cards = (_cards.items|length) > 0 %}
+        {% set _table_count = _tables.items|length %}
+        {% set _total_pages = (1 if _has_cards else 0) + _table_count %}
+        {% if _total_pages == 0 %}{% set _total_pages = 1 %}{% endif %}
+        {% set _pg = namespace(idx=0) %}
+        {% set _is_last_section = loop.last %}
+
+        {% if _has_cards %}
+            {% set _pg.idx = _pg.idx + 1 %}
+            {% set _is_last_page = (_pg.idx == _total_pages) %}
+            <div class="page">
+                <div class="run-hdr">
+                    <span>{{ tpl(_header_left_t, _mp.page) }}</span>
+                    <span>{{ _mp.page }}</span>
+                    <span>{{ tpl(_header_right_t, _mp.page) }}</span>
+                </div>
+                {% if _sub_header %}<div class="run-sub"><span>{{ _sub_header }}</span></div>{% else %}<div class="run-sub-spacer" aria-hidden="true"></div>{% endif %}
+
+                <div class="memo-section-banner">SECTION {{ sec_letter }}</div>
+
+                <div class="memo-grid">
+                {% for grp in _cards.items %}
+                    {% set _qt0 = (grp.questions[0].question_type or '')|lower if grp.questions else '' %}
+                    {% set _is_match = (_qt0 in ['matching','match_columns']) or (grp.questions and grp.questions[0].match_table is defined and grp.questions[0].match_table) %}
+                    {% set _kind = 'matching' if _is_match else ('true_false' if _qt0 == 'true_false' else 'mcq') %}
+                    {% set _card_title = grp.title if grp.title else ('MATCHING ITEMS' if _is_match else ('TRUE/FALSE' if _kind == 'true_false' else 'MULTIPLE-CHOICE')) %}
+                    <div class="memo-card">
+                        <div class="memo-q-head">QUESTION {{ grp.qn }}: {{ _card_title|upper }}</div>
+                        <table class="memo-mini kind-{{ _kind }}">
+                            {% for q in grp.questions %}
+                                {% set sub = (grp.labels[loop.index0] if (grp.labels is defined and grp.labels and loop.index0 < grp.labels|length) else '%d.%d'|format(grp.qn, loop.index)) %}
+                                {% set ans = (q.answer_text or '')|trim %}
+                                {% set _letter = '' %}{% set _term = '' %}
+                                {% if ans %}
+                                    {% set _parts = ans.split(')', 1) %}
+                                    {% if _parts|length == 2 and (_parts[0]|trim)|length == 1 %}
+                                        {% set _letter = _parts[0]|trim %}{% set _term = _parts[1]|trim %}
+                                    {% else %}
+                                        {% set _letter = ans %}
+                                    {% endif %}
+                                {% endif %}
+                                <tr data-qid="{{ q.id }}">
+                                    <td class="mn-num">{{ sub }}</td>
+                                    <td class="mn-letter">{{ _letter }}</td>
+                                    <td class="mn-tick"><svg class="tick" viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" style="display:inline-block;"><path d="M1.8 8.4 L4.5 8.0 L6.8 11.6 L13.0 1.6 L14.6 2.6 L7.6 14.0 L5.6 13.2 Z" fill="currentColor" stroke="currentColor" stroke-width="0.4" stroke-linejoin="round"/></svg></td>
+                                    {% if _kind == 'matching' %}<td class="mn-term">{{ _term }}</td>{% endif %}
+                                    <td class="mn-marks">{{ q.marks }}</td>
+                                </tr>
+                            {% endfor %}
+                            <tr class="memo-total-row">
+                                <td colspan="{{ 4 if _kind == 'matching' else 3 }}">Total:&nbsp;[{{ grp.marks }}]</td>
+                                <td class="mn-marks"></td>
+                            </tr>
+                        </table>
+                    </div>
+                {% endfor %}
+                </div>
+
+                {% if _is_last_page %}
+                    <div class="section-total" style="margin-top:8px;">TOTAL SECTION {{ sec_letter }}:&nbsp;&nbsp;[{{ sec.marks }}]</div>
+                    {% if _is_last_section %}<div class="grand-total">GRAND TOTAL:&nbsp;&nbsp;{{ grand_marks }}</div>{% endif %}
+                {% endif %}
+
+                <div class="run-ftr">
+                    <span>{{ _footer_left }}</span>
+                    <span>{{ _footer_center }}</span>
+                    <span>{% if not (_is_last_section and _is_last_page) %}{{ _footer_right }}{% endif %}</span>
+                </div>
+            </div>
+        {% endif %}
+
+        {% for grp in _tables.items %}
+            {% set _pg.idx = _pg.idx + 1 %}
+            {% set _is_last_page = (_pg.idx == _total_pages) %}
+            {% if not loop.first or _has_cards %}{% set _mp.page = _mp.page + 1 %}{% endif %}
+            <div class="page">
+                <div class="run-hdr">
+                    <span>{{ tpl(_header_left_t, _mp.page) }}</span>
+                    <span>{{ _mp.page }}</span>
+                    <span>{{ tpl(_header_right_t, _mp.page) }}</span>
+                </div>
+                {% if _sub_header %}<div class="run-sub"><span>{{ _sub_header }}</span></div>{% else %}<div class="run-sub-spacer" aria-hidden="true"></div>{% endif %}
+
+                {% if loop.first and not _has_cards %}
+                    <div class="memo-section-banner">SECTION {{ sec_letter }}</div>
+                {% endif %}
+
+                {% set _tbl_title = grp.title if grp.title else (sec.sub_title if sec.sub_title else (sec.title if sec.title else '')) %}
+                {% set _grp_is_tf = grp.is_tf|default(false) %}
+                <div class="memo-q-tbl-head">QUESTION {{ grp.qn }}{% if _tbl_title %}: {{ _tbl_title|upper }}{% endif %}</div>
+
+                <table class="memo-tbl">
+                    {% if _grp_is_tf and grp.instructions %}
+                        <tr>
+                            <td class="ans tf-note" colspan="{{ 4 if grp.has_groups else 3 }}">
+                                {% for ln in grp.instructions.split('\n') %}{% set _ln = ln.strip() %}{% if _ln %}<div>{{ _ln }}</div>{% endif %}{% endfor %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% for r in grp.memo_rows %}
+                        {% set q = r.q %}
+                        {% set _heading = r.clean_heading if r.clean_heading is defined else (q.question_text or '')|trim %}
+                        {% set _body = r.clean_body if r.clean_body is defined else (q.answer_text or '')|trim %}
+                        <tr>
+                            <td class="qno depth-{{ r.depth }}">{{ r.sub }}</td>
+                            <td class="ans">
+                                {% if _grp_is_tf %}
+                                    {# TF: render the entire answer inline (no italic heading split). #}
+                                    {% set _full = (q.answer_text or '')|trim %}
+                                    {% if _full %}<div class="q-body">{{ _full|memo_ticks }}</div>{% endif %}
+                                {% else %}
+                                    {% if _heading %}<div class="q-heading">{{ _heading }}</div>{% endif %}
+                                    {% if _body %}<div class="q-body">{{ _body|memo_ticks }}</div>{% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="marks">{% if q.marks %}{{ q.marks }}{% else %}&nbsp;{% endif %}</td>
+                            {% if grp.has_groups %}
+                                {% if r.group_first %}
+                                    <td class="gtotal" rowspan="{{ r.group_rowspan }}">{{ r.group_total }}</td>
+                                {% elif not r.in_group %}
+                                    <td class="gtotal">&nbsp;</td>
+                                {% endif %}
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                    <tr class="section-row">
+                        <td colspan="{{ 4 if grp.has_groups else 3 }}">[{{ grp.marks }}]</td>
+                    </tr>
+                </table>
+
+                {% if _is_last_page %}
+                    <div class="section-total" style="margin-top:8px;">TOTAL SECTION {{ sec_letter }}:&nbsp;&nbsp;[{{ sec.marks }}]</div>
+                    {% if _is_last_section %}<div class="grand-total">GRAND TOTAL:&nbsp;&nbsp;{{ grand_marks }}</div>{% endif %}
+                {% endif %}
+
+                <div class="run-ftr">
+                    <span>{{ _footer_left }}</span>
+                    <span>{{ _footer_center }}</span>
+                    <span>{% if not (_is_last_section and _is_last_page) %}{{ _footer_right }}{% endif %}</span>
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+{% else %}
+{% for sec in sections %}
+    {% set sec_letter = letters[loop.index0] %}
+    {# Build the list of question groups for this section. Each group is a
+       separately-numbered Question (e.g. Q5, Q6) sharing the same Section letter.
+       Falls back to a single group covering all of sec.questions for legacy data. #}
+    {% set _qgroups = sec.qgroups if (sec.qgroups is defined and sec.qgroups) else [{'qn': q_no.n + 1, 'questions': sec.questions, 'marks': sec.marks}] %}
+    {% set page_num.n = page_num.n + 1 %}
+    {% set is_last = loop.last %}
+
+    <div class="page">
+        <div class="run-hdr">
+            <span>{{ tpl(_header_left_t, page_num.n) }}</span>
+            <span>{{ page_num.n }}</span>
+            <span>{{ tpl(_header_right_t, page_num.n) }}</span>
+        </div>
+        {% if _sub_header %}<div class="run-sub">
+            <span>{{ _sub_header }}</span>
+        </div>{% else %}
+        <div class="run-sub-spacer" aria-hidden="true"></div>
+        {% endif %}
+
+        {% if loop.first %}<div class="section-banner">SECTION {{ sec_letter }}</div>{% endif %}
+
+        {% for grp in _qgroups %}
+        {% set q_no.n = grp.qn %}
+        {% set _is_first_group = loop.first %}
+        {% set _grp_title = grp.title|default('', true) %}
+        {% set _grp_instr = grp.instructions|default('', true) %}
+        <div class="q-head">QUESTION {{ q_no.n }}{% if _grp_title %}: {{ _grp_title|upper }}{% elif _is_first_group %}{% if sec.sub_title %}: {{ sec.sub_title }}{% elif sec.title %}: {{ sec.title|upper }}{% endif %}{% endif %}</div>
+        {# Per-Question instructions (auto-filled from the dropdown preset, or
+           edited manually). Render under the QUESTION head, before any TF
+           helpers / section-level intro fall-backs. #}
+        {% if _grp_instr.strip() %}
+            {% for ln in _grp_instr.split('\n') %}
+                {% set _ln = ln.strip() %}
+                {% if _ln %}<div class="q-intro">{{ _ln }}</div>{% endif %}
+            {% endfor %}
+        {% endif %}
+        {# True/False detection is now per-group (so the TF intro + examples
+           render only on the TF Question, not on the section's first Question). #}
+        {% set _is_tf = grp.is_tf|default(false) %}
+        {# Section-level instructions render only above the first group, AND only
+           if no per-Question instructions were provided for that group (avoids
+           duplicates when the dropdown preset already supplied instructions). #}
+        {% if _is_first_group and sec.instructions and not _grp_instr.strip() %}
+            {% set _intro = [] %}
+            {% for raw in sec.instructions.split('\n') %}
+                {% set ln = raw.strip() %}
+                {% if ln and not ln.startswith('[Auto]') %}{% set _ = _intro.append(ln) %}{% endif %}
+            {% endfor %}
+            {% if _intro %}
+                {% if _is_tf %}
+                    {% for ln in _intro %}<div class="q-intro">{{ ln }}</div>{% endfor %}
+                {% else %}
+                    <div class="q-intro">{{ _intro|join(' ') }}</div>
+                {% endif %}
+            {% endif %}
+        {% elif _is_tf and not _is_memo and not _grp_instr.strip() %}
+            {# No explicit instruction set — use the standard DBE TRUE/FALSE instruction. #}
+            {% set _q_first = q_no.n|string + '.1' %}
+            {% set _q_last  = q_no.n|string + '.' + (grp.questions|length)|string %}
+            <div class="q-intro">Indicate whether the following statements are TRUE or FALSE. Write &#8216;true&#8217; or &#8216;false&#8217; next to the question numbers ({{ _q_first }} to {{ _q_last }}) in the ANSWER BOOK. Correct the statement if it is FALSE by changing the underlined word(s) to make the statement TRUE. (Do NOT simply use the word &#8216;NOT&#8217; to change the statement.)</div>
+        {% endif %}
+        {# True/False: "NO mark" notice + standard examples table. Renders on
+           ANY TF group (per-group detection), not just the section's first. #}
+        {% if _is_tf and not _is_memo %}
+        <div class="tf-no-mark">NO mark will be awarded if only FALSE is written.</div>
+        <div class="tf-examples-head">EXAMPLES:</div>
+        <table class="tf-examples">
+            <thead>
+                <tr><th>QUESTION</th><th>ANSWER</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>A <u>stylus</u> can be used for more accurate input on some touch screens.</td>
+                    <td>True</td>
+                </tr>
+                <tr>
+                    <td>A <u>sound card</u> has slots for hardware components, such as the CPU.</td>
+                    <td>False, motherboard</td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+
+        {% if _is_memo %}
+            <table class="memo-tbl">
+                {% for q in grp.questions %}
+                    {% set sub = (grp.labels[loop.index0] if (grp.labels is defined and grp.labels and loop.index0 < grp.labels|length) else '%d.%d'|format(q_no.n, loop.index)) %}
+                    {% set _depth = sub.split('.')|length %}
+                    <tr>
+                        <td class="qno depth-{{ _depth }}">{{ sub }}</td>
+                        <td class="ans">{{ (q.answer_text or 'No answer recorded.')|memo_ticks }}</td>
+                        <td class="marks">{{ q.marks }}</td>
+                    </tr>
+                {% endfor %}
+                {% if loop.last %}
+                <tr class="section-row">
+                    <td colspan="3">TOTAL SECTION {{ sec_letter }}:&nbsp;&nbsp;[{{ sec.marks }}]</td>
+                </tr>
+                {% endif %}
+            </table>
+        {% else %}
+            {% for q in grp.questions %}
+                {% set sub = (grp.labels[loop.index0] if (grp.labels is defined and grp.labels and loop.index0 < grp.labels|length) else '%d.%d'|format(q_no.n, loop.index)) %}
+                {% if q.match_skip is defined and q.match_skip %}
+                    {# Suppressed: rendered as part of the matching table on
+                       the first item of this run. #}
+                {% elif q.match_table is defined and q.match_table %}
+                    {% set tbl = q.match_table %}
+                    {% set start_idx = loop.index %}
+                    {# Collect every sub-question id covered by this matching run so the
+                       editor can scroll the preview to whichever sub the teacher edited. #}
+                    {% set _match_qids = [] %}
+                    {% for _qq in grp.questions[start_idx-1:start_idx-1+tbl.rows|length] %}
+                        {% set _ = _match_qids.append(_qq.id) %}
+                    {% endfor %}
+                    <div class="match-block" data-qid="{{ q.id }}" data-qids="{{ _match_qids|join(' ') }}">
+                        <table class="match-tbl">
+                            <thead>
+                                <tr>
+                                    <th colspan="2">COLUMN A</th>
+                                    <th colspan="2">COLUMN B</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set rows_n = tbl.rows|length %}
+                                {% set opts_n = tbl.options|length %}
+                                {% set max_rows = rows_n if rows_n > opts_n else opts_n %}
+                                {% set overflow = (opts_n - rows_n) if opts_n > rows_n else 0 %}
+                                {% for r in range(max_rows) %}
+                                    <tr>
+                                        {% if r < rows_n %}
+                                            <td class="ma-num">{{ '%d.%d'|format(q_no.n, start_idx + r) }}</td>
+                                            <td class="ma-desc">{{ tbl.rows[r][0] }}</td>
+                                        {% elif r == rows_n %}
+                                            {# Single merged blank cell for the entire overflow region #}
+                                            <td class="ma-blank" colspan="2" rowspan="{{ overflow }}"></td>
+                                        {% endif %}
+                                        {% if r < opts_n %}
+                                            <td class="mb-letter">{{ tbl.options[r][0] }}</td>
+                                            <td class="mb-term">{{ tbl.options[r][1] }}</td>
+                                        {% else %}
+                                            <td class="mb-letter"></td><td class="mb-term"></td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="match-marks">({{ tbl.count }} x 1) [{{ tbl.total_marks }}]</div>
+                    </div>
+                {% else %}
+                    {% set _depth = sub.split('.')|length %}
+                    <div class="item depth-{{ _depth }}" data-qid="{{ q.id }}">
+                        <div class="num">{{ sub }}</div>
+                        {% if _is_tf %}
+                            {% set _qbody = (q.display_text if q.display_text is defined else q.question_text)|trim %}
+                            {% set _qbody = _qbody|regex_replace('(?i)\\s*\\(Indicate\\s+True\\s+or\\s+False[^)]*\\)\\.?\\s*$', '') %}
+                            <div class="body">{{ _qbody|safe }}</div>
+                        {% else %}
+                            <div class="body">{{ (q.display_text if q.display_text is defined else q.question_text)|trim|safe }}</div>
+                        {% endif %}
+                        {% if q.marks and q.marks > 0 %}<div class="marks">({{ q.marks }})</div>{% else %}<div class="marks"></div>{% endif %}
+                        {% if q.image_path %}<div class="q-figure"><img src="{{ url_for('static', filename=q.image_path) }}" alt="Figure for question {{ sub }}"></div>{% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            {# Per-Question total in DBE style: right-aligned [N] under the last item. #}
+            <div class="q-total">[{{ grp.marks }}]</div>
+            {% if loop.last %}
+            <div class="section-total">TOTAL SECTION {{ sec_letter }}:&nbsp;&nbsp;[{{ sec.marks }}]</div>
+            {% endif %}
+        {% endif %}
+        {% endfor %}{# /qgroups #}
+
+        {% if is_last %}
+            <div class="grand-total">GRAND TOTAL:&nbsp;&nbsp;{{ grand_marks }}</div>
+        {% endif %}
+
+        <div class="run-ftr">
+            <span>{{ _footer_left }}</span>
+            <span>{{ _footer_center }}</span>
+            <span>{% if not is_last %}{{ _footer_right }}{% endif %}</span>
+        </div>
+    </div>
+{% endfor %}
+{% endif %}
+
+</body>
+</html>

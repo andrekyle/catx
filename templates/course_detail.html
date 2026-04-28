@@ -1,0 +1,113 @@
+{% extends "lms_base.html" %}
+{% block title %}{{ course.title }} - CAT LMS{% endblock %}
+{% block content %}
+<a href="{{ url_for('grade_courses', grade_number=course.grade.number) }}" style="color:var(--blue); text-decoration:none; font-size:14px; font-weight:500; display:inline-flex; align-items:center; gap:5px; margin-bottom:18px; letter-spacing:-0.1px;">
+    <i class="fas fa-chevron-left" style="font-size:11px;"></i> {{ course.grade.name }}
+</a>
+
+{% set svg_info = course_svg_map.get(course.title) %}
+<div class="card" style="margin-bottom:24px;">
+    <div style="background:{% if svg_info %}{{ svg_info.bg }} url('{{ url_for('static', filename='images/' + svg_info.svg) }}') no-repeat center center / 104% 104%; height:180px;{% else %}{{ course.color }}; padding:26px 24px;{% endif %} color:#fff; display:flex; align-items:center; gap:16px;">
+        {% if not svg_info %}
+        <div style="width:54px; height:54px; background:rgba(255,255,255,0.18); border-radius:15px; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+            <i class="fas {{ course.icon }}" style="font-size:22px;"></i>
+        </div>
+        <div>
+            <h1 style="font-size:22px; font-weight:700; letter-spacing:-0.4px;">{{ course.title }}</h1>
+            <p style="opacity:0.75; font-size:14px; margin-top:3px; font-weight:500; letter-spacing:-0.1px;">{{ course.grade.name }} &middot; {{ course.lessons|length }} lessons &middot; {{ course.quizzes|length }} assessments</p>
+        </div>
+        {% endif %}
+    </div>
+    <div style="padding:18px 24px;">
+        {% if svg_info %}
+        <h1 style="font-size:22px; font-weight:700; letter-spacing:-0.4px; color:var(--text); margin:0 0 4px;">{{ course.title }}</h1>
+        <p style="font-size:14px; margin:0 0 14px; color:var(--text-secondary); font-weight:500; letter-spacing:-0.1px;">{{ course.grade.name }} &middot; {{ course.lessons|length }} lessons &middot; {{ course.quizzes|length }} assessments</p>
+        {% endif %}
+        <p style="font-size:14px; color:var(--text-secondary); line-height:1.5; letter-spacing:-0.1px;">{{ course.description }}</p>
+        {% if not enrollment %}
+        <form method="POST" action="{{ url_for('enroll_course', course_id=course.id) }}" style="margin-top:16px;">
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:13px;">
+                <i class="fas fa-plus"></i> Enroll in This Course
+            </button>
+        </form>
+        {% else %}
+        <div style="margin-top:16px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px;">
+                <span style="color:var(--text-secondary); font-weight:500;">Your Progress</span>
+                <span style="font-weight:700; letter-spacing:-0.2px;">{{ enrollment.progress|round(0)|int }}%</span>
+            </div>
+            <div class="progress-bar" style="height:8px;"><div class="progress-fill" style="width:{{ enrollment.progress }}%; background:{{ course.color }};"></div></div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <!-- Lessons -->
+    <div>
+        <p class="section-header">Lessons</p>
+        <div class="card-grouped">
+            {% for lesson in course.lessons|sort(attribute='order') %}
+            <div class="ios-list-item">
+                <div style="width:34px; height:34px; border-radius:9px; background:{% if lesson.id in completed_lessons %}var(--green-light){% else %}var(--fill){% endif %}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    {% if lesson.id in completed_lessons %}
+                    <i class="fas fa-check" style="font-size:13px; color:var(--green);"></i>
+                    {% else %}
+                    <span style="font-size:13px; font-weight:600; color:var(--text-secondary);">{{ loop.index }}</span>
+                    {% endif %}
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:15px; letter-spacing:-0.2px;">{{ lesson.title }}</div>
+                </div>
+                {% if enrollment %}
+                <a href="{{ url_for('lesson_view', lesson_id=lesson.id) }}" style="color:var(--blue); font-size:13px; font-weight:600; text-decoration:none; letter-spacing:-0.1px;">
+                    {% if lesson.id in completed_lessons %}Review{% else %}Start{% endif %} <i class="fas fa-chevron-right" style="font-size:9px;"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="padding:28px; text-align:center; color:var(--text-secondary); font-size:14px;">No lessons yet</div>
+            {% endfor %}
+        </div>
+    </div>
+    <!-- Assessments -->
+    <div>
+        <p class="section-header">Assessments</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            {% for quiz in course.quizzes|sort(attribute='order') %}
+            {% set is_exam = quiz.quiz_type == 'exam' %}
+            {% set accent = '#7C3AED' if is_exam else '#1D4ED8' %}
+            {% set accent_bg = 'rgba(124,58,237,0.08)' if is_exam else 'rgba(29,78,216,0.07)' %}
+            <div style="background:var(--card); border:1px solid var(--border); border-radius:14px;
+                        padding:14px 18px; display:flex; align-items:center; gap:12px;">
+                <!-- Type tag -->
+                <span style="flex-shrink:0; font-size:10px; font-weight:800; letter-spacing:1.2px;
+                             text-transform:uppercase; padding:4px 10px; border-radius:6px;
+                             background:{{ accent_bg }}; color:{{ accent }};">
+                    {{ 'Exam' if is_exam else 'Quiz' }}
+                </span>
+                <!-- Title & meta -->
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:650; font-size:14px; color:var(--text); letter-spacing:-0.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ quiz.title }}</div>
+                    <div style="font-size:11.5px; color:var(--text-secondary); margin-top:2px;">{{ quiz.time_limit_minutes }} min &middot; {{ quiz.questions|length }} questions</div>
+                </div>
+                <!-- Button -->
+                {% if enrollment %}
+                <a href="{{ url_for('quiz_start', quiz_id=quiz.id) }}"
+                   style="flex-shrink:0; font-size:12.5px; font-weight:700; text-decoration:none;
+                          color:var(--text); background:var(--border); padding:7px 16px;
+                          border-radius:8px; white-space:nowrap;
+                          transition:background .15s;"
+                   onmouseenter="this.style.background='{{ accent }}';this.style.color='#fff';"
+                   onmouseleave="this.style.background='';this.style.color='';">
+                    Start &rarr;
+                </a>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="padding:28px; text-align:center; color:var(--text-secondary); font-size:14px;">No assessments yet</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

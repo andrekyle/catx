@@ -1,0 +1,46 @@
+{% extends "lms_base.html" %}
+{% block title %}Manage Courses - Admin{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:10px;">
+    <h1 class="sf-title"><i class="fas fa-book" style="color:var(--blue);"></i> Courses</h1>
+    <a href="{{ url_for('admin_course_create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Course</a>
+</div>
+<div class="card" style="overflow:hidden;">
+    <table style="width:100%; font-size:14px; border-collapse:collapse;">
+        <thead>
+            <tr style="background:var(--fill-secondary);">
+                <th style="padding:12px 16px; text-align:left; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary);">Title</th>
+                <th style="padding:12px; text-align:left; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary);">Grade</th>
+                <th style="padding:12px; text-align:left; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary);">Lessons</th>
+                <th style="padding:12px; text-align:left; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary);">Quizzes</th>
+                <th style="padding:12px; text-align:left; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-secondary);">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for course in courses %}
+        <tr style="border-top:0.5px solid var(--separator-light);">
+            <td style="padding:12px 16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:32px; height:32px; border-radius:8px; background:{{ course.color }}15; display:flex; align-items:center; justify-content:center;">
+                        <i class="fas {{ course.icon }}" style="color:{{ course.color }}; font-size:14px;"></i>
+                    </div>
+                    <strong style="letter-spacing:-0.2px;">{{ course.title }}</strong>
+                </div>
+            </td>
+            <td style="padding:12px;"><span class="badge badge-info">{{ course.grade.name }}</span></td>
+            <td style="padding:12px;">{{ course.lessons|length }}</td>
+            <td style="padding:12px;">{{ course.quizzes|length }}</td>
+            <td style="padding:12px;">
+                <div style="display:flex; gap:6px;">
+                    <a href="{{ url_for('admin_course_edit', course_id=course.id) }}" class="btn btn-ghost btn-sm"><img src="{{ url_for('static', filename='images/edit.png') }}" alt="Edit" width="14" height="14"></a>
+                    <form method="POST" action="{{ url_for('admin_course_delete', course_id=course.id) }}" onsubmit="return confirm('Delete this course?')">
+                        <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

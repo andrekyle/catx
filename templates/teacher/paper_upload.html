@@ -1,0 +1,67 @@
+{% extends "teacher/_layout.html" %}
+{% block t_title %}Upload past paper / resource{% endblock %}
+{% block t_sub %}PDF, Word, Excel, Access or ZIP files up to your server limit.{% endblock %}
+
+{% block t_body %}
+<style>
+.t-shell .t-title {
+    font-size: clamp(36px, 4.2vw, 56px) !important;
+    font-weight: 700 !important;
+    letter-spacing: -1px !important;
+    line-height: 1.05 !important;
+}
+</style>
+
+<form method="post" enctype="multipart/form-data" class="t-card">
+    <div class="t-form-grid">
+        <div class="t-field span-2">
+            <label>Title *</label>
+            <input name="title" required placeholder="e.g. CAT P1 November 2023">
+        </div>
+        <div class="t-field span-2">
+            <label>Description</label>
+            <textarea name="description" placeholder="Optional notes for teachers."></textarea>
+        </div>
+        <div class="t-field">
+            <label>Grade</label>
+            <select name="grade">
+                <option value="">—</option>
+                {% for g in [10,11,12] %}<option value="{{ g }}">Grade {{ g }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="t-field">
+            <label>Paper year</label>
+            <input name="paper_year" type="number" min="2000" max="2099" placeholder="2024">
+        </div>
+        <div class="t-field">
+            <label>Paper number</label>
+            <select name="paper_number">
+                <option value="">—</option>
+                <option value="1">Paper 1</option>
+                <option value="2">Paper 2</option>
+            </select>
+        </div>
+        <div class="t-field">
+            <label>Subject</label>
+            <input name="subject" value="CAT">
+        </div>
+        <div class="t-field">
+            <label>Type *</label>
+            <select name="paper_type" required>
+                <option value="past_paper">Past paper</option>
+                <option value="memo">Memo</option>
+                <option value="data_files">Data files</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        <div class="t-field span-2">
+            <label>File *</label>
+            <input name="file" type="file" required>
+        </div>
+    </div>
+    <div style="margin-top:18px; display:flex; gap:10px;">
+        <button class="t-btn primary"><i class="fas fa-upload"></i> Upload</button>
+        <a class="t-btn" href="{{ url_for('teacher_papers') }}">Cancel</a>
+    </div>
+</form>
+{% endblock %}

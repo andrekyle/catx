@@ -1,0 +1,349 @@
+{% extends "lms_base.html" %}
+{% block title %}{% if question %}Edit{% else %}New{% endif %} Question — Admin{% endblock %}
+{% block content %}
+{% set q_type = question.question_type if question else 'multiple_choice' %}
+<style>
+    .qf-shell { max-width: 1200px; margin: 0 auto; padding: 28px 24px 80px; }
+
+    .qf-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12px; font-weight: 400; letter-spacing: 0.05em;
+        color: var(--text-tertiary); text-decoration: none;
+        margin-bottom: 10px; transition: color .15s;
+    }
+    .qf-back:hover { color: var(--text); }
+    .qf-back i { font-size: 9px; }
+
+    .qf-head {
+        padding-bottom: 18px; border-bottom: 1px solid var(--separator-light);
+        margin-bottom: 22px;
+    }
+    .qf-eyebrow {
+        font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+        color: var(--text-tertiary); margin: 0 0 6px;
+    }
+    .qf-title {
+        font-size: clamp(36px, 4.2vw, 56px); font-weight: 700;
+        letter-spacing: -1.8px; line-height: 1.02;
+        margin: 0 0 10px; color: var(--text);
+    }
+    .qf-quiz-pill {
+        display: inline-flex; align-items: center;
+        font-size: 13px; font-weight: 400;
+        color: #0078D4;
+        background: transparent; border: 0; padding: 0;
+    }
+
+    .qf-card { max-width: 760px; }
+
+    /* Type selector — thin outlined pills */
+    .qf-type-row {
+        display: flex; gap: 8px; margin-bottom: 22px;
+        flex-wrap: wrap;
+    }
+    .qf-type-btn {
+        display: inline-flex; align-items: center; gap: 7px;
+        padding: 8px 14px; border-radius: 999px;
+        font-size: 13px; font-weight: 400; letter-spacing: -0.1px;
+        border: 1px solid rgba(127,127,127,0.30);
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer; font-family: inherit;
+        transition: color .15s, border-color .15s;
+    }
+    .qf-type-btn:hover { color: #0078D4; border-color: #0078D4; }
+    .qf-type-btn.active {
+        background: var(--text); color: var(--bg);
+        border-color: var(--text);
+    }
+    .qf-type-btn i { font-size: 12px; }
+
+    .qf-divider {
+        border: none; border-top: 1px solid var(--separator-light);
+        margin: 20px 0;
+    }
+
+    /* Fields */
+    .qf-field { margin-bottom: 20px; }
+    .qf-field:last-child { margin-bottom: 0; }
+    .qf-label {
+        display: block;
+        font-size: 12px; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--text-tertiary);
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+    .qf-sublabel {
+        font-size: 12px; color: var(--text-tertiary);
+        font-weight: 300; text-transform: none; letter-spacing: 0;
+        margin-left: 8px;
+    }
+    .qf-input, .qf-textarea {
+        width: 100%; box-sizing: border-box;
+        background: var(--bg, rgba(255,255,255,.02));
+        border: 1.5px solid var(--separator-light);
+        border-radius: 10px;
+        padding: 11px 13px;
+        font-size: 14px; color: var(--text);
+        line-height: 1.55; outline: none; font-family: inherit;
+        transition: border-color .15s;
+    }
+    .qf-textarea { resize: vertical; min-height: 110px; }
+    .qf-input::placeholder, .qf-textarea::placeholder { color: var(--text-tertiary); opacity: 0.55; }
+    .qf-input:focus, .qf-textarea:focus { border-color: var(--blue, #0078D4); }
+    .qf-hint {
+        font-size: 12px; color: var(--text-tertiary);
+        margin-top: 7px; line-height: 1.5; font-weight: 300;
+    }
+
+    /* True / False */
+    .qf-tf-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .qf-tf-opt {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 10px 22px; border-radius: 8px;
+        border: 1px solid rgba(127,127,127,0.30);
+        font-size: 14px; font-weight: 400;
+        color: var(--text-secondary);
+        cursor: pointer; user-select: none;
+        transition: color .15s, border-color .15s, background .15s;
+    }
+    .qf-tf-opt input { position: absolute; opacity: 0; pointer-events: none; }
+    .qf-tf-opt:hover { color: #0078D4; border-color: #0078D4; }
+    .qf-tf-opt.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .qf-tf-opt i { font-size: 12px; }
+
+    /* Two-column grid for matching */
+    .qf-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .qf-col-label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .qf-col-badge {
+        width: 20px; height: 20px; border-radius: 6px;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 10px; font-weight: 600;
+        background: transparent; border: 1px solid currentColor;
+    }
+    .qf-col-badge.a { color: #0078D4; }
+    .qf-col-badge.b { color: #9b51c7; }
+
+    /* Section visibility */
+    .qf-section { display: none; }
+    .qf-section.visible { display: block; }
+
+    /* Points */
+    .qf-points-row { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
+    .qf-points-row .qf-label { margin: 0; }
+    .qf-input-sm {
+        width: 72px;
+        background: var(--bg, rgba(255,255,255,.02));
+        border: 1.5px solid var(--separator-light);
+        border-radius: 8px; padding: 8px 10px;
+        font-size: 14px; color: var(--text);
+        outline: none; font-family: inherit;
+        transition: border-color .15s;
+        text-align: center;
+    }
+    .qf-input-sm:focus { border-color: var(--blue, #0078D4); }
+
+    /* Submit — thin outlined */
+    .qf-submit {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 10px 22px;
+        background: transparent;
+        color: var(--text);
+        font-size: 13px; font-weight: 500;
+        border: 1px solid rgba(127,127,127,0.30);
+        border-radius: 6px;
+        cursor: pointer; font-family: inherit;
+        transition: color .15s, border-color .15s;
+        margin-top: 24px;
+    }
+    .qf-submit:hover { color: #0078D4; border-color: #0078D4; }
+
+    @media (max-width: 540px) { .qf-col-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="qf-shell">
+
+    <a href="{{ url_for('admin_questions', quiz_id=quiz.id) }}" class="qf-back">
+        <i class="fas fa-chevron-left"></i> Questions
+    </a>
+
+    <div class="qf-head">
+        <p class="qf-eyebrow">Admin workspace</p>
+        <h1 class="qf-title">{% if question %}Edit question{% else %}Add question{% endif %}</h1>
+        <span class="qf-quiz-pill">{{ quiz.title }}</span>
+    </div>
+
+    <div class="qf-card">
+        <form method="POST" id="qf-form">
+            <input type="hidden" name="question_type" id="question_type" value="{{ q_type }}">
+            <input type="hidden" name="order_index" value="{{ question.order if question else 1 }}">
+
+            <!-- Question type selector -->
+            <div class="qf-type-row">
+                <button type="button" class="qf-type-btn {% if q_type == 'multiple_choice' %}active{% endif %}" data-type="multiple_choice">
+                    <i class="fas fa-list-ul"></i> Multiple Choice
+                </button>
+                <button type="button" class="qf-type-btn {% if q_type == 'true_false' %}active{% endif %}" data-type="true_false">
+                    <i class="fas fa-circle-check"></i> True / False
+                </button>
+                <button type="button" class="qf-type-btn {% if q_type == 'drag_drop' %}active{% endif %}" data-type="drag_drop">
+                    <i class="fas fa-sort"></i> Ordering
+                </button>
+                <button type="button" class="qf-type-btn {% if q_type == 'match_columns' %}active{% endif %}" data-type="match_columns">
+                    <i class="fas fa-link"></i> Matching
+                </button>
+                <button type="button" class="qf-type-btn {% if q_type == 'short_answer' %}active{% endif %}" data-type="short_answer">
+                    <i class="fas fa-pen-to-square"></i> Short Answer
+                </button>
+            </div>
+
+            <hr class="qf-divider">
+
+            <!-- Question text (always shown) -->
+            <div class="qf-field">
+                <label class="qf-label">Question</label>
+                <textarea name="question_text" class="qf-textarea" rows="3" required
+                    placeholder="What does CPU stand for?">{{ question.question_text if question else '' }}</textarea>
+            </div>
+
+            <!-- ── Multiple Choice ─────────────────────────────── -->
+            <div class="qf-section {% if q_type == 'multiple_choice' %}visible{% endif %}" id="sec-multiple_choice">
+                <div class="qf-field">
+                    <label class="qf-label">Answer options <span class="qf-sublabel">one per line</span></label>
+                    <textarea name="mc_options" class="qf-textarea" rows="5"
+                        placeholder="Central Processing Unit&#10;Computer Personal Unit&#10;Central Program Utility&#10;Computer Processing Unit">{% if question and q_type == 'multiple_choice' %}{{ question.parsed_options | join('\n') }}{% endif %}</textarea>
+                </div>
+                <div class="qf-field">
+                    <label class="qf-label">Correct answer <span class="qf-sublabel">type it exactly as above</span></label>
+                    <input type="text" name="mc_correct" class="qf-input"
+                        placeholder="Central Processing Unit"
+                        value="{% if question and q_type == 'multiple_choice' %}{{ question.parsed_correct }}{% endif %}">
+                </div>
+            </div>
+
+            <!-- ── True / False ────────────────────────────────── -->
+            <div class="qf-section {% if q_type == 'true_false' %}visible{% endif %}" id="sec-true_false">
+                <div class="qf-field">
+                    <label class="qf-label">Correct answer</label>
+                    {% set tf_val = question.parsed_correct if (question and q_type == 'true_false') else 'True' %}
+                    <div class="qf-tf-row">
+                        <label class="qf-tf-opt {% if tf_val == 'True' %}active{% endif %}">
+                            <input type="radio" name="tf_correct" value="True" {% if tf_val == 'True' %}checked{% endif %}>
+                            <i class="fas fa-check"></i> True
+                        </label>
+                        <label class="qf-tf-opt {% if tf_val == 'False' %}active{% endif %}">
+                            <input type="radio" name="tf_correct" value="False" {% if tf_val == 'False' %}checked{% endif %}>
+                            <i class="fas fa-xmark"></i> False
+                        </label>
+                    </div>
+                    <p class="qf-hint">Students will see two buttons (True and False) and must pick the correct one.</p>
+                </div>
+            </div>
+
+            <!-- ── Ordering / Drag & Drop ──────────────────────── -->
+            <div class="qf-section {% if q_type == 'drag_drop' %}visible{% endif %}" id="sec-drag_drop">
+                <div class="qf-field">
+                    <label class="qf-label">Items in correct order <span class="qf-sublabel">one per line, top = first</span></label>
+                    <textarea name="dd_correct_order" class="qf-textarea" rows="5"
+                        placeholder="Kilobyte (KB)&#10;Megabyte (MB)&#10;Gigabyte (GB)&#10;Terabyte (TB)">{% if question and q_type == 'drag_drop' %}{{ question.parsed_correct | join('\n') if question.parsed_correct is iterable and question.parsed_correct is not string else '' }}{% endif %}</textarea>
+                    <p class="qf-hint">Students will see the items shuffled and must drag them into the correct order.</p>
+                </div>
+            </div>
+
+            <!-- ── Matching ────────────────────────────────────── -->
+            <div class="qf-section {% if q_type == 'match_columns' %}visible{% endif %}" id="sec-match_columns">
+                <div class="qf-field">
+                    <div class="qf-col-grid">
+                        <div>
+                            <div class="qf-col-label">
+                                <span class="qf-col-badge a">A</span>
+                                <span class="qf-label" style="margin:0;">Left column</span>
+                            </div>
+                            <textarea name="match_col_a" class="qf-textarea" rows="5"
+                                placeholder="CPU&#10;RAM&#10;Hard Drive&#10;Monitor">{% if question and q_type == 'match_columns' and question.parsed_options is mapping %}{{ question.parsed_options.column_a | join('\n') }}{% endif %}</textarea>
+                        </div>
+                        <div>
+                            <div class="qf-col-label">
+                                <span class="qf-col-badge b">B</span>
+                                <span class="qf-label" style="margin:0;">Right column</span>
+                            </div>
+                            <textarea name="match_col_b" class="qf-textarea" rows="5"
+                                placeholder="Processing Unit&#10;Memory&#10;Storage&#10;Output Device">{% if question and q_type == 'match_columns' and question.parsed_options is mapping %}{{ question.parsed_options.column_b | join('\n') }}{% endif %}</textarea>
+                        </div>
+                    </div>
+                    <p class="qf-hint">Each row in Column A pairs with the same row in Column B. Students will see Column B shuffled.</p>
+                </div>
+            </div>
+
+            <!-- ── Short Answer ────────────────────────────────── -->
+            <div class="qf-section {% if q_type == 'short_answer' %}visible{% endif %}" id="sec-short_answer">
+                <div class="qf-field">
+                    <label class="qf-label">Model answer <span class="qf-sublabel">the ideal correct response</span></label>
+                    <textarea name="sa_model_answer" class="qf-textarea" rows="4"
+                        placeholder="RAM temporarily stores data the CPU is actively using, allowing quick access without reading from permanent storage.">{% if question and q_type == 'short_answer' %}{{ question.parsed_correct }}{% endif %}</textarea>
+                    <p class="qf-hint">Students don't see this — it's used by the auto-grader to score their response.</p>
+                </div>
+                <div class="qf-field">
+                    <label class="qf-label">Key concepts <span class="qf-sublabel">one per line — must appear in a correct answer</span></label>
+                    <textarea name="sa_keywords" class="qf-textarea" rows="5"
+                        placeholder="temporary storage&#10;CPU&#10;active data&#10;quick access">{% if question and q_type == 'short_answer' and question.parsed_options is mapping %}{{ question.parsed_options.get('keywords', []) | join('\n') }}{% endif %}</textarea>
+                    <p class="qf-hint">Higher marks when these concepts appear in the student's answer. Leave blank to rely on overall similarity only.</p>
+                </div>
+                <div class="qf-field">
+                    <label class="qf-label">Minimum match score <span class="qf-sublabel">0.0 – 1.0 &nbsp;·&nbsp; default 0.6</span></label>
+                    <input type="number" name="sa_min_ratio" class="qf-input" step="0.05" min="0.1" max="1.0" style="max-width:140px;"
+                        value="{% if question and q_type == 'short_answer' and question.parsed_options is mapping %}{{ question.parsed_options.get('min_ratio', 0.6) }}{% else %}0.6{% endif %}"
+                        placeholder="0.6">
+                    <p class="qf-hint" style="margin-top:8px;">
+                        0.5 = lenient &nbsp;·&nbsp; 0.6 = standard &nbsp;·&nbsp; 0.75 = strict &nbsp;·&nbsp; 0.9 = near-exact
+                    </p>
+                </div>
+            </div>
+
+            <hr class="qf-divider">
+
+            <!-- Points -->
+            <div class="qf-points-row">
+                <label class="qf-label" for="points-input">Points</label>
+                <input type="number" name="points" id="points-input" class="qf-input-sm"
+                    min="1" max="100" value="{{ question.points if question else 1 }}">
+            </div>
+
+            <button type="submit" class="qf-submit">
+                <i class="fas fa-check"></i> {% if question %}Update{% else %}Create{% endif %} question
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+(function () {
+    const typeBtns = document.querySelectorAll('.qf-type-btn');
+    const typeInput = document.getElementById('question_type');
+
+    typeBtns.forEach(btn => {
+        btn.addEventListener('click', function () {
+            const type = this.dataset.type;
+            // Update hidden input
+            typeInput.value = type;
+            // Toggle active state
+            typeBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            // Show/hide sections
+            document.querySelectorAll('.qf-section').forEach(s => s.classList.remove('visible'));
+            const sec = document.getElementById('sec-' + type);
+            if (sec) sec.classList.add('visible');
+        });
+    });
+
+    // True / False toggle buttons keep .active in sync with the radio.
+    document.querySelectorAll('.qf-tf-opt input[type=radio]').forEach(r => {
+        r.addEventListener('change', function () {
+            document.querySelectorAll('.qf-tf-opt').forEach(o => o.classList.remove('active'));
+            this.closest('.qf-tf-opt').classList.add('active');
+        });
+    });
+})();
+</script>
+{% endblock %}

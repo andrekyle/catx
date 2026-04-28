@@ -1,0 +1,34 @@
+Using Nile/PostgreSQL database: us-west-2.db.thenile.dev/shopit
+🔄 Auto-migrating: Converting Settings image columns to TEXT...
+✅ Auto-migration complete: Settings columns converted to TEXT
+✅ Database schema up-to-date
+Database initialized with sample data!
+Admin login: admin@brandcartel.com / admin123
+ * Serving Flask app 'app'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5004
+ * Running on http://192.168.0.100:5004
+[33mPress CTRL+C to quit[0m
+ * Restarting with watchdog (fsevents)
+ * Debugger is active!
+ * Debugger PIN: 810-625-177
+Using Nile/PostgreSQL database: us-west-2.db.thenile.dev/shopit
+🔄 Auto-migrating: Converting Settings image columns to TEXT...
+✅ Auto-migration complete: Settings columns converted to TEXT
+✅ Database schema up-to-date
+Database initialized with sample data!
+Admin login: admin@brandcartel.com / admin123
+Traceback (most recent call last):
+  File "/Users/michalsnell/Downloads/shopit-main/app.py", line 4239, in <module>
+    app.run(debug=True, host='0.0.0.0', port=port)
+  File "/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/flask/app.py", line 612, in run
+    run_simple(t.cast(str, host), port, self, **options)
+  File "/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/werkzeug/serving.py", line 1099, in run_simple
+    run_with_reloader(
+  File "/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/werkzeug/_reloader.py", line 446, in run_with_reloader
+    ensure_echo_on()
+  File "/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/werkzeug/_reloader.py", line 426, in ensure_echo_on
+    termios.tcsetattr(sys.stdin, termios.TCSANOW, attributes)
+termios.error: (4, 'Interrupted system call')

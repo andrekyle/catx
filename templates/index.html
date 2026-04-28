@@ -1,0 +1,466 @@
+﻿{% extends "lms_base.html" %}
+{% block title %}CAT CAPS LMS â€” Computer Applications Technology{% endblock %}
+{% block body_class %}gridx-home{% endblock %}
+
+{% block hero %}
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+    /* â”€â”€â”€ GridX-style dark home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    body.gridx-home {
+        background: #0A0A0A;
+        color: #F5F5F7;
+    }
+
+    .gx-wrap {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0px 24px 80px;
+    }
+
+    .gx-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 22px;
+    }
+
+    /* â”€â”€â”€ Card base â”€â”€â”€ */
+    .gx-card {
+        position: relative;
+        background: #161616;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 28px;
+        overflow: hidden;
+        transition: transform .35s cubic-bezier(.2,.8,.2,1), border-color .25s, background .25s;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    .gx-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(255,255,255,0.14);
+        background: #1A1A1A;
+    }    .gx-card.gx-hero:hover {
+        transform: none;
+        border-color: transparent;
+        background: url('/static/images/leftImage.jpg') center/cover no-repeat;
+    }
+    /* â”€â”€â”€ Hero card (left, large) â”€â”€â”€ */
+    .gx-hero {
+        padding: 38px 38px 32px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 550px;
+        position: relative;
+        background: url('/static/images/leftImage.jpg') right center/70% no-repeat;
+        overflow: hidden;
+        border: none !important;
+        transition: none !important;
+    }
+    .gx-hero:hover {
+        transform: none !important;
+        border-color: transparent !important;
+        background: url('/static/images/leftImage.jpg') right center/70% no-repeat !important;
+    }
+    .gx-hero::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(to right, #ffffff 0%, #ffffff 45%, rgba(255,255,255,0.0) 62%);
+        z-index: 0;
+    }
+    .gx-hero-visual { display: none; }
+    .gx-hero-content { position: relative; z-index: 1; padding-right: 0; min-height: auto; display: flex; flex-direction: column; max-width: 52%; padding-bottom: 24px; }
+    .gx-eyebrow {
+        font-size: clamp(22px, 3vw, 40px);
+        font-weight: 400;
+        font-family: 'Bebas Neue', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: #e53935;
+        margin: 0;
+        line-height: 1;
+    }
+    .gx-hero-title {
+        font-size: clamp(40px, 6vw, 90px);
+        font-weight: 700;
+        letter-spacing: -1.2px;
+        line-height: 1.0;
+        color: rgba(0,0,0,0.90);
+        margin: 0 0 20px;
+        white-space: nowrap;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    .gx-hero-title .intro {
+        display: block;
+        font-size: clamp(26px, 3.5vw, 44px);
+        font-weight: 400;
+        letter-spacing: -0.2px;
+        line-height: 1.4;
+        color: rgba(0,0,0,0.90);
+        margin-bottom: 4px;
+    }
+    .gx-hero-title .outline {
+        -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 2px rgba(0,0,0,0.75);
+    }
+    .gx-hero-title .dot { color: rgba(0,0,0,0.90); }
+    .gx-hero-sub {
+        font-size: 24px;
+        line-height: 1.55;
+        color: rgba(0,0,0,0.90);
+        max-width: 400px;
+        margin: 0;
+        letter-spacing: -0.1px;
+    }
+    .gx-arrow {
+        position: absolute;
+        right: 28px; bottom: 18px;
+        width: 44px; height: 44px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.12);
+        display: inline-flex; align-items: center; justify-content: center;
+        color: rgba(255,255,255,0.55);
+        background: rgba(255,255,255,0.02);
+        transition: all .25s var(--ease);
+    }
+    .gx-arrow i { font-size: 16px !important; }
+    .gx-card:hover .gx-arrow {
+        color: #0A0A0A; background: #fff; border-color: #fff;
+        transform: rotate(-45deg);
+    }
+
+    /* â”€â”€â”€ Right column â”€â”€â”€ */
+    .gx-right {
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: 22px;
+    }
+
+    /* Marquee strip */
+    .gx-marquee {
+        position: relative;
+        background: #161616;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 999px;
+        padding: 16px 0;
+        overflow: hidden;
+        mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+    }
+    .gx-marquee.gx-marquee-big {
+        background: #0A0A0A;
+        border-radius: 20px;
+        border: none;
+        padding: 32px 0;
+        margin-bottom: 0;
+    }
+    .gx-marquee-track {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        white-space: nowrap;
+        width: max-content;
+        animation: gx-scroll 32s linear infinite;
+    }
+    .gx-marquee:hover .gx-marquee-track { animation-play-state: paused; }
+    .gx-marquee-item {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        font-weight: 500;
+        letter-spacing: 2px;
+        color: rgba(255,255,255,0.55);
+        text-transform: uppercase;
+        padding: 0 28px;
+        white-space: nowrap;
+    }
+    .gx-marquee-big .gx-marquee-item {
+        font-size: clamp(36px, 5vw, 72px);
+        font-weight: 800;
+        letter-spacing: -1px;
+        color: #fff;
+        padding: 0 24px;
+        text-transform: uppercase;
+        gap: 0;
+    }
+    .gx-marquee-big .gx-marquee-item.outline-item {
+        -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 1.2px rgba(255,255,255,0.5);
+        color: transparent;
+    }
+    .gx-marquee-big .gx-marquee-sep {
+        display: inline-block;
+        width: 10px; height: 10px;
+        background: #fff;
+        border-radius: 50%;
+        margin: 0 8px;
+        flex-shrink: 0;
+        opacity: 0.4;
+    }
+    .gx-marquee-item i {
+        font-size: 9px;
+        color: rgba(255,255,255,0.25);
+    }
+    .gx-marquee-item strong {
+        color: #fff;
+        font-weight: 700;
+        letter-spacing: 2.4px;
+    }
+    .gx-marquee-sep { display: none; }
+    @keyframes gx-scroll {
+        from { transform: translateX(0); }
+        to   { transform: translateX(-50%); }
+    }
+
+    /* Two small cards below marquee */
+    .gx-pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+    }
+    .gx-mini {
+        position: relative;
+        padding: 32px 28px 26px;
+        min-height: 320px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .gx-mini-visual {
+        flex: 1;
+        display: flex; align-items: center; justify-content: center;
+        margin: -8px -8px 18px;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.02);
+        min-height: 130px;
+        position: relative;
+        overflow: hidden;
+    }
+    .gx-mini-visual i {
+        font-size: 80px !important;
+        color: rgba(255,255,255,0.18);
+        transition: color .3s, transform .35s var(--ease);
+    }
+    .gx-card:hover .gx-mini-visual i { color: rgba(255,255,255,0.32); transform: scale(1.04); }
+    .gx-mini-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+    .gx-mini-text { flex: 1; }
+    .gx-mini-eyebrow {
+        font-size: 11px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 2px;
+        color: rgba(255,255,255,0.38);
+        margin: 0 0 8px;
+    }
+    .gx-mini-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #fff;
+        letter-spacing: -0.8px;
+        margin: 0;
+    }
+    .gx-mini .gx-arrow { position: static; }
+
+    /* â”€â”€â”€ Responsive â”€â”€â”€ */
+    @media (max-width: 1080px) {
+        .gx-grid { grid-template-columns: 1fr; }
+        .gx-hero { min-height: auto; }
+    }
+    @media (max-width: 720px) {
+        .gx-wrap { padding: 96px 16px 56px; }
+        .gx-hero {
+            grid-template-columns: 1fr;
+            gap: 24px;
+            padding: 28px 24px 26px;
+        }
+        .gx-hero-visual { width: 100%; height: 280px; }
+        .gx-hero-content { padding-right: 0; min-height: auto; padding-bottom: 56px; }
+        .gx-arrow { right: 22px; bottom: 22px; }
+        .gx-pair { grid-template-columns: 1fr; }
+        .gx-mini { min-height: 240px; }
+    }
+
+    /* â”€â”€â”€ Secondary section: grades â”€â”€â”€ */
+    .gx-section { margin-top: 80px; }
+    .gx-section-head {
+        display: flex; align-items: flex-end; justify-content: space-between;
+        gap: 24px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .gx-section-title {
+        font-size: clamp(28px, 3vw, 40px);
+        font-weight: 700; letter-spacing: -1.2px;
+        color: #fff; margin: 0;
+    }
+    .gx-section-sub {
+        font-size: 15px; color: rgba(255,255,255,0.5);
+        max-width: 420px; margin: 8px 0 0; line-height: 1.55;
+    }
+    .gx-grade-grid {
+        display: grid; gap: 22px;
+        grid-template-columns: repeat(3, 1fr);
+    }
+    @media (max-width: 880px) { .gx-grade-grid { grid-template-columns: 1fr; } }
+
+    .gx-grade {
+        padding: 32px 28px 26px;
+        display: flex; flex-direction: column;
+        min-height: 240px;
+        position: relative;
+    }
+    .gx-grade-num {
+        font-size: 96px; font-weight: 700;
+        line-height: 0.9; letter-spacing: -5px;
+        color: #fff;
+        margin: 0 0 6px;
+    }
+    .gx-grade.g10 .gx-grade-num { background: linear-gradient(180deg, #fff, #4CC2FF); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .gx-grade.g11 .gx-grade-num { background: linear-gradient(180deg, #fff, #B48CE0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .gx-grade.g12 .gx-grade-num { background: linear-gradient(180deg, #fff, #6CCB5F); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .gx-grade-name {
+        font-size: 18px; font-weight: 600;
+        color: #fff; margin: 0 0 6px; letter-spacing: -0.3px;
+    }
+    .gx-grade-desc {
+        font-size: 13.5px; color: rgba(255,255,255,0.5);
+        line-height: 1.55; margin: 0; flex: 1;
+    }
+    .gx-grade-foot {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-top: 18px; padding-top: 16px;
+        border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .gx-grade-courses {
+        font-size: 12px; color: rgba(255,255,255,0.45);
+        letter-spacing: 0.4px;
+    }
+    .gx-grade-courses strong { color: #fff; font-weight: 700; }
+    .gx-grade .gx-arrow { position: static; width: 36px; height: 36px; }
+    .gx-grade .gx-arrow i { font-size: 13px !important; }
+</style>
+
+<div class="gx-wrap">
+
+    <!-- Grades section — top -->
+    <section class="gx-section" style="padding-top:0;">
+        <div class="gx-section-head">
+            <div>
+                <h2 class="gx-section-title">Choose your grade.</h2>
+                <p class="gx-section-sub">Three years of structured CAT, aligned to the South African CAPS curriculum.</p>
+            </div>
+        </div>
+        <div class="gx-grade-grid">
+            {% for grade in grades %}
+            {% set cls = 'g10' if grade.number == 10 else ('g11' if grade.number == 11 else 'g12') %}
+            <a href="{{ url_for('grade_courses', grade_number=grade.number) }}" class="gx-card gx-grade {{ cls }}">
+                <div class="gx-grade-num">{{ grade.number }}</div>
+                <h3 class="gx-grade-name">{{ grade.name }}</h3>
+                <p class="gx-grade-desc">{{ grade.description }}</p>
+                <div class="gx-grade-foot">
+                    <span class="gx-grade-courses"><strong>{{ grade.courses|length }}</strong> COURSES</span>
+                    <span class="gx-arrow"><i class="fas fa-arrow-right"></i></span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="gx-grid" style="margin-top: 60px;">
+
+        <!-- LEFT: placeholder removed, hero moved below grades -->
+
+        <!-- RIGHT: two small cards only -->
+        <div class="gx-right">
+
+            <div class="gx-pair">
+                <a href="{{ url_for('grade_courses', grade_number=10) }}" class="gx-card gx-mini">
+                    <div class="gx-mini-visual"><i class="fas fa-book-open"></i></div>
+                    <div class="gx-mini-foot">
+                        <div class="gx-mini-text">
+                            <p class="gx-mini-eyebrow">Browse</p>
+                            <h3 class="gx-mini-title">Courses</h3>
+                        </div>
+                        <span class="gx-arrow"><i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </a>
+                <a href="{% if current_user.is_authenticated %}{{ url_for('dashboard') }}{% else %}{{ url_for('login') }}{% endif %}" class="gx-card gx-mini">
+                    <div class="gx-mini-visual"><i class="fas fa-clipboard-question"></i></div>
+                    <div class="gx-mini-foot">
+                        <div class="gx-mini-text">
+                            <p class="gx-mini-eyebrow">Practice</p>
+                            <h3 class="gx-mini-title">Quizzes</h3>
+                        </div>
+                        <span class="gx-arrow"><i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hero card — full width below grades (HIDDEN, kept for later) -->
+    <section class="gx-section" style="padding-top:0; display:none;">
+        <a href="{% if current_user.is_authenticated %}{{ url_for('dashboard') }}{% else %}{{ url_for('register') }}{% endif %}" class="gx-card gx-hero">
+            <p class="gx-eyebrow" id="gx-eyebrow-scramble" style="position:relative;z-index:1;">She actually did it</p>
+            <div class="gx-hero-content">
+                <h1 class="gx-hero-title"><span class="intro">I passed my</span>CAT <span class="outline">Exam<span class="dot">!</span></span></h1>
+                <p class="gx-hero-sub">All those late nights, the quizzes, the lessons — it paid off. Start your own journey and make it happen too.</p>
+            </div>
+            <span class="gx-arrow"><i class="fas fa-arrow-right"></i></span>
+        </a>
+    </section>
+
+    <!-- Marquee banner — bottom -->
+    <div class="gx-marquee gx-marquee-big" style="margin-top:40px;">
+        <div class="gx-marquee-track">
+            <span class="gx-marquee-item">CAT CAPS</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item outline-item">PASS YOUR EXAM</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item">GRADE 10</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item outline-item">GRADE 11</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item">GRADE 12</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item outline-item">INTERACTIVE LESSONS</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item">CAT CAPS</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item outline-item">PASS YOUR EXAM</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item">GRADE 10</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item outline-item">GRADE 11</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item">GRADE 12</span>
+            <span class="gx-marquee-sep"></span>
+            <span class="gx-marquee-item outline-item">INTERACTIVE LESSONS</span>
+            <span class="gx-marquee-sep"></span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+(function() {
+    const el = document.getElementById('gx-eyebrow-scramble');
+    if (!el) return;
+    const final = el.textContent.trim();
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%&?';
+    let iterations = 0;
+    el.textContent = '';
+    const interval = setInterval(() => {
+        el.textContent = final.split('').map((ch, i) => {
+            if (ch === ' ') return ' ';
+            if (i < iterations) return final[i];
+            return chars[Math.floor(Math.random() * chars.length)];
+        }).join('');
+        if (iterations >= final.length) clearInterval(interval);
+        iterations += 0.4;
+    }, 40);
+})();
+</script>
+
+{% endblock %}
+
+{% block content %}{% endblock %}

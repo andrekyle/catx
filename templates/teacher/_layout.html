@@ -1,0 +1,717 @@
+{% extends "lms_base.html" %}
+{% block content %}
+<style>
+/* On teacher pages the top navbar sits on a dark grey background — force white text. */
+.navbar .nav-brand,
+.navbar .nav-links a,
+.navbar .nav-links a.active,
+.navbar .nav-dropdown-toggle,
+.navbar .nav-cta a,
+.navbar .nav-cta button { color: #FFFFFF !important; }
+.navbar .nav-links a:hover,
+.navbar .nav-dropdown-toggle:hover { color: #FFFFFF !important; opacity: 0.85; }
+</style>
+<style>
+/* ===== Microsoft Azure portal color scheme (teacher pages only) ===== */
+.t-shell, .t-shell * {
+    --az-bg:        #EDEBE9;
+    --az-surface:   #FFFFFF;
+    --az-border:    #D2D0CE;
+    --az-border-2:  #B3B0AD;
+    --az-text:      #000000;
+    --az-text-2:    #000000;
+    --az-text-3:    #000000;
+    --az-blue:      #0078D4;
+    --az-blue-dk:   #106EBE;
+    --az-blue-dr:   #004578;
+    --az-blue-bg:   #DEECF9;
+    --az-nav:       #0078D4;
+    --az-red:       #A4262C;
+    --az-red-dr:    #8E1F25;
+    --az-green:     #0E700E;
+    --az-amber:     #6B5400;
+
+    /* Override base-theme tokens locally so existing rules using var(--text)
+       etc. inherit Azure light values inside the teacher shell. */
+    --bg:               #EDEBE9;
+    --bg-elevated:      #FFFFFF;
+    --bg-card:          #FFFFFF;
+    --bg-input:         #FFFFFF;
+    --text:             #000000;
+    --text-secondary:   #000000;
+    --text-tertiary:    #000000;
+    --separator:        #D2D0CE;
+    --separator-light:  #D2D0CE;
+    --fill:             #F3F2F1;
+    --blue:             #0078D4;
+}
+.t-shell {
+    background: var(--az-bg);
+    color: var(--az-text);
+    width: min(1900px, calc(100vw - 20px));
+    max-width: none;
+    margin: 0;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 28px 32px 80px;
+    border-radius: 0;
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+}
+@media (max-width: 900px) {
+    .t-shell {
+        width: calc(100vw - 12px);
+        padding: 22px 18px 64px;
+    }
+}
+.t-shell, .t-shell p, .t-shell span, .t-shell div, .t-shell td, .t-shell li, .t-shell a {
+    font-weight: 400;
+}
+/* Header */
+.t-shell .t-head { border-bottom: 1px solid var(--az-border-2); }
+.t-shell .t-eyebrow { color: var(--az-text-3); font-size: 11px; letter-spacing: 0.16em; }
+.t-shell .t-title  { color: var(--az-text); font-size: 22px; letter-spacing: -0.3px; font-weight: 600; line-height: 1.2; }
+.t-shell .t-sub    { color: var(--az-text-2); font-size: 13px; margin-top: 4px; }
+/* Tabs → Azure command-bar style */
+.t-shell .t-tabs   { gap: 0; border-bottom: 1px solid var(--az-border-2); margin-bottom: 22px; }
+.t-shell .t-tabs a {
+    padding: 10px 16px; border-radius: 0; border: none;
+    color: var(--az-text-2); background: transparent;
+    border-bottom: 2px solid transparent; font-weight: 500;
+}
+.t-shell .t-tabs a:hover { color: var(--az-blue); background: rgba(0,120,212,0.06); }
+.t-shell .t-tabs a.is-active {
+    color: var(--az-blue); background: transparent;
+    border-bottom-color: var(--az-blue);
+}
+/* Cards / rows / tables */
+.t-shell .t-card,
+.t-shell .t-row {
+    background: var(--az-surface);
+    border: 1px solid var(--az-border);
+    border-radius: 2px;
+    box-shadow: 0 1.6px 3.6px rgba(0,0,0,0.08), 0 0.3px 0.9px rgba(0,0,0,0.06);
+}
+.t-shell .t-empty  { background: var(--az-surface); border-color: var(--az-border-2); color: var(--az-text-3); }
+.t-shell .t-table th { color: var(--az-text-3); border-bottom-color: var(--az-border-2); }
+.t-shell .t-table td { color: var(--az-text); border-bottom-color: var(--az-border); }
+/* Buttons */
+.t-shell .t-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: #FFFFFF;
+    color: #1F2937;
+    border: 1px solid #D1D5DB;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+}
+.t-shell .t-btn:hover {
+    background: #F9FAFB;
+    border-color: #9CA3AF;
+    color: #111827;
+    transform: translateY(-1px);
+}
+.t-shell .t-btn:active {
+    transform: translateY(0);
+    background: #F3F4F6;
+    border-color: #6B7280;
+}
+.t-shell .t-btn:focus-visible {
+    outline: none;
+    border-color: #6B7280;
+    box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.20);
+}
+
+.t-shell .t-btn.primary {
+    background: var(--az-blue);
+    color: #FFFFFF;
+    border-color: var(--az-blue);
+}
+.t-shell .t-btn.primary:hover {
+    background: var(--az-blue-dk);
+    border-color: var(--az-blue-dk);
+    color: #FFFFFF;
+    transform: translateY(-1px);
+}
+.t-shell .t-btn.primary:active {
+    background: var(--az-blue-dk);
+    border-color: var(--az-blue-dk);
+    transform: translateY(0);
+}
+.t-shell .t-btn.primary:focus-visible {
+    outline: none;
+    border-color: var(--az-blue-dk);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.28);
+}
+.t-shell .t-btn.primary img {
+    filter: brightness(0) invert(1);
+}
+
+.t-shell .t-btn.danger {
+    color: var(--az-red);
+    border-color: rgba(220, 38, 38, 0.40);
+    background: #FFFFFF;
+}
+.t-shell .t-btn.danger:hover {
+    background: var(--az-red);
+    color: #FFFFFF;
+    border-color: var(--az-red);
+}
+.t-shell .t-thin-btn,
+.t-shell .t-icon-btn {
+    border-color: var(--az-border-2); color: var(--az-text-2);
+    border-radius: 2px;
+}
+.t-shell .t-thin-btn:hover,
+.t-shell .t-icon-btn:hover { color: var(--az-blue); border-color: var(--az-blue); }
+.t-shell .t-thin-btn.danger { color: var(--az-red); }
+.t-shell .t-thin-btn.danger:hover { background: var(--az-red); border-color: var(--az-red); color: #fff; }
+/* Form fields */
+.t-shell .t-field label { color: var(--az-text-3); }
+.t-shell .t-field input,
+.t-shell .t-field select,
+.t-shell .t-field textarea {
+    background: var(--az-surface); color: var(--az-text);
+    border: 1px solid var(--az-border-2); border-radius: 2px;
+}
+.t-shell .t-field input:focus,
+.t-shell .t-field select:focus,
+.t-shell .t-field textarea:focus { border-color: var(--az-blue); box-shadow: 0 0 0 1px var(--az-blue); }
+/* Chips */
+.t-shell .t-chip          { background: var(--az-blue-bg) !important; color: var(--az-blue-dr) !important; padding: 2px 8px !important; border-radius: 2px !important; font-weight: 500 !important; }
+.t-shell .t-chip.gray     { background: #EDEBE9 !important; color: var(--az-text-2) !important; }
+.t-shell .t-chip.green    { background: #DFF6DD !important; color: var(--az-green) !important; }
+.t-shell .t-chip.amber    { background: #FFF4CE !important; color: #8A6B00 !important; }
+.t-shell .t-chip.red      { background: #FDE7E9 !important; color: var(--az-red) !important; }
+/* Filter dropdown */
+.t-shell .fdd-toggle  { background: var(--az-surface); border-color: var(--az-border-2); color: var(--az-text); border-radius: 2px; }
+.t-shell .fdd-toggle:hover { border-color: var(--az-text-3); }
+.t-shell .fdd-toggle:focus { border-color: var(--az-blue); }
+.t-shell .fdd-panel   { background: var(--az-surface); border-color: var(--az-border-2); border-radius: 2px; box-shadow: 0 6.4px 14.4px rgba(0,0,0,0.13); }
+.t-shell .fdd-item    { color: var(--az-text); }
+.t-shell .fdd-item:hover    { background: #F3F2F1; }
+.t-shell .fdd-item.selected { background: var(--az-blue-bg); color: var(--az-blue-dr); }
+.t-shell .fdd-actions a     { color: var(--az-blue); }
+/* Modal */
+.t-shell .ui-modal { background: var(--az-surface); border-color: var(--az-border-2); border-radius: 2px; }
+.t-shell .ui-modal h3 { color: var(--az-text); }
+.t-shell .ui-modal p  { color: var(--az-text-2); }
+.t-shell .ui-modal .ui-btn { background: var(--az-surface); color: var(--az-text); border-color: var(--az-border-2); border-radius: 2px; }
+.t-shell .ui-modal .ui-btn:hover { border-color: var(--az-text-3); }
+.t-shell .ui-modal .ui-btn.danger { background: var(--az-red); border-color: var(--az-red); }
+.t-shell .ui-modal .ui-btn.danger:hover { background: #8E1F25; border-color: #8E1F25; }
+
+/* Azure blue banner table headers (Overview, Past papers, Question bank, Paper generator, Year planner) */
+.t-shell .t-table thead th,
+.t-shell table.t-table > thead > tr > th {
+    background: var(--az-blue) !important;
+    color: #FFFFFF !important;
+    border-color: var(--az-blue) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+}
+/* Apply same banner to any generic table inside teacher cards */
+.t-shell .t-card table thead th,
+.t-shell .t-card table > thead > tr > th {
+    background: var(--az-blue) !important;
+    color: #FFFFFF !important;
+    border-color: var(--az-blue) !important;
+    font-weight: 600 !important;
+}
+
+/* Force every grey/secondary text element inside the teacher shell to pure black.
+   Excludes: navbar (kept white-on-dark) and Azure banner headers. */
+.t-shell,
+.t-shell *:not(.navbar):not(.navbar *) {
+    color: #000000 !important;
+}
+/* Restore white text where it must stay white (Azure banners).
+   Uses repeated class for higher specificity than the universal black override. */
+.t-shell.t-shell .t-table thead th,
+.t-shell.t-shell .t-table thead th *,
+.t-shell.t-shell table.t-table > thead > tr > th,
+.t-shell.t-shell table.t-table > thead > tr > th *,
+.t-shell.t-shell .t-card table thead th,
+.t-shell.t-shell .t-card table thead th *,
+.t-shell.t-shell .cap-table thead th,
+.t-shell.t-shell .cap-table thead th *,
+.t-shell.t-shell table thead th,
+.t-shell.t-shell table thead th *,
+.t-shell.t-shell .t-card > h2:first-child,
+.t-shell.t-shell .t-card > h2:first-child *,
+.t-shell.t-shell .t-card > h3:first-child,
+.t-shell.t-shell .t-card > h3:first-child *,
+.t-shell.t-shell .t-card > h4:first-child,
+.t-shell.t-shell .t-card > h4:first-child *,
+.t-shell.t-shell .gen-h,
+.t-shell.t-shell .gen-h *,
+.t-shell.t-shell .yp-term-h,
+.t-shell.t-shell .yp-term-h * { color: #FFFFFF !important; }
+/* Active tab keeps its accent */
+.t-shell .t-tabs a.is-active,
+.t-shell .t-tabs a.is-active * { color: var(--az-blue) !important; }
+/* Primary/danger buttons keep their on-color text */
+.t-shell .t-btn.primary, .t-shell .t-btn.primary *,
+.t-shell .ui-modal .ui-btn.danger, .t-shell .ui-modal .ui-btn.danger * { color: #FFFFFF !important; }
+
+/* ===== Azure blue section banners across teacher pages =====
+   Mirrors the planner "FORMAL ASSESSMENT" header look on:
+   Overview (Recent past papers, Upcoming planner items),
+   Past papers card heading, Question bank card heading,
+   Paper generator (Paper header, Cover/header/footer, Sections & questions, Question bank),
+   Year planner (per-term card header + sub-section labels).
+*/
+.t-shell .t-card > h2:first-child,
+.t-shell .t-card > h3:first-child,
+.t-shell .t-card > h4:first-child,
+.t-shell .gen-h,
+.t-shell .yp-term-h {
+    background: var(--az-blue) !important;
+    color: #FFFFFF !important;
+    padding: 10px 16px !important;
+    margin: -22px -22px 16px !important;   /* span full t-card width (t-card has 22px padding) */
+    border-bottom: 1px solid var(--az-blue) !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 13px !important;
+    border-radius: 0 !important;
+    display: block;
+    text-align: center;
+}
+.t-shell .t-card > h2:first-child *,
+.t-shell .t-card > h3:first-child *,
+.t-shell .t-card > h4:first-child *,
+.t-shell .gen-h *,
+.t-shell .yp-section-h *,
+.t-shell .yp-term-h * { color: #FFFFFF !important; }
+/* yp-term has 0 padding; banner sits flush with rounded card top */
+.t-shell .yp-term .yp-term-h {
+    margin: 0 !important;
+    text-align: left;
+    padding: 12px 16px !important;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+}
+/* yp-section-h sits inside the term card body — no negative margin needed */
+.t-shell .yp-section-h {
+    margin: 12px 0 10px !important;
+    padding: 7px 10px !important;
+    border-radius: 0 !important;
+    border: 1px solid rgba(0,120,212,0.20) !important;
+    background: rgba(0,120,212,0.08) !important;
+    text-align: left;
+    border-bottom: 1px solid rgba(0,120,212,0.20) !important;
+}
+.t-shell.t-shell .yp-section-h,
+.t-shell.t-shell .yp-section-h * {
+    color: #004578 !important;
+}
+.t-shell .yp-term > .yp-section { padding-top: 0 !important; }
+.t-shell .yp-term > .yp-section.is-empty { display: block; }
+/* Generator h3 (.gen-h) sits inside its own panels – mirror t-card behavior */
+.t-shell .gen-h {
+    margin: -16px -16px 14px !important;
+    text-align: left;
+    padding: 10px 16px !important;
+}
+
+.t-head { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; padding-bottom:18px; border-bottom:1px solid var(--separator-light); margin-bottom:22px; }
+.t-eyebrow { font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-tertiary); margin:0 0 6px; }
+.t-title { font-size: 22px; font-weight:700; letter-spacing:-0.3px; line-height:1.2; margin:0; color:var(--text); }
+.t-sub { color:var(--text-secondary); margin:4px 0 0; font-size:13px; }
+.t-tabs { display:flex; gap:6px; flex-wrap:wrap; margin: -10px 0 26px; }
+.t-tabs a { padding:8px 14px; font-size:13px; border-radius:999px; color:var(--text-secondary); border:1px solid var(--separator-light); background:transparent; text-decoration:none; }
+.t-tabs a.is-active { background:var(--text); color:var(--bg); border-color:var(--text); }
+.t-card { background:var(--bg-elevated); border:1px solid var(--separator-light); border-radius:14px; padding:22px; }
+.t-grid { display:grid; gap:16px; }
+.t-grid.cols-2 { grid-template-columns:repeat(2, minmax(0,1fr)); }
+.t-grid.cols-3 { grid-template-columns:repeat(3, minmax(0,1fr)); }
+.t-grid.cols-4 { grid-template-columns:repeat(4, minmax(0,1fr)); }
+@media (max-width: 880px){ .t-grid.cols-3, .t-grid.cols-4 { grid-template-columns:repeat(2, minmax(0,1fr)); } .t-grid.cols-2 { grid-template-columns:1fr; } }
+.t-stat { display:flex; flex-direction:column; gap:4px; }
+.t-stat .num { font-size:30px; font-weight:600; letter-spacing:-0.6px; }
+.t-stat .lbl { font-size:12px; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-tertiary); }
+.t-btn { display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border-radius:10px; font-size:13px; font-weight:500; border:1px solid var(--separator-light); background:var(--bg-elevated); color:var(--text); text-decoration:none; cursor:pointer; }
+.t-btn.primary { background:var(--text); color:var(--bg); border-color:var(--text); }
+.t-btn.danger { color:#DC2626; border-color:rgba(220,38,38,0.3); background:transparent; }
+.t-btn:hover { transform:translateY(-1px); }
+.t-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 16px; border:1px solid var(--separator-light); border-radius:12px; background:var(--bg-elevated); }
+.t-row + .t-row { margin-top:8px; }
+.t-row h4 { margin:0 0 3px; font-size:15px; font-weight:600; }
+.t-row p { margin:0; color:var(--text-secondary); font-size:12.5px; }
+.t-chip { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:999px; font-size:11px; background:rgba(0,120,212,0.10); color:#0078D4; font-weight:500; white-space:nowrap; }
+.t-chip.gray { background:rgba(120,120,128,0.14); color:var(--text-secondary); }
+.t-chip.green { background:rgba(34,197,94,0.14); color:#16A34A; }
+.t-chip.amber { background:rgba(245,158,11,0.14); color:#D97706; }
+.t-chip.red { background:rgba(220,38,38,0.14); color:#DC2626; }
+.t-form-grid { display:grid; gap:14px; grid-template-columns:1fr 1fr; }
+@media (max-width: 720px){ .t-form-grid { grid-template-columns:1fr; } }
+.t-field { display:flex; flex-direction:column; gap:6px; }
+.t-field.span-2 { grid-column: 1 / -1; }
+.t-field > label {
+    font-size:12px;
+    letter-spacing:0.10em;
+    text-transform:uppercase;
+    color:var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.t-field input, .t-field select, .t-field textarea {
+    background:var(--bg); border:1.5px solid var(--separator-light); border-radius:10px;
+    padding:11px 13px; font-size:14px; color:var(--text); outline:none; font-family:inherit;
+}
+.t-field textarea { min-height:110px; resize:vertical; }
+.t-field input:focus, .t-field select:focus, .t-field textarea:focus { border-color:var(--blue); }
+.t-empty { padding:48px 20px; text-align:center; color:var(--text-tertiary); border:1px dashed var(--separator-light); border-radius:14px; }
+.t-empty i { font-size:36px; opacity:0.4; margin-bottom:10px; display:block; }
+.t-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--separator-light);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--az-surface, #FFFFFF);
+}
+.t-table th, .t-table td {
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    border-bottom: 1px solid var(--separator-light);
+}
+.t-table th {
+    font-size: 11.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.t-table td { color: var(--az-text, #1f1f1f); }
+.t-table thead tr:first-child th:first-child { border-top-left-radius: 10px; }
+.t-table thead tr:first-child th:last-child { border-top-right-radius: 10px; }
+.t-table tbody tr:last-child td { border-bottom: none; }
+.t-table tbody tr:nth-child(even) td { background: rgba(0, 120, 212, 0.035); }
+
+/* ===== Shared minimal styling for all teacher pages ===== */
+
+/* Subtle hover highlight for easier row scanning. */
+.t-table tbody tr:hover td,
+[data-theme="dark"] .t-table tbody tr:hover td { background: rgba(0, 120, 212, 0.10) !important; }
+
+/* Chips → flat thin text everywhere in teacher pages */
+.t-chip, .t-chip.gray, .t-chip.green, .t-chip.amber, .t-chip.red {
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+    font-weight: 300 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    font-size: 12.5px !important;
+}
+
+/* Thin outlined button (replacement for solid t-btn where used inline) */
+.t-thin-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid rgba(127,127,127,0.30);
+    border-radius: 6px;
+    color: inherit;
+    font-size: 13px; font-weight: 400;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color .15s, border-color .15s;
+}
+.t-thin-btn:hover { color: #0078D4; border-color: #0078D4; background: transparent; }
+.t-thin-btn.danger { color: #C42B1C; }
+.t-thin-btn.danger:hover { color: #fff; border-color: #C42B1C; background: #C42B1C; }
+.t-thin-btn svg { width: 14px; height: 14px; }
+
+/* Square icon-only button */
+.t-icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px;
+    background: #FFFFFF;
+    border: 1px solid #D2D0CE;
+    border-radius: 6px;
+    color: #605E5C;
+    cursor: pointer;
+    margin-left: 6px;
+    transition: color .15s, border-color .15s, background .15s, box-shadow .15s;
+    text-decoration: none;
+    padding: 0;
+}
+.t-icon-btn:hover { color: #0078D4; border-color: #0078D4; background: #F3F9FD; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+.t-icon-btn.danger { color: #C42B1C; border-color: #E5BAB4; background: #FFFFFF; }
+.t-icon-btn.danger:hover { color: #FFFFFF !important; border-color: #C42B1C !important; background: #C42B1C !important; box-shadow: 0 1.5px 4px rgba(196,43,28,0.30); }
+.t-icon-btn.danger:hover svg { stroke: #FFFFFF; }
+.t-icon-btn.danger:active { background: #A82218 !important; border-color: #A82218 !important; }
+.t-icon-btn:focus-visible { outline: 2px solid #0078D4; outline-offset: 1px; }
+.t-icon-btn svg { width: 16px; height: 16px; stroke-width: 1.1; }
+.t-icon-btn svg * { stroke-width: 1.1; }
+
+/* Filter / select dropdown (.fdd) */
+.fdd { position: relative; }
+.fdd-toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; min-height: 34px;
+    padding: 6px 10px;
+    background: var(--bg-input, rgba(127,127,127,0.08));
+    border: 1px solid rgba(127,127,127,0.30);
+    border-radius: 6px;
+    color: inherit;
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+    font-family: inherit;
+}
+.fdd-toggle:hover { border-color: rgba(127,127,127,0.55); }
+.fdd-toggle:focus { outline: none; border-color: var(--blue, #0078D4); }
+.fdd-toggle .caret { margin-left: 8px; opacity: 0.6; }
+.fdd-toggle .fdd-label {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fdd-panel {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+    max-height: 280px; overflow-y: auto;
+    background: var(--bg-card, var(--bg-elevated, #1f1f1f));
+    border: 1px solid rgba(127,127,127,0.35);
+    border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    padding: 4px 0;
+    display: none;
+}
+.fdd.open .fdd-panel { display: block; }
+.fdd-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text);
+}
+.fdd-item:hover { background: rgba(127,127,127,0.12); }
+.fdd-item.selected { background: rgba(0,120,212,0.10); color: var(--blue, #0078D4); }
+.fdd-item input { margin: 0; }
+.fdd-actions {
+    display: flex; justify-content: space-between;
+    padding: 6px 10px; border-bottom: 1px solid rgba(127,127,127,0.18);
+    font-size: 12px;
+}
+.fdd-actions a { cursor: pointer; color: var(--blue, #0078D4); text-decoration: none; }
+.fdd-actions a:hover { text-decoration: underline; }
+
+/* Confirmation modal */
+.ui-modal-backdrop {
+    position: fixed; inset: 0; z-index: 1000;
+    background: transparent;
+    display: none;
+    pointer-events: none;
+}
+.ui-modal-backdrop.open { display: block; }
+.ui-modal-backdrop.no-overlay { background: transparent; }
+.ui-modal {
+    position: fixed;
+    background: var(--bg-elevated, #1f1f1f);
+    border: 1px solid var(--separator-light);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    width: min(360px, calc(100vw - 32px));
+    padding: 18px 18px 14px;
+    pointer-events: auto;
+}
+.ui-modal h3 { margin: 0 0 8px; font-size: 17px; font-weight: 500; color: var(--text); }
+.ui-modal p  { margin: 0 0 18px; color: var(--text-secondary); font-size: 13.5px; line-height: 1.5; }
+.ui-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.ui-modal .ui-btn {
+    padding: 8px 16px; border-radius: 6px;
+    background: transparent; border: 1px solid var(--separator-light);
+    color: var(--text); font-size: 13px; cursor: pointer;
+    font-family: inherit;
+}
+.ui-modal .ui-btn:hover { border-color: rgba(127,127,127,0.65); }
+.ui-modal .ui-btn.danger { background: #C42B1C; border-color: #C42B1C; color: #fff; }
+.ui-modal .ui-btn.danger:hover { background: #A82218; border-color: #A82218; }
+</style>
+
+<div class="t-shell">
+    <div class="t-head">
+        <div>
+            <p class="t-eyebrow">Teacher workspace</p>
+            <h1 class="t-title">{% block t_title %}Teachers{% endblock %}</h1>
+            <p class="t-sub">{% block t_sub %}Tools for planning, assessment and content delivery.{% endblock %}</p>
+        </div>
+        <div>{% block t_action %}{% endblock %}</div>
+    </div>
+
+    <nav class="t-tabs">
+        {% set ep = request.endpoint or '' %}
+        <a href="{{ url_for('teacher_dashboard') }}" class="{% if ep == 'teacher_dashboard' %}is-active{% endif %}">Overview</a>
+        <a href="{{ url_for('teacher_papers') }}" class="{% if ep.startswith('teacher_paper') and 'generator' not in ep and 'generated' not in ep %}is-active{% endif %}">Past papers</a>
+        <a href="{{ url_for('teacher_bank') }}" class="{% if ep.startswith('teacher_bank') %}is-active{% endif %}">Question bank</a>
+        <a href="{{ url_for('teacher_papers_generated') }}" class="{% if 'paper_edit' in ep or 'papers_generated' in ep or 'paper_preview' in ep or 'paper_memo' in ep %}is-active{% endif %}">Paper generator</a>
+        <a href="{{ url_for('teacher_planner') }}" class="{% if ep.startswith('teacher_planner') %}is-active{% endif %}">Year planner</a>
+    </nav>
+    <script>
+    // Avoid the visible scroll-restore jump when switching teacher tabs:
+    // tell the browser not to restore the previous page's scroll position,
+    // and on every tab-nav click scroll the current page to the top first
+    // so the new page paints from the top with no flash.
+    (function () {
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        var tabs = document.querySelectorAll('.t-tabs a');
+        tabs.forEach(function (a) {
+            a.addEventListener('click', function () {
+                try { window.scrollTo(0, 0); } catch (e) {}
+            });
+        });
+    })();
+    </script>
+
+    {% block t_body %}{% endblock %}
+</div>
+
+<div class="ui-modal-backdrop" id="confirmBackdrop">
+    <div class="ui-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <h3 id="confirmTitle">Confirm</h3>
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="ui-modal-actions">
+            <button type="button" class="ui-btn" id="confirmCancel">Cancel</button>
+            <button type="button" class="ui-btn danger" id="confirmOk">Delete</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    // ---- Global confirmation modal ---------------------------------------
+    var backdrop = document.getElementById('confirmBackdrop');
+    var msgEl    = document.getElementById('confirmMessage');
+    var okBtn    = document.getElementById('confirmOk');
+    var cancel   = document.getElementById('confirmCancel');
+    var pending  = null;
+
+    function close(){
+        backdrop.classList.remove('open');
+        backdrop.classList.remove('no-overlay');
+        pending = null;
+    }
+    cancel.addEventListener('click', close);
+    backdrop.addEventListener('click', function(e){ if (e.target === backdrop) close(); });
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape' && backdrop.classList.contains('open')) close();
+    });
+    okBtn.addEventListener('click', function(){
+        if (!pending) return;
+        var f = pending;
+        close();
+        f.dataset.confirmed = '1';
+        if (typeof f.requestSubmit === 'function') f.requestSubmit();
+        else f.submit();
+    });
+
+    // Move the modal markup to <body> so it isn't affected by any ancestor
+    // transform/filter/contain that turns position:fixed into absolute.
+    if (backdrop && backdrop.parentNode !== document.body) {
+        document.body.appendChild(backdrop);
+    }
+
+    document.querySelectorAll('form[data-confirm]').forEach(function(f){
+        f.addEventListener('submit', function(e){
+            if (f.dataset.confirmed === '1') {
+                f.dataset.confirmed = '0';
+                return;
+            }
+            e.preventDefault();
+            msgEl.textContent = f.dataset.confirm || 'Are you sure?';
+            pending = f;
+            backdrop.classList.toggle('no-overlay', f.dataset.confirmNoBackdrop === '1');
+            backdrop.classList.add('open');
+            // Position the modal near the triggering form so the user sees it
+            // where they clicked, not in the middle of the page.
+            try {
+                var modal = backdrop.querySelector('.ui-modal');
+                if (modal) {
+                    // Force fixed positioning regardless of any cascade override
+                    modal.style.setProperty('position', 'fixed', 'important');
+                    modal.style.setProperty('left', '0px', 'important');
+                    modal.style.setProperty('top',  '0px', 'important');
+                    modal.style.setProperty('right', 'auto', 'important');
+                    modal.style.setProperty('bottom', 'auto', 'important');
+                    modal.style.setProperty('margin', '0', 'important');
+                    modal.style.setProperty('transform', 'none', 'important');
+                    var rect = f.getBoundingClientRect();
+                    var mw = modal.offsetWidth;
+                    var mh = modal.offsetHeight;
+                    var vw = window.innerWidth;
+                    var vh = window.innerHeight;
+                    var pad = 8;
+                    // Horizontally centred in the viewport, vertically near
+                    // the row that was clicked.
+                    var left = Math.max(pad, (vw - mw) / 2);
+                    var top = rect.top - 8;
+                    if (top + mh > vh - pad) top = vh - mh - pad;
+                    if (top < pad) top = pad;
+                    modal.style.setProperty('left', left + 'px', 'important');
+                    modal.style.setProperty('top',  top  + 'px', 'important');
+                }
+            } catch(_) {}
+        }, false);
+    });
+
+    // ---- Generic .fdd dropdown behaviour ---------------------------------
+    var allDD = document.querySelectorAll('.fdd');
+    allDD.forEach(function(dd){
+        var toggle = dd.querySelector('.fdd-toggle');
+        if (!toggle) return;
+        toggle.addEventListener('click', function(e){
+            e.stopPropagation();
+            allDD.forEach(function(o){ if (o !== dd) o.classList.remove('open'); });
+            dd.classList.toggle('open');
+        });
+    });
+    document.addEventListener('click', function(e){
+        allDD.forEach(function(dd){ if (!dd.contains(e.target)) dd.classList.remove('open'); });
+    });
+
+    // Single-select fdd backed by hidden input + .fdd-item[data-value]
+    document.querySelectorAll('.fdd[data-fdd="single"]').forEach(function(dd){
+        var label  = dd.querySelector('.fdd-label');
+        var hidden = dd.querySelector('input[type="hidden"]');
+        if (!hidden) return;
+        var items  = dd.querySelectorAll('.fdd-item[data-value]');
+        items.forEach(function(it){
+            if (it.dataset.value === hidden.value) it.classList.add('selected');
+            it.addEventListener('click', function(){
+                hidden.value = it.dataset.value;
+                if (label) label.textContent = it.textContent.trim();
+                items.forEach(function(o){ o.classList.remove('selected'); });
+                it.classList.add('selected');
+                dd.classList.remove('open');
+                if (dd.dataset.autoSubmit === '1') {
+                    var form = dd.closest('form');
+                    if (form) form.submit();
+                }
+            });
+        });
+    });
+})();
+</script>
+{% endblock %}

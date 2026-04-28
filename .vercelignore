@@ -1,0 +1,42 @@
+# Local database files
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Development files
+.env.development.local
+.env.local
+server.log
+server_output.log
+
+# MacOS files
+.DS_Store
+
+# Git
+.git/
+
+# IDE files
+.vscode/
+.idea/
+
+# Test files
+test_*
+
+# Build files
+build/
+dist/
+
+# Node modules (if any)
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp

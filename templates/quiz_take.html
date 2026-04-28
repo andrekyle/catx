@@ -1,0 +1,454 @@
+{% extends "lms_base.html" %}
+{% block title %}{{ quiz.title }} - CAT LMS{% endblock %}
+{% block extra_css %}
+<style>
+    :root {
+        --qz-bg: #0A0A0A;
+        --qz-card: #161616;
+        --qz-card-2: #1C1C1C;
+        --qz-border: rgba(255,255,255,0.08);
+        --qz-border-strong: rgba(255,255,255,0.14);
+        --qz-text: rgba(255,255,255,0.92);
+        --qz-text-2: rgba(255,255,255,0.55);
+        --qz-text-3: rgba(255,255,255,0.38);
+        --qz-accent: #4F8BF5;
+        --qz-accent-2: #A8C5FF;
+        --qz-accent-glow: rgba(79,139,245,0.25);
+        --qz-radius: 16px;
+        --qz-radius-lg: 22px;
+    }
+
+    .qz-shell { max-width: 760px; margin: 0 auto; font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; }
+
+    /* Header */
+    .qz-head { display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+    .qz-title { font-size: 22px !important; font-weight: 700 !important; letter-spacing: -0.4px !important; color: var(--qz-text) !important; margin:0; }
+    .qz-timer {
+        display:inline-flex; align-items:center; gap:8px;
+        padding: 9px 18px;
+        border-radius: 999px;
+        background: var(--qz-accent);
+        color: #fff; font-weight: 700; font-size: 14px; letter-spacing: 0.2px;
+    }
+    .qz-timer i { font-size: 12px; opacity: 0.9; }
+
+    /* Progress meta */
+    .qz-meta { margin-bottom: 22px; }
+    .qz-meta-row { display:flex; justify-content:space-between; font-size:13px; margin-bottom:10px; color: var(--qz-text-2); font-weight: 500; }
+    .qz-meta-row strong { color: var(--qz-text); font-weight: 600; }
+    .qz-progress { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .qz-progress-fill {
+        height: 100%; width: 0%;
+        background: var(--qz-accent);
+        border-radius: 999px;
+        transition: width 0.4s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* Card */
+    .qz-card {
+        background: var(--qz-card);
+        border: 1px solid var(--qz-border);
+        border-radius: var(--qz-radius-lg);
+        padding: 28px 28px 26px !important;
+        margin-bottom: 18px !important;
+    }
+
+    /* Type badge */
+    .qz-badge {
+        display:inline-flex; align-items:center; gap:6px;
+        padding: 6px 12px; border-radius: 999px;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        background: rgba(79,139,245,0.10);
+        color: var(--qz-accent-2);
+        border: 1px solid rgba(79,139,245,0.22);
+        margin-bottom: 16px;
+    }
+    .qz-badge.is-green { background: rgba(108,203,95,0.10); color: #6CCB5F; border-color: rgba(108,203,95,0.22); }
+    .qz-badge.is-amber { background: rgba(242,181,58,0.10); color: #F2B53A; border-color: rgba(242,181,58,0.22); }
+    .qz-badge.is-purple { background: rgba(199,168,242,0.10); color: #C7A8F2; border-color: rgba(199,168,242,0.22); }
+
+    .qz-question { font-size: 20px !important; font-weight: 600 !important; line-height: 1.4 !important; letter-spacing: -0.3px !important; color: var(--qz-text) !important; margin: 0 0 22px !important; }
+
+    /* Options */
+    .mc-option {
+        display:flex; align-items:center; gap:14px;
+        padding: 16px 18px;
+        border: 1px solid var(--qz-border);
+        border-radius: var(--qz-radius);
+        cursor: pointer;
+        background: var(--qz-card-2);
+        color: var(--qz-text);
+        font-size: 15px;
+        transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+        position: relative;
+    }
+    .mc-option:hover {
+        border-color: var(--qz-border-strong);
+        background: #202020;
+        transform: translateY(-1px);
+    }
+    .mc-option.selected {
+        border-color: var(--qz-accent);
+        background: rgba(79,139,245,0.08);
+    }
+    .mc-option input[type=radio] {
+        appearance: none; -webkit-appearance: none;
+        width: 20px; height: 20px; border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,0.30);
+        background: transparent;
+        display: grid; place-items: center;
+        margin: 0; cursor: pointer;
+        transition: border-color .18s ease, background .18s ease;
+    }
+    .mc-option input[type=radio]::after {
+        content: ""; width: 10px; height: 10px; border-radius: 50%;
+        background: var(--qz-accent);
+        transform: scale(0); transition: transform .18s ease;
+    }
+    .mc-option input[type=radio]:checked { border-color: var(--qz-accent); }
+    .mc-option input[type=radio]:checked::after { transform: scale(1); }
+
+    /* Drag & drop */
+    .dd-item {
+        display:flex; align-items:center; gap:12px;
+        padding: 14px 16px;
+        background: var(--qz-card-2);
+        border: 1px solid var(--qz-border);
+        border-radius: var(--qz-radius);
+        cursor: grab; user-select: none;
+        color: var(--qz-text);
+        transition: all .18s ease;
+    }
+    .dd-item:hover { border-color: var(--qz-border-strong); }
+    .dd-item:active { cursor: grabbing; }
+
+    /* Match */
+    .match-item {
+        padding: 13px 14px;
+        border: 1px solid var(--qz-border);
+        border-radius: var(--qz-radius);
+        cursor: pointer; text-align: center;
+        font-size: 14px; color: var(--qz-text);
+        background: var(--qz-card-2);
+        position: relative;
+        transition: all .18s ease;
+    }
+    .match-item:hover { border-color: var(--qz-border-strong); background: #202020; }
+
+    /* Footer nav */
+    .qz-nav { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top: 14px; }
+    .qz-nav-info { font-size: 13px; color: var(--qz-text-2); font-weight: 600; letter-spacing: 0.2px; }
+    .qz-btn {
+        display:inline-flex; align-items:center; gap:8px;
+        padding: 11px 22px;
+        border-radius: 999px;
+        font-size: 14px; font-weight: 600;
+        border: 1px solid var(--qz-border-strong);
+        background: var(--qz-card-2); color: var(--qz-text);
+        cursor: pointer;
+        transition: all .18s ease;
+    }
+    .qz-btn:hover:not(:disabled) { background: #232323; border-color: rgba(255,255,255,0.22); }
+    .qz-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .qz-btn-primary {
+        background: var(--qz-accent);
+        border-color: transparent; color: #fff;
+    }
+    .qz-btn-primary:hover:not(:disabled) { transform: translateY(-1px); background: #5B95F7; border-color: transparent; }
+    .qz-btn-success {
+        background: #6CCB5F;
+        border-color: transparent; color: #fff;
+    }
+
+    /* Short answer */
+    .sa-input {
+        width: 100%; box-sizing: border-box; min-height: 130px; resize: vertical;
+        background: var(--qz-card-2) !important;
+        border: 1px solid var(--qz-border) !important;
+        border-radius: var(--qz-radius) !important;
+        padding: 14px 16px !important;
+        font-size: 15px !important;
+        color: var(--qz-text) !important;
+        line-height: 1.6 !important;
+        outline: none;
+        font-family: inherit;
+        transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .sa-input:focus { border-color: var(--qz-accent) !important; }
+
+    /* Responsive */
+    @media (max-width: 560px) {
+        .qz-card { padding: 22px 18px !important; }
+        .qz-question { font-size: 18px !important; }
+        .qz-title { font-size: 19px !important; }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="qz-shell">
+    <div class="qz-head">
+        <h1 class="qz-title">{{ quiz.title }}</h1>
+        {% if quiz.time_limit_minutes %}
+        <div id="timer" class="qz-timer">
+            <i class="fas fa-clock"></i> <span id="timer-text">{{ quiz.time_limit_minutes }}:00</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="qz-meta">
+        <div class="qz-meta-row">
+            <span>Question <strong id="current-q">1</strong> of <strong>{{ questions|length }}</strong></span>
+            <span id="answered-count">0 answered</span>
+        </div>
+        <div class="qz-progress"><div class="qz-progress-fill" id="progress-fill"></div></div>
+    </div>
+
+    <form id="quiz-form">
+    {% for q in questions %}
+    <div class="question-card qz-card" data-qid="{{ q.id }}" data-type="{{ q.question_type }}" style="{% if not loop.first %}display:none;{% endif %}">
+        <span class="qz-badge {% if q.question_type=='true_false' %}is-green{% elif q.question_type=='drag_drop' %}is-amber{% elif q.question_type=='short_answer' %}is-green{% elif q.question_type=='match_columns' %}is-purple{% endif %}">
+            {% if q.question_type=='multiple_choice' %}Multiple Choice{% elif q.question_type=='true_false' %}True / False{% elif q.question_type=='drag_drop' %}Drag &amp; Drop{% elif q.question_type=='short_answer' %}Short Answer{% else %}Match Columns{% endif %}
+        </span>
+        <h3 class="qz-question">{{ q.question_text | safe }}</h3>
+
+        {% if q.question_type == 'multiple_choice' %}
+        <div class="mc-options" style="display:flex; flex-direction:column; gap:8px;">
+            {% for opt in q.options %}
+            <label class="mc-option">
+                <input type="radio" name="q_{{ q.id }}" value="{{ opt }}">
+                <span>{{ opt | safe }}</span>
+            </label>
+            {% endfor %}
+        </div>
+
+        {% elif q.question_type == 'true_false' %}
+        <div class="mc-options" style="display:flex; flex-direction:column; gap:8px;">
+            <label class="mc-option">
+                <input type="radio" name="q_{{ q.id }}" value="True">
+                <span><i class="fas fa-check" style="color:var(--green); margin-right:6px;"></i> True</span>
+            </label>
+            <label class="mc-option">
+                <input type="radio" name="q_{{ q.id }}" value="False">
+                <span><i class="fas fa-xmark" style="color:var(--red); margin-right:6px;"></i> False</span>
+            </label>
+        </div>
+
+        {% elif q.question_type == 'drag_drop' %}
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:10px;"><i class="fas fa-circle-info"></i> Drag items to arrange in the correct order.</p>
+        <div class="dd-container" data-qid="{{ q.id }}" style="display:flex; flex-direction:column; gap:8px;">
+            {% for opt in q.options %}
+            <div class="dd-item" draggable="true" data-value="{{ opt }}">
+                <i class="fas fa-grip-vertical" style="color:var(--text-tertiary);"></i>
+                <span style="flex:1; font-size:15px;">{{ opt | safe }}</span>
+                <span class="dd-pos" style="background:var(--blue); color:#fff; width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;">{{ loop.index }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% elif q.question_type == 'match_columns' %}
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:10px;"><i class="fas fa-circle-info"></i> Click an item in Column A, then click the matching item in Column B.</p>
+        <div class="match-container" data-qid="{{ q.id }}" style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div>
+                <p style="font-weight:600; font-size:12px; color:var(--blue); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:8px; text-align:center;">Column A</p>
+                <div class="col-a" style="display:flex; flex-direction:column; gap:6px;">
+                    {% for item in q.options.column_a %}
+                    <div class="match-item match-a" data-value="{{ item }}" data-idx="{{ loop.index0 }}">
+                        {{ item | safe }}
+                        <span class="match-indicator" style="display:none; position:absolute; right:6px; top:50%; transform:translateY(-50%); width:20px; height:20px; border-radius:6px; font-size:11px; font-weight:700; line-height:20px; text-align:center;"></span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <p style="font-weight:600; font-size:12px; color:var(--green); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:8px; text-align:center;">Column B</p>
+                <div class="col-b" style="display:flex; flex-direction:column; gap:6px;">
+                    {% for item in q.options.column_b %}
+                    <div class="match-item match-b" data-value="{{ item }}" data-idx="{{ loop.index0 }}">
+                        {{ item | safe }}
+                        <span class="match-indicator" style="display:none; position:absolute; left:6px; top:50%; transform:translateY(-50%); width:20px; height:20px; border-radius:6px; font-size:11px; font-weight:700; line-height:20px; text-align:center;"></span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="match-pairs" data-qid="{{ q.id }}" style="margin-top:10px; font-size:13px; color:var(--text-secondary);"></div>
+
+        {% elif q.question_type == 'short_answer' %}
+        <p style="font-size:13px; color:var(--qz-text-2); margin-bottom:12px;"><i class="fas fa-pen-to-square"></i> Write your answer in your own words.</p>
+        <textarea class="sa-input" data-qid="{{ q.id }}" placeholder="Type your answer here…"></textarea>
+        {% endif %}
+    </div>
+    {% endfor %}
+    </form>
+
+    <div class="qz-nav">
+        <button id="prev-btn" class="qz-btn" onclick="navigate(-1)" disabled><i class="fas fa-chevron-left"></i> Previous</button>
+        <span id="nav-info" class="qz-nav-info">1 / {{ questions|length }}</span>
+        <button id="next-btn" class="qz-btn qz-btn-primary" onclick="navigate(1)">Next <i class="fas fa-chevron-right"></i></button>
+        <button id="submit-btn" class="qz-btn qz-btn-success" onclick="submitQuiz()" style="display:none; width:100%; justify-content:center; padding:14px 22px;">
+            <i class="fas fa-paper-plane"></i> Submit Quiz
+        </button>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const QUIZ_ID = "{{ quiz.id }}";
+const TOTAL_Q = {{ questions|length }};
+let current = 0;
+const cards = document.querySelectorAll('.question-card');
+const answers = {};
+
+function navigate(dir) {
+    cards[current].style.display = 'none';
+    current += dir;
+    cards[current].style.display = 'block';
+    updateNav();
+}
+function updateNav() {
+    document.getElementById('current-q').textContent = current + 1;
+    document.getElementById('nav-info').textContent = (current+1) + ' / ' + TOTAL_Q;
+    document.getElementById('prev-btn').disabled = current === 0;
+    const isLast = current === TOTAL_Q - 1;
+    document.getElementById('next-btn').style.display = isLast ? 'none' : '';
+    document.getElementById('submit-btn').style.display = isLast ? '' : 'none';
+    const answered = Object.keys(answers).length;
+    document.getElementById('answered-count').textContent = answered + ' answered';
+    document.getElementById('progress-fill').style.width = (answered / TOTAL_Q * 100) + '%';
+}
+
+document.querySelectorAll('.mc-option input[type=radio]').forEach(r => {
+    r.addEventListener('change', function() {
+        const qid = this.closest('.question-card').dataset.qid;
+        answers[qid] = this.value;
+        this.closest('.mc-options').querySelectorAll('.mc-option').forEach(l => l.classList.remove('selected'));
+        this.closest('.mc-option').classList.add('selected');
+        updateNav();
+    });
+});
+
+document.querySelectorAll('.dd-container').forEach(container => {
+    let dragEl = null;
+    container.querySelectorAll('.dd-item').forEach(item => {
+        item.addEventListener('dragstart', function(e) { dragEl = this; this.style.opacity = '0.4'; e.dataTransfer.effectAllowed = 'move'; });
+        item.addEventListener('dragend', function() { this.style.opacity = '1'; });
+        item.addEventListener('dragover', function(e) { e.preventDefault(); this.style.borderColor = 'var(--blue)'; });
+        item.addEventListener('dragleave', function() { this.style.borderColor = 'var(--separator-light)'; });
+        item.addEventListener('drop', function(e) {
+            e.preventDefault(); this.style.borderColor = 'var(--separator-light)';
+            if (dragEl && dragEl !== this) {
+                const parent = this.parentNode; const items = Array.from(parent.children);
+                const fromIdx = items.indexOf(dragEl); const toIdx = items.indexOf(this);
+                if (fromIdx < toIdx) parent.insertBefore(dragEl, this.nextSibling);
+                else parent.insertBefore(dragEl, this);
+                updateDDPositions(container);
+            }
+        });
+        let touchStartY = 0;
+        item.addEventListener('touchstart', function(e) { dragEl = this; touchStartY = e.touches[0].clientY; this.style.background = 'var(--blue-light)'; }, {passive: true});
+        item.addEventListener('touchmove', function(e) {
+            e.preventDefault(); const touch = e.touches[0];
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (el && el.closest && el.closest('.dd-item') && el.closest('.dd-item') !== dragEl) {
+                const target = el.closest('.dd-item'); const parent = container;
+                const items = Array.from(parent.children);
+                const fromIdx = items.indexOf(dragEl); const toIdx = items.indexOf(target);
+                if (fromIdx < toIdx) parent.insertBefore(dragEl, target.nextSibling);
+                else parent.insertBefore(dragEl, target);
+            }
+        }, {passive: false});
+        item.addEventListener('touchend', function() { this.style.background = 'var(--card)'; updateDDPositions(container); });
+    });
+    function updateDDPositions(c) {
+        const qid = c.dataset.qid; const items = c.querySelectorAll('.dd-item'); const order = [];
+        items.forEach((it, i) => { it.querySelector('.dd-pos').textContent = i + 1; order.push(it.dataset.value); });
+        answers[qid] = order; updateNav();
+    }
+});
+
+const matchColors = ['#007AFF','#FF3B30','#34C759','#FF9500','#AF52DE','#FF2D55','#5AC8FA','#5856D6'];
+document.querySelectorAll('.match-container').forEach(container => {
+    const qid = container.dataset.qid; const pairs = {}; let selectedA = null; let colorIdx = 0;
+    container.querySelectorAll('.match-a').forEach(a => {
+        a.addEventListener('click', function() {
+            if (selectedA === this) { this.style.borderColor = 'var(--separator-light)'; this.style.background = 'var(--card)'; selectedA = null; return; }
+            container.querySelectorAll('.match-a').forEach(x => { if (!x.dataset.matched) { x.style.borderColor = 'var(--separator-light)'; x.style.background = 'var(--card)'; } });
+            selectedA = this; this.style.borderColor = 'var(--blue)'; this.style.background = 'var(--blue-light)';
+        });
+    });
+    container.querySelectorAll('.match-b').forEach(b => {
+        b.addEventListener('click', function() {
+            if (!selectedA) return;
+            const aVal = selectedA.dataset.value;
+            for (const [k,v] of Object.entries(pairs)) {
+                if (k === aVal) {
+                    const oldB = container.querySelector('.match-b[data-value="'+CSS.escape(v.bVal)+'"]');
+                    if (oldB) { oldB.style.borderColor='var(--separator-light)'; oldB.style.background='var(--card)'; oldB.dataset.matched=''; const ind=oldB.querySelector('.match-indicator'); if(ind) ind.style.display='none'; }
+                    delete pairs[k];
+                }
+            }
+            const bVal = this.dataset.value;
+            for (const [k,v] of Object.entries(pairs)) {
+                if (v.bVal === bVal) {
+                    const oldA = container.querySelector('.match-a[data-value="'+CSS.escape(k)+'"]');
+                    if (oldA) { oldA.style.borderColor='var(--separator-light)'; oldA.style.background='var(--card)'; oldA.dataset.matched=''; const ind=oldA.querySelector('.match-indicator'); if(ind) ind.style.display='none'; }
+                    delete pairs[k];
+                }
+            }
+            const color = matchColors[colorIdx % matchColors.length]; colorIdx++;
+            pairs[aVal] = {bVal, color};
+            selectedA.style.borderColor = color; selectedA.style.background = color + '12'; selectedA.dataset.matched = '1';
+            const aInd = selectedA.querySelector('.match-indicator');
+            if (aInd) { aInd.style.display=''; aInd.style.background=color; aInd.style.color='#fff'; aInd.textContent=Object.keys(pairs).length; }
+            this.style.borderColor = color; this.style.background = color + '12'; this.dataset.matched = '1';
+            const bInd = this.querySelector('.match-indicator');
+            if (bInd) { bInd.style.display=''; bInd.style.background=color; bInd.style.color='#fff'; bInd.textContent=Object.keys(pairs).length; }
+            selectedA = null;
+            const ans = {}; for (const [k,v] of Object.entries(pairs)) ans[k] = v.bVal;
+            answers[qid] = ans;
+            const pd = document.querySelector('.match-pairs[data-qid="'+qid+'"]');
+            if (pd) { const pt = Object.entries(ans).map(([a,b])=>a+' → '+b); pd.innerHTML='<strong>Matched:</strong> '+(pt.length?pt.join(' | '):'None'); }
+            updateNav();
+        });
+    });
+});
+
+// Short answer — collect on any input
+document.querySelectorAll('.sa-input').forEach(ta => {
+    ta.addEventListener('input', function() {
+        const qid = this.dataset.qid;
+        answers[qid] = this.value.trim();
+        updateNav();
+    });
+    // Focus border highlight
+    ta.addEventListener('focus', function() { this.style.borderColor = 'var(--blue)'; });
+    ta.addEventListener('blur', function() { this.style.borderColor = 'var(--separator-light)'; });
+});
+
+{% if quiz.time_limit_minutes %}
+let timeLeft = {{ quiz.time_limit_minutes }} * 60;
+const timerEl = document.getElementById('timer-text');
+const timerBox = document.getElementById('timer');
+const timerInterval = setInterval(() => {
+    timeLeft--; const m = Math.floor(timeLeft/60); const s = timeLeft%60;
+    timerEl.textContent = m+':'+(s<10?'0':'')+s;
+    if (timeLeft <= 60) timerBox.style.background = 'var(--red)';
+    else if (timeLeft <= 180) timerBox.style.background = 'var(--orange)';
+    if (timeLeft <= 0) { clearInterval(timerInterval); submitQuiz(); }
+}, 1000);
+{% endif %}
+
+function submitQuiz() {
+    {% if quiz.time_limit_minutes %}clearInterval(timerInterval);{% endif %}
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('submit-btn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+    fetch('/api/quiz/'+QUIZ_ID+'/submit', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({answers})
+    })
+    .then(r=>r.json())
+    .then(data=>{ if(data.redirect) window.location.href=data.redirect; else alert(data.error||'Something went wrong'); })
+    .catch(()=>alert('Network error. Please try again.'));
+}
+</script>
+{% endblock %}

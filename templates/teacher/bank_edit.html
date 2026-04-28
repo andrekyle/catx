@@ -1,0 +1,167 @@
+{% extends "teacher/_layout.html" %}
+{% block t_title %}{% if item %}Edit question{% else %}New question{% endif %}{% endblock %}
+{% block t_sub %}Write the question and an ideal answer/memo. You can reuse it in any generated paper.{% endblock %}
+
+{% block t_body %}
+
+<style>
+.t-shell .t-title {
+    font-size: clamp(36px, 4.2vw, 56px) !important;
+    font-weight: 700 !important;
+    letter-spacing: -1px !important;
+    line-height: 1.05 !important;
+}
+/* Force native light-scheme checkbox so it isn't rendered as a solid dark square. */
+.t-card input[type="checkbox"] {
+    color-scheme: light;
+    accent-color: #0078D4;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    outline: none;
+    box-shadow: none;
+}
+.t-card input[type="checkbox"]:focus,
+.t-card input[type="checkbox"]:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+</style>
+
+<form method="post" enctype="multipart/form-data" class="t-card">
+    {% set _next = request.args.get('next', '') %}
+    {% if _next %}<input type="hidden" name="next" value="{{ _next }}">{% endif %}
+    <div class="t-form-grid">
+        <div class="t-field">
+            <label>Grade</label>
+            <div class="fdd" data-fdd="single">
+                <button type="button" class="fdd-toggle">
+                    {% set cur_g = (item.grade if item else 12) %}
+                    <span class="fdd-label">Grade {{ cur_g }}</span>
+                    <span class="caret">▾</span>
+                </button>
+                <input type="hidden" name="grade" value="{{ cur_g }}">
+                <div class="fdd-panel">
+                    {% for g in [10,11,12] %}
+                        <div class="fdd-item" data-value="{{ g }}">Grade {{ g }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="t-field">
+            <label>Marks</label>
+            <input name="marks" type="number" min="0" max="100" value="{{ item.marks if item else 1 }}">
+            <small style="color:var(--text-tertiary); font-size:11.5px;">Use 0 for a scenario stem (intro text with no marks).</small>
+        </div>
+        <div class="t-field">
+            <label>Topic</label>
+            <input name="topic" value="{{ item.topic if item else '' }}" placeholder="e.g. Networks">
+        </div>
+        <div class="t-field">
+            <label>Subtopic</label>
+            <input name="subtopic" value="{{ item.subtopic if item else '' }}" placeholder="e.g. Topologies">
+        </div>
+        <div class="t-field">
+            <label>Difficulty</label>
+            <div class="fdd" data-fdd="single">
+                <button type="button" class="fdd-toggle">
+                    {% set cur_d = (item.difficulty if item else 'easy') %}
+                    <span class="fdd-label">{{ cur_d|title }}</span>
+                    <span class="caret">▾</span>
+                </button>
+                <input type="hidden" name="difficulty" value="{{ cur_d }}">
+                <div class="fdd-panel">
+                    {% for d in ['easy','medium','hard'] %}
+                        <div class="fdd-item" data-value="{{ d }}">{{ d|title }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="t-field">
+            <label>Type</label>
+            {% set type_opts = [('short_answer','Short answer'),('true_false','True/False'),('mcq','Multiple choice'),('matching','Matching'),('structured','Structured'),('practical','Practical')] %}
+            {% set cur_t = (item.question_type if item else 'short_answer') %}
+            {# Legacy data: many matching questions are stored as 'mcq' but their
+               question_text starts with "Match the following…". Normalize for the
+               dropdown so the teacher sees the correct type. #}
+            {% if item and cur_t in ['mcq','multiple_choice'] and (item.question_text or '').lstrip().lower().startswith('match') %}
+                {% set cur_t = 'matching' %}
+            {% elif cur_t == 'match_columns' %}
+                {% set cur_t = 'matching' %}
+            {% endif %}
+            {% set cur_t_label = (type_opts | selectattr(0, 'equalto', cur_t) | first)[1] if (type_opts | selectattr(0, 'equalto', cur_t) | list) else 'Short answer' %}
+            <div class="fdd" data-fdd="single">
+                <button type="button" class="fdd-toggle">
+                    <span class="fdd-label">{{ cur_t_label }}</span>
+                    <span class="caret">▾</span>
+                </button>
+                <input type="hidden" name="question_type" value="{{ cur_t }}">
+                <div class="fdd-panel">
+                    {% for k,v in type_opts %}
+                        <div class="fdd-item" data-value="{{ k }}">{{ v }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="t-field span-2">
+            <label>Question text *</label>
+            <textarea name="question_text" required>{{ item.question_text if item else '' }}</textarea>
+        </div>
+        <div class="t-field span-2">
+            <label>Answer / memo</label>
+            <textarea name="answer_text">{{ item.answer_text if item else '' }}</textarea>
+            <small style="color:var(--text-tertiary); font-size:11.5px;">Tip: type <strong>✓</strong> after each key word that earns a mark — it will render as a bold tick in the printed memo (CAPS marking style).</small>
+        </div>
+        <div class="t-field span-2">
+            <label>Figure / diagram (optional)</label>
+            <small style="color:var(--text-tertiary); font-size:11.5px; display:block; margin-bottom:6px;">
+                Attach a picture (PNG, JPG, SVG, WEBP) for diagram-based questions — it will appear under the question text on the printed paper.
+            </small>
+            {% if item and item.image_path %}
+                <div id="bankImagePreviewWrap" style="display:flex; align-items:flex-start; gap:12px; padding:8px; border:1px solid rgba(127,127,127,0.25); border-radius:6px; margin-bottom:8px;">
+                    <img id="bankImagePreview" src="{{ url_for('static', filename=item.image_path) }}" alt="Current figure" style="max-width:200px; max-height:160px; border:1px solid rgba(127,127,127,0.25); border-radius:4px; background:#fff;">
+                    <small id="bankImagePreviewLabel" style="color:var(--text-tertiary); font-size:11.5px;">Current figure</small>
+                </div>
+            {% else %}
+                <div id="bankImagePreviewWrap" style="display:none; align-items:flex-start; gap:12px; padding:8px; border:1px solid rgba(127,127,127,0.25); border-radius:6px; margin-bottom:8px;">
+                    <img id="bankImagePreview" src="" alt="New figure preview" style="max-width:200px; max-height:160px; border:1px solid rgba(127,127,127,0.25); border-radius:4px; background:#fff;">
+                    <small id="bankImagePreviewLabel" style="color:var(--text-tertiary); font-size:11.5px;">New figure</small>
+                </div>
+            {% endif %}
+            <input name="image" type="file" id="bankImageInput" accept="image/png,image/jpeg,image/svg+xml,image/webp">
+        </div>
+        <div class="t-field">
+            <label>Tags (comma-separated)</label>
+            <input name="tags" value="{{ item.tags if item else '' }}">
+        </div>
+        <div class="t-field">
+            <label>Visibility</label>
+            <label style="display:flex; gap:8px; align-items:center; padding-top:8px;">
+                <input type="checkbox" name="is_shared" {% if item and item.is_shared %}checked{% endif %}>
+                Share with other teachers
+            </label>
+        </div>
+    </div>
+    <div style="margin-top:18px; display:flex; gap:10px;">
+        <button class="t-btn primary"><img src="{{ url_for('static', filename='images/save.png') }}" alt="" width="14" height="14" style="vertical-align:-2px;"> Save</button>
+        <a class="t-btn" href="{{ _next if _next else url_for('teacher_bank') }}">Cancel</a>
+    </div>
+</form>
+<script>
+(function(){
+    var input = document.getElementById('bankImageInput');
+    var img   = document.getElementById('bankImagePreview');
+    var wrap  = document.getElementById('bankImagePreviewWrap');
+    var label = document.getElementById('bankImagePreviewLabel');
+    if (!input || !img || !wrap) return;
+    input.addEventListener('change', function(){
+        var f = input.files && input.files[0];
+        if (!f) return;
+        var url = URL.createObjectURL(f);
+        img.src = url;
+        wrap.style.display = 'flex';
+        if (label) label.textContent = 'New figure (will replace existing on save)';
+    });
+})();
+</script>
+{% endblock %}

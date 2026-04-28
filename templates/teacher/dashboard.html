@@ -1,0 +1,260 @@
+{% extends "teacher/_layout.html" %}
+{% block t_title %}Welcome back, {{ current_user.first_name or current_user.username }}{% endblock %}
+{% block t_sub %}Past papers, question bank, paper generator and planner — at a glance.{% endblock %}
+
+{% block t_body %}
+<style>
+/* ================================================================
+   OVERVIEW PAGE: full dark override
+   These rules live inside the t_body block, which renders AFTER
+   the layout style blocks in the DOM. Same-specificity !important
+   rules that appear later in the document win the cascade.
+   ================================================================ */
+
+/* 1. Dark background for the whole page and shell */
+body                { background: #0A0A0A !important; }
+.t-shell            { background: #0A0A0A !important; }
+.t-head             { border-bottom-color: rgba(255,255,255,0.08) !important; }
+
+/* 2. Override the forced-black text rule from _layout.html
+      (identical selector + !important = later-in-DOM wins) */
+.t-shell,
+.t-shell *:not(.navbar):not(.navbar *) { color: rgba(255,255,255,0.85) !important; }
+
+/* 3. Header text */
+.t-shell .t-eyebrow { color: rgba(255,255,255,0.40) !important; font-size: 12px !important; letter-spacing: 2.4px !important; }
+.t-shell .t-title   { color: #ffffff !important; font-size: clamp(36px, 4.2vw, 56px) !important; font-weight: 700 !important; letter-spacing: -1.8px !important; line-height: 1.02 !important; }
+.t-shell .t-sub     { color: rgba(255,255,255,0.50) !important; font-size: 15px !important; }
+
+/* 4. Nav tabs — dark style */
+.t-shell .t-tabs                  { border-bottom-color: rgba(255,255,255,0.08) !important; }
+.t-shell .t-tabs a                { color: rgba(255,255,255,0.50) !important; border-color: transparent !important; background: transparent !important; }
+.t-shell .t-tabs a:hover          { color: rgba(255,255,255,0.85) !important; background: rgba(255,255,255,0.05) !important; }
+.t-shell .t-tabs a.is-active,
+.t-shell .t-tabs a.is-active *    { color: #A8C5FF !important; border-bottom-color: #A8C5FF !important; background: transparent !important; }
+
+/* ================================================================
+   STAT TILES
+   ================================================================ */
+.td-stats {
+    display: grid; gap: 16px; margin-bottom: 28px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.td-stat {
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 22px; padding: 24px;
+    text-decoration: none;
+    display: flex; flex-direction: column;
+    transition: border-color .2s, transform .2s;
+}
+.td-stat:hover { border-color: rgba(255,255,255,0.18) !important; transform: translateY(-2px); }
+
+.td-stat-row { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+
+.td-stat-icon {
+    width: 40px; height: 40px; border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.td-stat-icon i { font-size: 16px; }
+
+.td-stat.s-blue   .td-stat-icon { background: linear-gradient(135deg,rgba(79,139,245,.22),rgba(168,197,255,.14)); }
+.td-stat.s-blue   .td-stat-icon i { color: #A8C5FF !important; }
+.td-stat.s-green  .td-stat-icon { background: linear-gradient(135deg,rgba(108,203,95,.22),rgba(180,232,170,.14)); }
+.td-stat.s-green  .td-stat-icon i { color: #6CCB5F !important; }
+.td-stat.s-purple .td-stat-icon { background: linear-gradient(135deg,rgba(180,140,224,.22),rgba(220,200,250,.14)); }
+.td-stat.s-purple .td-stat-icon i { color: #C7A8F2 !important; }
+.td-stat.s-amber  .td-stat-icon { background: linear-gradient(135deg,rgba(242,181,58,.22),rgba(255,220,140,.14)); }
+.td-stat.s-amber  .td-stat-icon i { color: #F2B53A !important; }
+
+.td-stat-arrow {
+    width: 28px; height: 28px; border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    transition: background .15s, color .15s, transform .2s;
+}
+.td-stat-arrow i { color: rgba(255,255,255,0.5) !important; }
+.td-stat:hover .td-stat-arrow { background: #fff !important; transform: translate(2px,-2px); }
+.td-stat:hover .td-stat-arrow i { color: #0A0A0A !important; }
+
+.td-stat-num {
+    font-size: 40px; font-weight: 700; line-height: 1;
+    letter-spacing: -1.6px; color: #ffffff !important;
+    margin-bottom: 8px; font-variant-numeric: tabular-nums;
+}
+.td-stat-label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.6px;
+    color: rgba(255,255,255,0.40) !important;
+}
+
+/* ================================================================
+   QUICK ACTION BUTTONS
+   ================================================================ */
+.td-quick-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+.td-quick-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 8px;
+    font-size: 13px; font-weight: 400;
+    cursor: pointer; text-decoration: none;
+    transition: border-color .15s, background .15s;
+}
+.td-quick-btn,
+.td-quick-btn * { color: rgba(255,255,255,0.70) !important; }
+.td-quick-btn:hover { border-color: #A8C5FF !important; background: rgba(79,139,245,0.08) !important; }
+.td-quick-btn:hover,
+.td-quick-btn:hover * { color: #A8C5FF !important; }
+
+/* ================================================================
+   TWO-COLUMN CARDS
+   ================================================================ */
+.td-cols { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 880px) { .td-cols { grid-template-columns: 1fr 1fr; } }
+
+.td-card {
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 22px; overflow: hidden;
+}
+.td-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px 14px;
+}
+.td-card-title {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.8px;
+    margin: 0; color: rgba(255,255,255,0.45) !important;
+}
+.td-card-link { font-size: 12px; font-weight: 500; text-decoration: none; }
+.td-card-link, .td-card-link * { color: rgba(255,255,255,0.45) !important; }
+.td-card-link:hover, .td-card-link:hover * { color: #fff !important; }
+
+.td-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 24px;
+    border-top: 1px solid rgba(255,255,255,0.05) !important;
+    transition: background .15s;
+}
+.td-row:hover { background: rgba(255,255,255,0.025) !important; }
+
+.td-row-body { flex: 1; min-width: 0; }
+.td-row-name {
+    display: block; font-size: 14px; font-weight: 500;
+    letter-spacing: -0.2px; text-decoration: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    color: #ffffff !important;
+}
+a.td-row-name:hover { color: #A8C5FF !important; }
+.td-row-meta { font-size: 12px; margin-top: 2px; color: rgba(255,255,255,0.40) !important; }
+.td-row-side { font-size: 12px; font-weight: 500; flex-shrink: 0; white-space: nowrap; color: rgba(255,255,255,0.40) !important; }
+
+.td-empty {
+    padding: 36px 24px; text-align: center; font-size: 13px;
+    color: rgba(255,255,255,0.30) !important;
+}
+.td-empty i { font-size: 28px; opacity: 0.4; display: block; margin-bottom: 8px; color: rgba(255,255,255,0.30) !important; }
+
+@media (max-width: 720px) {
+    .td-stat { padding: 18px; }
+    .td-stat-num { font-size: 32px; }
+}
+</style>
+
+{# ---------- Quick actions ---------- #}
+<div class="td-quick-bar">
+    <a class="td-quick-btn" href="{{ url_for('teacher_paper_edit') }}"><i class="fas fa-file-alt"></i> Generate paper</a>
+    <a class="td-quick-btn" href="{{ url_for('teacher_bank_edit') }}"><i class="fas fa-plus"></i> Add bank question</a>
+    <a class="td-quick-btn" href="{{ url_for('teacher_paper_upload') }}"><i class="fas fa-upload"></i> Upload past paper</a>
+    <a class="td-quick-btn" href="{{ url_for('teacher_planner_edit') }}"><i class="fas fa-calendar-plus"></i> New planner item</a>
+</div>
+
+{# ---------- Stat tiles ---------- #}
+<div class="td-stats">
+    <a href="{{ url_for('teacher_papers') }}" class="td-stat s-blue">
+        <div class="td-stat-row">
+            <div class="td-stat-icon"><i class="fas fa-file-pdf"></i></div>
+            <span class="td-stat-arrow"><i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="td-stat-num">{{ docs_count }}</div>
+        <div class="td-stat-label">Past papers</div>
+    </a>
+    <a href="{{ url_for('teacher_bank') }}" class="td-stat s-green">
+        <div class="td-stat-row">
+            <div class="td-stat-icon"><i class="fas fa-database"></i></div>
+            <span class="td-stat-arrow"><i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="td-stat-num">{{ bank_count }}</div>
+        <div class="td-stat-label">Bank questions</div>
+    </a>
+    <a href="{{ url_for('teacher_papers_generated') }}" class="td-stat s-purple">
+        <div class="td-stat-row">
+            <div class="td-stat-icon"><i class="fas fa-scroll"></i></div>
+            <span class="td-stat-arrow"><i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="td-stat-num">{{ paper_count }}</div>
+        <div class="td-stat-label">Generated papers</div>
+    </a>
+    <a href="{{ url_for('teacher_planner') }}" class="td-stat s-amber">
+        <div class="td-stat-row">
+            <div class="td-stat-icon"><i class="fas fa-calendar-days"></i></div>
+            <span class="td-stat-arrow"><i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="td-stat-num">{{ upcoming_count }}</div>
+        <div class="td-stat-label">Upcoming items</div>
+    </a>
+</div>
+
+{# ---------- Two-column lists ---------- #}
+<div class="td-cols">
+
+    <div class="td-card">
+        <div class="td-card-head">
+            <p class="td-card-title">Recent past papers</p>
+            <a href="{{ url_for('teacher_papers') }}" class="td-card-link">View all →</a>
+        </div>
+        {% if docs %}
+            {% for d in docs %}
+            <div class="td-row">
+                <div class="td-row-body">
+                    <a class="td-row-name" href="{{ url_for('teacher_paper_download', doc_id=d.id) }}">{{ d.title }}</a>
+                    <div class="td-row-meta">
+                        {% if d.grade %}Gr {{ d.grade }}{% endif %}{% if d.paper_year %} · {{ d.paper_year }}{% endif %}
+                        {% if d.paper_type %} · {{ d.paper_type|replace('_',' ')|title }}{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="td-empty"><i class="fas fa-folder-open"></i>No documents yet.</div>
+        {% endif %}
+    </div>
+
+    <div class="td-card">
+        <div class="td-card-head">
+            <p class="td-card-title">Upcoming planner items</p>
+            <a href="{{ url_for('teacher_planner') }}" class="td-card-link">Open planner →</a>
+        </div>
+        {% if upcoming %}
+            {% for it in upcoming %}
+            <div class="td-row">
+                <div class="td-row-body">
+                    <div class="td-row-name">{{ it.title }}</div>
+                    <div class="td-row-meta">{{ it.kind|title }}</div>
+                </div>
+                <span class="td-row-side">{{ it.start_date.strftime('%d %b') }}</span>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="td-empty"><i class="fas fa-calendar"></i>Nothing scheduled.</div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,214 @@
+{% extends "lms_base.html" %}
+{% block title %}Manage Users - Admin{% endblock %}
+{% block content %}
+<style>
+    .um-shell { max-width: 1200px; margin: 0 auto; padding: 28px 24px 80px; }
+    .um-head {
+        display: flex; align-items: flex-end; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap;
+        padding-bottom: 18px; border-bottom: 1px solid var(--separator-light);
+        margin-bottom: 22px;
+    }
+    .um-eyebrow {
+        font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+        color: var(--text-tertiary); margin: 0 0 6px;
+    }
+    .um-title {
+        font-size: clamp(36px, 4.2vw, 56px); font-weight: 700;
+        letter-spacing: -1.8px; line-height: 1.02;
+        margin: 0; color: var(--text);
+    }
+    .um-sub { color: var(--text-secondary); margin: 6px 0 0; font-size: 14px; }
+    .um-count { font-size: 13px; color: var(--text-tertiary); font-weight: 300; }
+
+    /* Transparent table */
+    table.um-table { width: 100%; border-collapse: collapse; }
+    .um-table th, .um-table td {
+        text-align: left; padding: 12px 14px;
+        font-size: 13.5px;
+        border-bottom: 1px solid var(--separator-light);
+    }
+    .um-table th {
+        font-size: 11.5px; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--text-tertiary);
+        font-weight: 500;
+    }
+    .um-table tbody tr:hover { background: transparent; }
+    .um-table th:last-child, .um-table td:last-child { text-align: right; }
+
+    .um-user-cell { display: flex; align-items: center; gap: 12px; }
+    .um-avatar {
+        width: 34px; height: 34px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; font-size: 14px; font-weight: 600;
+        letter-spacing: -0.4px;
+        background: transparent; border: 1px solid currentColor;
+    }
+    /* Per-initial colors — outlined only */
+    .um-av-a,.um-av-b { color:#0078D4; }
+    .um-av-c,.um-av-d { color:#16A34A; }
+    .um-av-e,.um-av-f { color:#D97706; }
+    .um-av-g,.um-av-h { color:#9b51c7; }
+    .um-av-i,.um-av-j { color:#0099CC; }
+    .um-av-k,.um-av-l { color:#DC2626; }
+    .um-av-m,.um-av-n { color:#5856D6; }
+    .um-av-o,.um-av-p { color:#CC2200; }
+    .um-av-q,.um-av-r { color:#009E97; }
+    .um-av-s,.um-av-t { color:#0077AA; }
+    .um-av-u,.um-av-v { color:#A07800; }
+    .um-av-w,.um-av-x { color:#1A8A3A; }
+    .um-av-y,.um-av-z { color:#7B2FA8; }
+    .um-avatar.admin-av { color: #DC2626; }
+
+    .um-username { font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+    .um-fullname { font-size: 12px; color: var(--text-secondary); margin-top: 1px; font-weight: 300; }
+
+    .um-email { color: var(--text-secondary); font-weight: 300; }
+
+    .um-grade {
+        font-weight: 500; font-size: 14px;
+        color: var(--text); font-variant-numeric: tabular-nums;
+    }
+
+    /* Flat colored-text role pills */
+    .um-role {
+        display: inline-flex; align-items: center;
+        font-size: 13px; font-weight: 400;
+        background: transparent; border: 0; padding: 0;
+        white-space: nowrap;
+    }
+    .um-role-admin   { color: #DC2626; }
+    .um-role-student { color: #0078D4; }
+    .um-role-teacher { color: #0078D4; margin-left: 10px; }
+
+    .um-enrolled {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-weight: 400; color: var(--text);
+        font-variant-numeric: tabular-nums;
+    }
+    .um-enrolled i { color: var(--text-tertiary); font-size: 11px; }
+
+    /* Thin outlined action buttons */
+    .um-actions { display: inline-flex; align-items: center; gap: 6px; justify-content: flex-end; }
+    .um-thin-btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+        min-width: 130px;
+        padding: 7px 14px;
+        background: transparent;
+        border: 1px solid rgba(127,127,127,0.30);
+        border-radius: 6px;
+        color: inherit;
+        font-size: 13px; font-weight: 400;
+        cursor: pointer; text-decoration: none; font-family: inherit;
+        transition: color .15s, border-color .15s;
+        box-sizing: border-box;
+    }
+    .um-thin-btn:hover { color: #0078D4; border-color: #0078D4; }
+    .um-thin-btn.on { color: #0078D4; border-color: #0078D4; }
+    .um-thin-btn.danger:hover { color: #C42B1C; border-color: #C42B1C; }
+    .um-thin-btn i { font-size: 12px; }
+
+    .um-empty {
+        padding: 56px 20px; text-align: center;
+        color: var(--text-tertiary); font-size: 14px;
+        border: 1px dashed var(--separator-light); border-radius: 14px;
+    }
+
+    @media (max-width: 720px) {
+        .um-table th:nth-child(2),
+        .um-table td:nth-child(2),
+        .um-table th:nth-child(3),
+        .um-table td:nth-child(3) { display: none; }
+    }
+</style>
+
+<div class="um-shell">
+
+    <div class="um-head">
+        <div>
+            <p class="um-eyebrow">Admin workspace</p>
+            <h1 class="um-title">Users</h1>
+            <p class="um-sub">Manage student, teacher and admin accounts.</p>
+        </div>
+        <span class="um-count">{{ users|length }} member{{ 's' if users|length != 1 }}</span>
+    </div>
+
+    {% if users %}
+    <table class="um-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Grade</th>
+                <th>Role</th>
+                <th>Enrolled</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for user in users %}
+        <tr>
+            <td>
+                <div class="um-user-cell">
+                    <div class="um-avatar {% if user.is_admin %}admin-av{% else %}um-av-{{ (user.first_name or user.username)[0]|lower }}{% endif %}">
+                        {{ (user.first_name or user.username)[0]|upper }}
+                    </div>
+                    <div>
+                        <div class="um-username">{{ user.username }}</div>
+                        <div class="um-fullname">{{ user.first_name }} {{ user.last_name }}</div>
+                    </div>
+                </div>
+            </td>
+            <td class="um-email">{{ user.email }}</td>
+            <td>
+                {% if user.grade %}
+                <span class="um-grade">{{ user.grade }}</span>
+                {% else %}
+                <span style="color:var(--text-tertiary);">—</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if user.is_admin %}
+                <span class="um-role um-role-admin">Admin</span>
+                {% else %}
+                <span class="um-role um-role-student">Student</span>
+                {% endif %}
+                {% if user.is_teacher %}<span class="um-role um-role-teacher">Teacher</span>{% endif %}
+            </td>
+            <td>
+                <span class="um-enrolled">
+                    <i class="fas fa-book-open"></i>
+                    {{ user.enrollments|length }}
+                </span>
+            </td>
+            <td>
+                <div class="um-actions">
+                    <form method="POST" action="{{ url_for('admin_toggle_teacher', user_id=user.id) }}" style="display:inline;">
+                        <button type="submit" class="um-thin-btn {% if user.is_teacher %}on{% endif %}" title="Toggle teacher access">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            {% if user.is_teacher %}Teacher{% else %}Make teacher{% endif %}
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin_toggle_admin', user_id=user.id) }}" style="display:inline;">
+                        {% if user.is_admin %}
+                        <button type="submit" class="um-thin-btn danger">
+                            <i class="fas fa-user"></i> Demote
+                        </button>
+                        {% else %}
+                        <button type="submit" class="um-thin-btn">
+                            <i class="fas fa-shield-halved"></i> Promote
+                        </button>
+                        {% endif %}
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="um-empty">No users yet.</div>
+    {% endif %}
+
+</div>
+{% endblock %}

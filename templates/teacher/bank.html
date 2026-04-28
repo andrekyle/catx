@@ -1,0 +1,476 @@
+{% extends "teacher/_layout.html" %}
+{% block t_title %}Question bank{% endblock %}
+{% block t_sub %}Build, share and reuse questions across papers and tests.{% endblock %}
+{% block t_action %}
+    <a class="t-btn primary" href="{{ url_for('teacher_bank_edit') }}"><i class="fas fa-plus"></i> New question</a>
+{% endblock %}
+
+{% block t_body %}
+<style>
+    .t-shell .t-title {
+        font-size: clamp(36px, 4.2vw, 56px) !important;
+        font-weight: 700 !important;
+        letter-spacing: -1px !important;
+        line-height: 1.05 !important;
+    }
+
+    .t-table td, .t-table th { font-weight: 400; }
+
+    /* Single-select dropdown radios: thin circle with filled center when selected. */
+    #bankFilterForm .fdd[data-fdd="single"] .fdd-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    #bankFilterForm .fdd[data-fdd="single"] .fdd-item input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        pointer-events: none;
+    }
+    #bankFilterForm .fdd[data-fdd="single"] .fdd-item > span {
+        position: relative;
+        display: inline-block;
+        padding-left: 26px;
+    }
+    #bankFilterForm .fdd[data-fdd="single"] .fdd-item > span::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        margin-top: -7px;
+        border: 1px solid #605E5C;
+        border-radius: 50%;
+        background: #fff;
+        box-sizing: border-box;
+    }
+    #bankFilterForm .fdd[data-fdd="single"] .fdd-item input[type="radio"]:checked + span::before {
+        border-color: #0078D4;
+        box-shadow: none;
+        background: #fff;
+    }
+    #bankFilterForm .fdd[data-fdd="single"] .fdd-item input[type="radio"]:checked + span::after {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 50%;
+        width: 6px;
+        height: 6px;
+        margin-top: -3px;
+        border-radius: 50%;
+        background: #0078D4;
+    }
+    #bankFilterForm .fdd[data-fdd="single"] .fdd-item.is-checked {
+        background: rgba(0,120,212,0.08);
+    }
+    #bankFilterForm .fdd[data-fdd="single"] .fdd-item.is-checked > span {
+        color: #005A9E !important;
+        font-weight: 600;
+    }
+
+    /* Topic multi-select checkboxes: thin box with filled selected state. */
+    #bankFilterForm #topicDD .fdd-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    #bankFilterForm #topicDD .fdd-item input[type="checkbox"] {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        pointer-events: none;
+    }
+    #bankFilterForm #topicDD .fdd-item > span {
+        position: relative;
+        display: inline-block;
+        padding-left: 26px;
+    }
+    #bankFilterForm #topicDD .fdd-item > span::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        margin-top: -7px;
+        border: 1px solid #605E5C;
+        border-radius: 3px;
+        background: #fff;
+        box-sizing: border-box;
+    }
+    #bankFilterForm #topicDD .fdd-item input[type="checkbox"]:checked + span::before {
+        border-color: #0078D4;
+        box-shadow: none;
+        background: #0078D4;
+    }
+    #bankFilterForm #topicDD .fdd-item input[type="checkbox"]:checked + span::after {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 50%;
+        width: 5px;
+        height: 9px;
+        margin-top: -6px;
+        border: solid #fff;
+        border-width: 0 1.5px 1.5px 0;
+        transform: rotate(45deg);
+    }
+    #bankFilterForm #topicDD .fdd-item.is-checked {
+        background: rgba(0,120,212,0.08);
+    }
+    #bankFilterForm #topicDD .fdd-item.is-checked > span {
+        color: #005A9E !important;
+        font-weight: 600;
+    }
+
+    /* Question-bank table: predictable column widths so action buttons never spill outside the card */
+    .bank-table-wrap { width: 100%; overflow-x: auto; }
+    .bank-table { width: 100%; table-layout: fixed; }
+    .bank-table th, .bank-table td { vertical-align: top; }
+    .bank-table th {
+        white-space: nowrap;
+        word-wrap: normal;
+        overflow-wrap: normal;
+    }
+    /* Keep compact/meta columns single-line; allow long text columns to wrap. */
+    .bank-table td:nth-child(1),
+    .bank-table td:nth-child(4),
+    .bank-table td:nth-child(5),
+    .bank-table td:nth-child(6) {
+        white-space: nowrap;
+        word-wrap: normal;
+        overflow-wrap: normal;
+    }
+    .bank-table td:nth-child(2),
+    .bank-table td:nth-child(3) {
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+    }
+    .bank-table col.c-num    { width: 44px; }
+    .bank-table col.c-topic  { width: 140px; }
+    .bank-table col.c-type   { width: 110px; }
+    .bank-table col.c-diff   { width: 132px; }
+    .bank-table col.c-marks  { width: 92px; }
+    .bank-table col.c-act    { width: 96px; }
+    .bank-table td.c-act-cell { text-align: right; white-space: nowrap; }
+    .bank-table td.c-act-cell .t-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; }
+    .bank-table td.c-act-cell .t-icon-btn + form,
+    .bank-table td.c-act-cell .t-icon-btn + .t-icon-btn { margin-left: 4px; }
+    @media (max-width: 980px) {
+        .bank-table col.c-topic { width: 110px; }
+        .bank-table col.c-type { width: 90px; }
+        .bank-table col.c-diff { width: 118px; }
+        .bank-table col.c-marks { width: 84px; }
+    }
+</style>
+
+<form method="get" id="bankFilterForm" class="t-card" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:18px;">
+    <div class="t-field" style="flex:0 0 160px;">
+        <label>Grade</label>
+        <div class="fdd" data-fdd="single">
+            <button type="button" class="fdd-toggle">
+                <span class="fdd-label" data-empty="All grades">{% if grade %}Grade {{ grade }}{% else %}All grades{% endif %}</span>
+                <span class="caret">▾</span>
+            </button>
+            <div class="fdd-panel">
+                <label class="fdd-item"><input type="radio" name="grade" value="" {% if not grade %}checked{% endif %}><span>All grades</span></label>
+                {% for g in [10,11,12] %}
+                    <label class="fdd-item"><input type="radio" name="grade" value="{{ g }}" {% if grade==g %}checked{% endif %}><span>Grade {{ g }}</span></label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="t-field" style="flex:1 1 240px;">
+        <label>Topic</label>
+        <div class="fdd" id="topicDD" data-fdd="multi">
+            <button type="button" class="fdd-toggle" id="topicDDToggle">
+                <span class="fdd-label" id="topicDDLabel">{% if selected_topics %}{{ selected_topics|length }} selected{% else %}All topics{% endif %}</span>
+                <span class="caret">▾</span>
+            </button>
+            <div class="fdd-panel" id="topicDDPanel">
+                <div class="fdd-actions">
+                    <a id="topicDDAll">Select all</a>
+                    <a id="topicDDNone">Clear</a>
+                </div>
+                {% for t in topics %}
+                    <label class="fdd-item">
+                        <input type="checkbox" name="topic" value="{{ t }}" {% if t in selected_topics %}checked{% endif %}>
+                        <span>{{ t }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <div class="t-field" style="flex:0 0 170px;">
+        <label>Difficulty</label>
+        <div class="fdd" data-fdd="single">
+            <button type="button" class="fdd-toggle">
+                <span class="fdd-label" data-empty="All difficulties">{% if diff %}{{ diff|title }}{% else %}All difficulties{% endif %}</span>
+                <span class="caret">▾</span>
+            </button>
+            <div class="fdd-panel">
+                <label class="fdd-item"><input type="radio" name="difficulty" value="" {% if not diff %}checked{% endif %}><span>All difficulties</span></label>
+                {% for d in ['easy','medium','hard'] %}
+                    <label class="fdd-item"><input type="radio" name="difficulty" value="{{ d }}" {% if diff==d %}checked{% endif %}><span>{{ d|title }}</span></label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% if papers %}
+    <div class="t-field" style="flex:1 1 240px;">
+        <label>Question paper</label>
+        <div class="fdd" data-fdd="single">
+            <button type="button" class="fdd-toggle">
+                <span class="fdd-label" data-empty="All papers">{% if paper %}{{ paper }}{% else %}All papers{% endif %}</span>
+                <span class="caret">▾</span>
+            </button>
+            <div class="fdd-panel">
+                <label class="fdd-item"><input type="radio" name="paper" value="" {% if not paper %}checked{% endif %}><span>All papers</span></label>
+                {% for p in papers %}
+                    <label class="fdd-item"><input type="radio" name="paper" value="{{ p }}" {% if paper==p %}checked{% endif %}><span>{{ p }}</span></label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <noscript>
+        <input type="hidden" name="server_filter" value="1">
+        <button class="t-btn primary"><i class="fas fa-filter"></i> Filter</button>
+    </noscript>
+</form>
+<script>
+(function(){
+    try { history.scrollRestoration = 'manual'; } catch(e) {}
+    var KEY = 'teacherBankScrollY';
+    var saved = sessionStorage.getItem(KEY);
+    if (saved !== null) { window.scrollTo(0, parseInt(saved, 10) || 0); sessionStorage.removeItem(KEY); }
+    var form = document.getElementById('bankFilterForm');
+    if (form) {
+        form.addEventListener('submit', function(){ sessionStorage.setItem(KEY, String(window.scrollY || 0)); });
+    }
+
+    var topicDD = document.getElementById('topicDD');
+    if (!topicDD) return;
+
+    var topicPanel = document.getElementById('topicDDPanel');
+    var topicLabel = document.getElementById('topicDDLabel');
+    var topicBoxes = topicPanel.querySelectorAll('input[type="checkbox"]');
+    var paperTagRe = /^[A-Z]{2,5}\s+P\d+\s+(May\/June|Nov|November|March|Sept|September|Feb|February)\s+\d{4}$/;
+
+    function normalizeTopic(v) {
+        return (v || '')
+            .toLowerCase()
+            .replace(/&/g, ' and ')
+            .replace(/[^a-z0-9]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function papersFromTags(tags) {
+        var out = [];
+        if (!tags) return out;
+        tags.split(',').forEach(function(part){
+            var t = part.trim();
+            if (paperTagRe.test(t)) out.push(t);
+        });
+        return out;
+    }
+
+    function currentRadioValue(name) {
+        var r = form ? form.querySelector('input[name="' + name + '"]:checked') : null;
+        return r ? (r.value || '') : '';
+    }
+
+    function syncQueryInUrl() {
+        if (!window.history || !window.history.replaceState) return;
+        var params = new URLSearchParams(window.location.search);
+        params.delete('grade');
+        params.delete('difficulty');
+        params.delete('paper');
+        params.delete('topic');
+
+        var grade = currentRadioValue('grade');
+        var diff = currentRadioValue('difficulty');
+        var paper = currentRadioValue('paper');
+        if (grade) params.set('grade', grade);
+        if (diff) params.set('difficulty', diff);
+        if (paper) params.set('paper', paper);
+        topicBoxes.forEach(function(b){ if (b.checked) params.append('topic', b.value); });
+
+        var qs = params.toString();
+        var next = window.location.pathname + (qs ? ('?' + qs) : '');
+        window.history.replaceState(null, '', next);
+    }
+
+    function applyClientFilters() {
+        var rows = document.querySelectorAll('.bank-table tbody tr');
+        if (!rows.length) return;
+
+        var grade = currentRadioValue('grade');
+        var diff = (currentRadioValue('difficulty') || '').toLowerCase();
+        var paper = currentRadioValue('paper');
+        var selectedTopics = Array.from(topicBoxes)
+            .filter(function(b){ return b.checked; })
+            .map(function(b){ return normalizeTopic(b.value); });
+        var hasTopicFilter = selectedTopics.length > 0;
+
+        var visibleIdx = 0;
+        rows.forEach(function(tr){
+            var rowGrade = (tr.dataset.grade || '').trim();
+            var rowDiff = (tr.dataset.difficulty || '').toLowerCase().trim();
+            var rowTopic = normalizeTopic(tr.dataset.topic || (tr.children[2] ? tr.children[2].textContent : ''));
+            var rowPapers = papersFromTags(tr.dataset.tags || '');
+
+            var show = true;
+            if (grade && rowGrade !== grade) show = false;
+            if (show && diff && rowDiff !== diff) show = false;
+            if (show && hasTopicFilter && selectedTopics.indexOf(rowTopic) === -1) show = false;
+            if (show && paper && rowPapers.indexOf(paper) === -1) show = false;
+
+            tr.style.display = show ? '' : 'none';
+            if (show) {
+                visibleIdx += 1;
+                if (tr.children[0]) tr.children[0].textContent = String(visibleIdx);
+            }
+        });
+    }
+
+    function refreshSingleSelectionVisual() {
+        document.querySelectorAll('#bankFilterForm .fdd[data-fdd="single"] .fdd-item').forEach(function(item){
+            var input = item.querySelector('input[type="radio"]');
+            item.classList.toggle('is-checked', !!(input && input.checked));
+        });
+    }
+
+    function refreshSingleLabels() {
+        document.querySelectorAll('#bankFilterForm .fdd[data-fdd="single"]').forEach(function(dd){
+            var label = dd.querySelector('.fdd-label');
+            if (!label) return;
+            var checked = dd.querySelector('input[type="radio"]:checked');
+            var span = checked ? checked.parentElement.querySelector('span') : null;
+            label.textContent = span ? span.textContent : (label.dataset.empty || '');
+        });
+    }
+
+    function refreshTopicSelectionVisual() {
+        topicBoxes.forEach(function(b){
+            var item = b.closest('.fdd-item');
+            if (item) item.classList.toggle('is-checked', !!b.checked);
+        });
+    }
+
+    function refreshTopicLabel() {
+        var selectedVals = Array.from(topicBoxes)
+            .filter(function(b){ return b.checked; })
+            .map(function(b){ return b.value; });
+        if (!selectedVals.length) {
+            topicLabel.textContent = 'All topics';
+            return;
+        }
+        if (selectedVals.length <= 2) {
+            topicLabel.textContent = selectedVals.join(', ');
+            return;
+        }
+        topicLabel.textContent = selectedVals.slice(0, 2).join(', ') + ' +' + (selectedVals.length - 2);
+    }
+
+    function updateAllFilterUiAndResults() {
+        refreshSingleLabels();
+        refreshSingleSelectionVisual();
+        refreshTopicLabel();
+        refreshTopicSelectionVisual();
+        applyClientFilters();
+        syncQueryInUrl();
+    }
+
+    updateAllFilterUiAndResults();
+
+    document.querySelectorAll('#bankFilterForm .fdd[data-fdd="single"]').forEach(function(dd){
+        dd.querySelectorAll('input[type="radio"]').forEach(function(r){
+            r.addEventListener('change', function(){
+                dd.classList.remove('open');
+                updateAllFilterUiAndResults();
+            });
+        });
+    });
+
+    topicBoxes.forEach(function(b){
+        b.addEventListener('change', function(){
+            updateAllFilterUiAndResults();
+        });
+    });
+
+    document.getElementById('topicDDAll').addEventListener('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        topicBoxes.forEach(function(b){ b.checked = true; });
+        updateAllFilterUiAndResults();
+    });
+
+    document.getElementById('topicDDNone').addEventListener('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        topicBoxes.forEach(function(b){ b.checked = false; });
+        updateAllFilterUiAndResults();
+    });
+})();
+</script>
+
+<div class="t-card">
+    {% if items %}
+        <div class="bank-table-wrap">
+        <table class="t-table bank-table">
+            <colgroup>
+                <col class="c-num">
+                <col class="c-question">
+                <col class="c-topic">
+                <col class="c-type">
+                <col class="c-diff">
+                <col class="c-marks">
+                <col class="c-act">
+            </colgroup>
+            <thead><tr><th>#</th><th>Question</th><th>Topic</th><th>Type</th><th>Difficulty</th><th>Marks</th><th></th></tr></thead>
+            <tbody>
+            {% for q in items %}
+                <tr data-grade="{{ q.grade or '' }}" data-topic="{{ q.topic or '' }}" data-difficulty="{{ q.difficulty or '' }}" data-tags="{{ q.tags or '' }}">
+                    <td style="color:var(--text-tertiary); font-variant-numeric:tabular-nums;">{{ loop.index }}</td>
+                    <td>
+                        <div style="display:flex; gap:10px; align-items:flex-start;">
+                            {% if q.image_path %}
+                                <img src="{{ url_for('static', filename=q.image_path) }}" alt="" style="width:60px; height:45px; object-fit:cover; border:1px solid rgba(127,127,127,0.25); border-radius:4px; background:#fff; flex-shrink:0;">
+                            {% endif %}
+                            <span>{{ q.question_text|truncate(140) }}</span>
+                        </div>
+                    </td>
+                    <td>{{ q.topic or '–' }}</td>
+                    <td style="color:var(--text-secondary);">{{ q.question_type|replace('_',' ')|title }}</td>
+                    <td style="color:var(--text-secondary);">{{ q.difficulty|title }}</td>
+                    <td>{{ q.marks }}</td>
+                    <td class="c-act-cell">
+                        {% if q.owner_id == current_user.id or current_user.is_admin %}
+                            <a class="t-icon-btn" title="Edit" href="{{ url_for('teacher_bank_edit', item_id=q.id) }}">
+                                <img src="{{ url_for('static', filename='images/edit.png') }}" alt="Edit" width="14" height="14">
+                            </a>
+                            <form method="post" action="{{ url_for('teacher_bank_delete', item_id=q.id) }}" style="display:inline;" data-confirm="Delete this question? This cannot be undone.">
+                                <button class="t-icon-btn danger" title="Delete">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    {% else %}
+        <div class="t-empty"><i class="fas fa-question-circle"></i>No questions yet. Add your first one.</div>
+    {% endif %}
+</div>
+{% endblock %}

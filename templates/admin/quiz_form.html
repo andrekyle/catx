@@ -1,0 +1,56 @@
+{% extends "lms_base.html" %}
+{% block title %}{% if quiz %}Edit{% else %}New{% endif %} Quiz - Admin{% endblock %}
+{% block content %}
+<div style="margin-bottom:24px;">
+    <a href="{{ url_for('admin_quizzes') }}" style="color:var(--blue); text-decoration:none; font-size:14px; font-weight:500; display:inline-flex; align-items:center; gap:5px; letter-spacing:-0.1px;">
+        <i class="fas fa-chevron-left" style="font-size:11px;"></i> Quizzes
+    </a>
+    <h1 class="sf-title" style="margin-top:10px;">{% if quiz %}Edit Quiz{% else %}New Quiz{% endif %}</h1>
+</div>
+<div class="card" style="max-width:600px; padding:28px 26px;">
+    <form method="POST">
+        <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" value="{{ quiz.title if quiz else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Course</label>
+            <select name="course_id" class="form-control" required>
+                {% set ns = namespace(last_grade=None) %}
+                {% for c in courses %}
+                    {% if c.grade.name != ns.last_grade %}
+                        {% if ns.last_grade is not none %}</optgroup>{% endif %}
+                        <optgroup label="{{ c.grade.name }}">
+                        {% set ns.last_grade = c.grade.name %}
+                    {% endif %}
+                    <option value="{{ c.id }}" {% if quiz and quiz.course_id == c.id %}selected{% endif %}>{{ c.title }}</option>
+                {% endfor %}
+                {% if ns.last_grade is not none %}</optgroup>{% endif %}
+            </select>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+            <div class="form-group">
+                <label class="form-label">Type</label>
+                <select name="quiz_type" class="form-control" required>
+                    <option value="multiple_choice" {% if quiz and quiz.quiz_type == 'multiple_choice' %}selected{% endif %}>Multiple Choice</option>
+                    <option value="drag_drop" {% if quiz and quiz.quiz_type == 'drag_drop' %}selected{% endif %}>Drag &amp; Drop</option>
+                    <option value="matching" {% if quiz and quiz.quiz_type == 'matching' %}selected{% endif %}>Matching</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Time (min)</label>
+                <input type="number" name="time_limit_minutes" class="form-control" value="{{ quiz.time_limit_minutes if quiz else 15 }}" min="1">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Pass %</label>
+                <input type="number" name="pass_percentage" class="form-control" value="{{ quiz.pass_percentage if quiz else 50 }}" min="0" max="100">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Order</label>
+            <input type="number" name="order" class="form-control" value="{{ quiz.order if quiz else 0 }}">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:13px;"><i class="fas fa-check"></i> {% if quiz %}Update{% else %}Create{% endif %} Quiz</button>
+    </form>
+</div>
+{% endblock %}

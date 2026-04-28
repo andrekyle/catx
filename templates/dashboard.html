@@ -1,0 +1,489 @@
+﻿{% extends "lms_base.html" %}
+{% block title %}Dashboard — CAT LMS{% endblock %}
+{% block content %}
+<style>
+    /* ─── GridX dashboard ───────────────────────────────────────── */
+    .dx-wrap { max-width: 1320px; margin: 0 auto; padding: 8px 24px 80px; }
+
+    .dx-header { margin: 12px 0 32px; display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+    .dx-eyebrow {
+        font-size: 12px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 2.4px;
+        color: rgba(255,255,255,0.45);
+        margin: 0 0 14px;
+    }
+    .dx-title {
+        font-size: clamp(36px, 4.2vw, 56px);
+        font-weight: 700; letter-spacing: -1.8px; line-height: 1.02;
+        color: #fff; margin: 0 0 12px;
+    }
+    .dx-sub { font-size: 15px; color: rgba(255,255,255,0.55); letter-spacing: -0.1px; margin: 0; }
+
+    .dx-header-cta {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: #fff; color: #0A0A0A;
+        font-weight: 600; font-size: 14px;
+        padding: 12px 20px; border-radius: 999px;
+        text-decoration: none;
+        transition: transform .2s var(--ease), background .2s;
+    }
+    .dx-header-cta:hover { background: #f0f0f0; transform: translateY(-1px); }
+
+    /* Stats ----------------------------------------------------- */
+    .dx-stats {
+        display: grid; gap: 16px; margin-bottom: 36px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .dx-stat {
+        position: relative;
+        background: #161616;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 22px;
+        padding: 24px;
+        transition: border-color .2s, transform .2s var(--ease);
+    }
+    .dx-stat:hover { border-color: rgba(255,255,255,0.14); transform: translateY(-2px); }
+    .dx-stat-icon {
+        width: 40px; height: 40px; border-radius: 12px;
+        display: inline-flex; align-items: center; justify-content: center;
+        margin-bottom: 18px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #fff;
+    }
+    .dx-stat.sx-blue   .dx-stat-icon { background: linear-gradient(135deg, rgba(79,139,245,0.22), rgba(168,197,255,0.16)); color: #A8C5FF; }
+    .dx-stat.sx-green  .dx-stat-icon { background: linear-gradient(135deg, rgba(108,203,95,0.22), rgba(180,232,170,0.14)); color: #6CCB5F; }
+    .dx-stat.sx-purple .dx-stat-icon { background: linear-gradient(135deg, rgba(180,140,224,0.22), rgba(220,200,250,0.14)); color: #C7A8F2; }
+    .dx-stat.sx-amber  .dx-stat-icon { background: linear-gradient(135deg, rgba(242,181,58,0.22), rgba(255,220,140,0.14)); color: #F2B53A; }
+    .dx-stat-icon i { font-size: 16px; }
+    .dx-stat-num {
+        font-size: 40px; font-weight: 700; line-height: 1;
+        letter-spacing: -1.6px; color: #fff;
+        margin-bottom: 8px; font-variant-numeric: tabular-nums;
+    }
+    .dx-stat-label {
+        font-size: 11px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 1.6px;
+        color: rgba(255,255,255,0.45);
+    }
+
+    /* Section label --------------------------------------------- */
+    .dx-section-label {
+        font-size: 12px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 2.2px;
+        color: rgba(255,255,255,0.45);
+        margin: 28px 0 18px;
+    }
+
+    /* Course tiles (icon + label) -------------------------------- */
+    .dx-grid {
+        display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 28px;
+    }
+    .gx-course {
+        position: relative;
+        display: inline-flex; flex-direction: column; align-items: center;
+        gap: 8px; width: 96px;
+        text-decoration: none; color: #e9e9e9;
+        transition: transform .15s ease;
+    }
+    .gx-course:hover { transform: translateY(-2px); }
+    .gx-course:hover .gx-course-icon { transform: scale(1.05); }
+    .gx-course-icon {
+        width: 64px; height: 64px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, var(--cx), color-mix(in srgb, var(--cx) 65%, #000));
+        border-radius: 16px; color: #fff;
+        transition: transform .15s ease;
+    }
+    .gx-course-icon i { font-size: 24px; }
+    .gx-course-label {
+        font-size: 12px; line-height: 1.25; text-align: center;
+        color: #e9e9e9;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden;
+        height: calc(12px * 1.25 * 2); /* always reserve 2 lines so % aligns */
+    }
+    .gx-course-pct {
+        font-size: 10px; color: rgba(255,255,255,0.5);
+        letter-spacing: 0.5px;
+    }
+    /* Hide the verbose chrome we no longer render. */
+    .gx-top, .gx-course-head, .gx-course-head-text, .gx-course-title,
+    .gx-course-meta, .gx-course-body, .gx-progress-pct, .gx-cta { display: none !important; }
+    /* Empty ------------------------------------------------------ */
+    .dx-empty {
+        background: #161616;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 22px;
+        padding: 48px 32px; text-align: center;
+        margin-bottom: 36px;
+    }
+    .dx-empty-icon {
+        width: 56px; height: 56px; border-radius: 16px;
+        background: linear-gradient(135deg, #4F8BF5, #A8C5FF);
+        color: #fff;
+        display: inline-flex; align-items: center; justify-content: center;
+        margin: 0 auto 18px;
+    }
+    .dx-empty-icon i { font-size: 22px; }
+    .dx-empty p { color: rgba(255,255,255,0.55); margin: 0 0 22px; font-size: 15px; letter-spacing: -0.1px; }
+    .dx-empty-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: #fff; color: #0A0A0A;
+        font-weight: 600; font-size: 14px;
+        padding: 12px 20px; border-radius: 999px;
+        text-decoration: none;
+        transition: transform .2s var(--ease);
+    }
+    .dx-empty-btn:hover { transform: translateY(-1px); }
+
+    /* Recent results table -------------------------------------- */
+    .dx-results {
+        width: 100%;
+        background: #161616;
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 16px;
+        overflow: hidden;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    .dx-results thead th {
+        text-align: left;
+        font-size: 10.5px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 1.4px;
+        color: rgba(255,255,255,0.45);
+        padding: 12px 16px;
+        background: #1a1a1a;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .dx-results tbody td {
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        color: rgba(233,233,233,0.85);
+        font-weight: 300;
+        vertical-align: middle;
+    }
+    .dx-results tbody tr:last-child td { border-bottom: none; }
+    .dx-results tbody tr:hover { background: rgba(255,255,255,0.025); }
+    .dx-results .col-num    { width: 48px; color: rgba(255,255,255,0.4); font-variant-numeric: tabular-nums; font-weight: 300; }
+    .dx-results .col-name   { font-weight: 300; color: rgba(233,233,233,0.85); }
+    .dx-results .col-date   { width: 140px; color: rgba(255,255,255,0.55); font-variant-numeric: tabular-nums; font-weight: 300; }
+    .dx-results .col-status { width: 110px; }
+    .dx-results .col-attempts { width: 80px; text-align: center; color: rgba(255,255,255,0.55); font-variant-numeric: tabular-nums; font-weight: 300; }
+    .dx-results .col-score  { width: 90px; text-align: right; font-weight: 300; font-variant-numeric: tabular-nums; }
+    .dx-result-status {
+        font-size: 9.5px; font-weight: 300;
+        text-transform: uppercase; letter-spacing: 1px;
+        color: var(--rx);
+    }
+    .dx-results tr.pass { --rx: #6CCB5F; }
+    .dx-results tr.fail { --rx: #FF6F61; }
+    .dx-results .col-score { color: var(--rx); }
+    /* Header field with inline filter */
+    .dx-results thead th { vertical-align: top; }
+    .dx-results .dx-th {
+        display: flex; flex-direction: column; gap: 6px;
+    }
+    .dx-results .col-score .dx-th { align-items: flex-end; }
+    .dx-results .col-attempts .dx-th { align-items: center; }
+    .dx-results .dx-th-label {
+        font-size: 10.5px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 1.4px;
+        color: rgba(255,255,255,0.45);
+    }
+    .dx-results .dx-filter {
+        width: 100%;
+        background: #1f1f1f;
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #e9e9e9;
+        font: inherit; font-size: 12px;
+        padding: 5px 8px; border-radius: 7px;
+        outline: none;
+        text-transform: none; letter-spacing: 0;
+    }
+    .dx-results .col-score .dx-filter,
+    .dx-results .col-attempts .dx-filter { text-align: right; }
+    .dx-results .dx-filter:focus { border-color: rgba(255,255,255,0.25); background: #242424; }
+
+    /* Custom dropdown (Result column) — replaces native <select> so we have
+       full control over hover/active states. */
+    .dx-dd { position: relative; width: 100%; font-weight: 300; text-transform: none; letter-spacing: 0; }
+    .dx-dd-toggle {
+        width: 100%;
+        background: #1f1f1f;
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #e9e9e9;
+        font: inherit; font-size: 12px; font-weight: 300;
+        padding: 5px 24px 5px 8px; border-radius: 7px;
+        text-align: left; cursor: pointer;
+        display: inline-flex; align-items: center; justify-content: space-between;
+        gap: 6px; outline: none;
+    }
+    .dx-dd-toggle::after {
+        content: ""; width: 0; height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 4px solid rgba(255,255,255,0.5);
+        margin-left: 4px;
+    }
+    .dx-dd.open .dx-dd-toggle { border-color: rgba(255,255,255,0.25); background: #242424; }
+    .dx-dd-menu {
+        position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+        background: #1f1f1f;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 7px;
+        padding: 4px;
+        z-index: 50;
+        display: none;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+    }
+    .dx-dd.open .dx-dd-menu { display: block; }
+    .dx-dd-opt {
+        padding: 5px 10px; border-radius: 5px;
+        font-size: 10.5px; font-weight: 300;
+        color: #e9e9e9; cursor: pointer;
+        background: transparent;
+    }
+    .dx-dd-opt + .dx-dd-opt { margin-top: 1px; }
+    .dx-dd-opt:hover { background: transparent; }
+    .dx-dd-opt.is-selected { background: transparent; color: #e9e9e9; }
+    .dx-results .dx-filter::placeholder { color: rgba(255,255,255,0.3); }
+    .dx-results tbody tr.dx-hidden { display: none; }
+    .dx-results tbody tr.dx-empty td {
+        text-align: center; color: rgba(255,255,255,0.4);
+        padding: 22px; font-style: italic;
+    }
+
+    @media (max-width: 720px) {
+        .dx-results .col-attempts, .dx-results .col-num { display: none; }
+        .dx-results thead th, .dx-results tbody td { padding: 10px 12px; }
+    }
+
+    @media (max-width: 720px) {
+        .dx-wrap { padding: 4px 16px 56px; }
+        .dx-stat { padding: 20px; }
+        .dx-stat-num { font-size: 32px; }
+    }
+</style>
+
+<div class="dx-wrap">
+
+    <header class="dx-header">
+        <div>
+            <p class="dx-eyebrow">Dashboard</p>
+            <h1 class="dx-title">Welcome back, {{ current_user.first_name or current_user.username }}.</h1>
+            <p class="dx-sub">{% if current_user.grade %}Grade {{ current_user.grade }} · {% endif %}Computer Applications Technology</p>
+        </div>
+        <a href="{{ url_for('grade_courses', grade_number=current_user.grade or 10) }}" class="dx-header-cta">
+            Browse courses <i class="fas fa-arrow-right" style="font-size:11px;"></i>
+        </a>
+    </header>
+
+    <!-- Stats -->
+    <div class="dx-stats">
+        <div class="dx-stat sx-blue">
+            <div class="dx-stat-icon"><i class="fas fa-book"></i></div>
+            <div class="dx-stat-num">{{ enrollments|length }}</div>
+            <div class="dx-stat-label">Courses</div>
+        </div>
+        <div class="dx-stat sx-green">
+            <div class="dx-stat-icon"><i class="fas fa-circle-check"></i></div>
+            <div class="dx-stat-num">{{ completed_lessons }}</div>
+            <div class="dx-stat-label">Lessons Done</div>
+        </div>
+        <div class="dx-stat sx-purple">
+            <div class="dx-stat-icon"><i class="fas fa-clipboard-check"></i></div>
+            <div class="dx-stat-num">{{ passed_quizzes }}<span style="font-size:18px; opacity:.55;">/{{ quizzes_taken }}</span></div>
+            <div class="dx-stat-label">Quizzes Passed</div>
+        </div>
+        <div class="dx-stat sx-amber">
+            <div class="dx-stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="dx-stat-num">{{ avg_score|round(0)|int }}%</div>
+            <div class="dx-stat-label">Avg Score</div>
+        </div>
+    </div>
+
+    <!-- My Courses -->
+    <p class="dx-section-label">My Courses</p>
+    {% if enrollments %}
+    <div class="dx-grid">
+        {% for enrollment in enrollments %}
+        {% set svg_info = course_svg_map.get(enrollment.course.title) %}
+        {% set accent = svg_info.bg if svg_info else enrollment.course.color %}
+        <a class="gx-course"
+           href="{{ url_for('course_detail', course_id=enrollment.course.id) }}"
+           title="{{ enrollment.course.title }} · {{ enrollment.progress|round(0)|int }}%"
+           style="--cx: {{ accent }}; --pct: {{ enrollment.progress }}%;">
+            <span class="gx-course-icon"><i class="fas {{ enrollment.course.icon }}"></i></span>
+            <span class="gx-course-label">{{ enrollment.course.title }}</span>
+            <span class="gx-course-pct">{{ enrollment.progress|round(0)|int }}%</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="dx-empty">
+        <div class="dx-empty-icon"><i class="fas fa-book-open"></i></div>
+        <p>You haven't enrolled in any courses yet.</p>
+        <a href="{{ url_for('grade_courses', grade_number=current_user.grade or 10) }}" class="dx-empty-btn">
+            Browse courses <i class="fas fa-arrow-right" style="font-size:11px;"></i>
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Recent Quiz Results -->
+    {% if quiz_attempts %}
+    <p class="dx-section-label">Recent Results</p>
+    {# Group by quiz: keep the most recent attempt per quiz, count the rest. #}
+    {% set grouped = namespace(items=[], seen={}) %}
+    {% for attempt in quiz_attempts %}
+        {% set key = attempt.quiz.id %}
+        {% if key in grouped.seen %}
+            {% set _ = grouped.seen.update({key: grouped.seen[key] + 1}) %}
+        {% else %}
+            {% set _ = grouped.seen.update({key: 1}) %}
+            {% set _ = grouped.items.append(attempt) %}
+        {% endif %}
+    {% endfor %}
+    <table class="dx-results" id="dxResults">
+        <thead>
+            <tr>
+                <th class="col-num">#</th>
+                <th class="col-name">
+                    <div class="dx-th">
+                        <span class="dx-th-label">Quiz</span>
+                        <input type="text" class="dx-filter" data-col="1" placeholder="Filter…">
+                    </div>
+                </th>
+                <th class="col-date">
+                    <div class="dx-th">
+                        <span class="dx-th-label">Date</span>
+                        <input type="text" class="dx-filter" data-col="2" placeholder="Apr 2026">
+                    </div>
+                </th>
+                <th class="col-status">
+                    <div class="dx-th">
+                        <span class="dx-th-label">Result</span>
+                        <div class="dx-dd" id="dxResultDD">
+                            <button type="button" class="dx-dd-toggle" data-label="All">All</button>
+                            <div class="dx-dd-menu" role="listbox">
+                                <div class="dx-dd-opt is-selected" data-value="" role="option">All</div>
+                                <div class="dx-dd-opt" data-value="passed" role="option">Passed</div>
+                                <div class="dx-dd-opt" data-value="failed" role="option">Failed</div>
+                            </div>
+                            <input type="hidden" class="dx-filter" data-col="3" value="">
+                        </div>
+                    </div>
+                </th>
+                <th class="col-attempts">
+                    <div class="dx-th">
+                        <span class="dx-th-label">Attempts</span>
+                        <input type="text" class="dx-filter" data-col="4" placeholder="#">
+                    </div>
+                </th>
+                <th class="col-score">
+                    <div class="dx-th">
+                        <span class="dx-th-label">Score</span>
+                        <input type="text" class="dx-filter" data-col="5" placeholder=">=80">
+                    </div>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for attempt in grouped.items[:10] %}
+            <tr class="{{ 'pass' if attempt.passed else 'fail' }}">
+                <td class="col-num">{{ loop.index }}</td>
+                <td class="col-name">{{ attempt.quiz.title }}</td>
+                <td class="col-date">{{ attempt.completed_at.strftime('%d %b %Y') }}</td>
+                <td class="col-status"><span class="dx-result-status">{{ 'Passed' if attempt.passed else 'Failed' }}</span></td>
+                <td class="col-attempts">{{ grouped.seen[attempt.quiz.id] }}</td>
+                <td class="col-score">{{ attempt.score|round(0)|int }}%</td>
+            </tr>
+            {% endfor %}
+            <tr class="dx-empty" style="display:none;"><td colspan="6">No results match your filters.</td></tr>
+        </tbody>
+    </table>
+    <script>
+    (function () {
+        const table = document.getElementById('dxResults');
+        if (!table) return;
+        const filters = table.querySelectorAll('.dx-filter');
+        const rows = table.querySelectorAll('tbody tr:not(.dx-empty)');
+        const emptyRow = table.querySelector('tbody tr.dx-empty');
+
+        // Parse a numeric comparison expression like ">=80", "<50", "=100", "90".
+        function numericMatch(cellText, expr) {
+            const cellNum = parseFloat(cellText.replace(/[^0-9.\-]/g, ''));
+            if (isNaN(cellNum)) return false;
+            const m = expr.match(/^\s*(>=|<=|>|<|=)?\s*(-?\d+(?:\.\d+)?)\s*$/);
+            if (!m) return cellText.toLowerCase().includes(expr.toLowerCase());
+            const op = m[1] || '=', n = parseFloat(m[2]);
+            switch (op) {
+                case '>=': return cellNum >= n;
+                case '<=': return cellNum <= n;
+                case '>':  return cellNum >  n;
+                case '<':  return cellNum <  n;
+                default:   return cellNum === n;
+            }
+        }
+
+        function applyFilters() {
+            const criteria = Array.from(filters).map(f => ({
+                col: parseInt(f.dataset.col, 10),
+                val: f.value.trim().toLowerCase(),
+                isNum: f.dataset.col === '4' || f.dataset.col === '5',
+            })).filter(c => c.val !== '');
+            let visible = 0;
+            rows.forEach(row => {
+                const cells = row.children;
+                let show = true;
+                for (const c of criteria) {
+                    const text = (cells[c.col] ? cells[c.col].textContent : '').trim();
+                    if (c.isNum) {
+                        if (!numericMatch(text, c.val)) { show = false; break; }
+                    } else {
+                        if (!text.toLowerCase().includes(c.val)) { show = false; break; }
+                    }
+                }
+                row.classList.toggle('dx-hidden', !show);
+                if (show) visible++;
+            });
+            if (emptyRow) emptyRow.style.display = visible === 0 ? '' : 'none';
+        }
+
+        filters.forEach(f => {
+            f.addEventListener('input', applyFilters);
+            f.addEventListener('change', applyFilters);
+        });
+
+        // Custom dropdown for the Result column.
+        const dd = document.getElementById('dxResultDD');
+        if (dd) {
+            const toggle = dd.querySelector('.dx-dd-toggle');
+            const menu = dd.querySelector('.dx-dd-menu');
+            const opts = dd.querySelectorAll('.dx-dd-opt');
+            const hidden = dd.querySelector('input.dx-filter');
+
+            toggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dd.classList.toggle('open');
+            });
+            opts.forEach(opt => {
+                opt.addEventListener('click', () => {
+                    opts.forEach(o => o.classList.remove('is-selected'));
+                    opt.classList.add('is-selected');
+                    toggle.textContent = opt.textContent;
+                    hidden.value = opt.dataset.value;
+                    hidden.dispatchEvent(new Event('input', { bubbles: true }));
+                    dd.classList.remove('open');
+                });
+            });
+            document.addEventListener('click', (e) => {
+                if (!dd.contains(e.target)) dd.classList.remove('open');
+            });
+        }
+    })();
+    </script>
+    {% endif %}
+
+</div>
+{% endblock %}

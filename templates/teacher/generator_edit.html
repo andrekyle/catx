@@ -1,0 +1,3364 @@
+{% extends "teacher/_layout.html" %}
+{% block t_title %}{% if paper %}Edit paper{% else %}Build a new paper{% endif %}{% endblock %}
+{% block t_sub %}Customise the header, then drag questions from the bank into sections.{% endblock %}
+{% block t_action %}
+    {% if paper %}
+        <a class="t-thin-btn" href="{{ url_for('teacher_paper_preview', paper_id=paper.id) }}" target="_blank"><i class="fas fa-eye"></i> Open preview</a>
+        <a class="t-thin-btn" href="{{ url_for('teacher_paper_memo', paper_id=paper.id) }}" target="_blank"><img src="{{ url_for('static', filename='images/key.png') }}" alt="" width="15" height="15" style="vertical-align:-3px; display:inline-block;"> Memo</a>
+    {% endif %}
+{% endblock %}
+
+{% block t_body %}
+{% if paper %}
+<div class="gen-floating-actions">
+    <a class="t-thin-btn" href="{{ url_for('teacher_paper_preview', paper_id=paper.id) }}" target="_blank"><i class="fas fa-eye"></i> Open preview</a>
+    <a class="t-thin-btn" href="{{ url_for('teacher_paper_memo', paper_id=paper.id) }}" target="_blank"><img src="{{ url_for('static', filename='images/key.png') }}" alt="" width="15" height="15" style="vertical-align:-3px; display:inline-block;"> Memo</a>
+</div>
+<script>
+(function(){
+    // Track Memo / Preview windows opened from this editor so we can refresh
+    // them whenever the paper autosaves (e.g. after deleting a question, the
+    // marking guidelines must reflect the new state).
+    const childWindows = new Set();
+    const memoUrl    = "{{ url_for('teacher_paper_memo',    paper_id=paper.id) }}";
+    const previewUrl = "{{ url_for('teacher_paper_preview', paper_id=paper.id) }}";
+    const addStemUrl = "{{ url_for('teacher_paper_add_stem', paper_id=paper.id) }}";
+    window.addStemUrl = addStemUrl;
+    function trackWin(w) {
+        if (!w) return;
+        childWindows.add(w);
+    }
+    document.addEventListener('click', (ev) => {
+        const a = ev.target.closest('a');
+        if (!a) return;
+        const href = a.getAttribute('href') || '';
+        if (a.target !== '_blank') return;
+        if (href !== memoUrl && href !== previewUrl) return;
+        // Re-use a single window per destination so repeated clicks just refocus.
+        ev.preventDefault();
+        const name = (href === memoUrl) ? 'paperMemo_{{ paper.id }}' : 'paperPreview_{{ paper.id }}';
+        const w = window.open(href, name);
+        trackWin(w);
+        if (w && w.focus) { try { w.focus(); } catch(e){} }
+    });
+    window.__refreshMemoWindows = function() {
+        for (const w of Array.from(childWindows)) {
+            if (!w || w.closed) { childWindows.delete(w); continue; }
+            try {
+                // Force a fresh fetch (bypasses any stale cache).
+                const u = new URL(w.location.href);
+                u.searchParams.set('_t', Date.now().toString(36));
+                w.location.replace(u.toString());
+            } catch (e) {
+                try { w.location.reload(); } catch (e2) { childWindows.delete(w); }
+            }
+        }
+    };
+})();
+(function(){
+    const tabs = document.querySelector('.t-shell .t-tabs');
+    const fa = document.querySelector('.gen-floating-actions');
+    if (tabs && fa) tabs.appendChild(fa);
+})();
+</script>
+{% endif %}
+<style>
+/* Critical-first paint styles: avoid full-page flash before the large style block below is parsed. */
+.gen-split {
+    display: grid;
+    grid-template-columns: minmax(200px, var(--gen-left, 1fr)) 5px minmax(280px, var(--gen-right, 1fr));
+    gap: 0;
+    align-items: stretch;
+    height: calc(100vh - 36px);
+    width: 100%;
+    margin: 0;
+}
+.gen-split.gen-split-no-preview { grid-template-columns: 1fr; height: auto; }
+.gen-split-left { min-width: 0; height: 100%; overflow: auto; }
+.gen-split-right { min-width: 0; height: 100%; display: flex; flex-direction: column; }
+.gen-split-divider { background: #B3B0AD; cursor: col-resize; }
+</style>
+<div class="gen-split{% if not paper %} gen-split-no-preview{% endif %}">
+<div class="gen-split-left">
+<div class="gen-scale-inner">
+<form method="post" action="{{ url_for('teacher_paper_edit', paper_id=paper.id) if paper else url_for('teacher_paper_edit') }}" enctype="multipart/form-data" id="paperForm" class="gen-form">
+    <h3 class="gen-h">Paper header</h3>
+    <div class="t-form-grid">
+        <div class="t-field span-2">
+            <label>Paper title *</label>
+            <input name="title" required value="{{ paper.title if paper else '' }}" placeholder="e.g. Final Examination — leave blank to use Subject + Paper number">
+        </div>
+        <div class="t-field">
+            <label>School</label>
+            <input name="school_name" value="{{ paper.school_name if paper else '' }}">
+        </div>
+        <div class="t-field">
+            <label>Subject</label>
+            <input name="subject" value="{{ paper.subject if paper else 'Computer Applications Technology' }}">
+        </div>
+        <div class="t-field">
+            <label>Grade</label>
+            <div class="fdd" data-fdd="single">
+                <button type="button" class="fdd-toggle">
+                    <span class="fdd-label">Grade {{ paper.grade if paper else 12 }}</span>
+                    <span class="caret">▾</span>
+                </button>
+                <input type="hidden" name="grade" value="{{ paper.grade if paper else 12 }}">
+                <div class="fdd-panel">
+                    {% for g in [10,11,12] %}<div class="fdd-item" data-value="{{ g }}">Grade {{ g }}</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="t-field">
+            <label>Exam date</label>
+            <input name="exam_date" type="date" value="{{ paper.exam_date.strftime('%Y-%m-%d') if paper and paper.exam_date else '' }}">
+        </div>
+        <div class="t-field">
+            <label>Duration (minutes)</label>
+            <input name="duration_minutes" type="number" min="15" value="{{ paper.duration_minutes if paper else 180 }}">
+        </div>
+        <div class="t-field">
+            <label>Total marks</label>
+            <input name="total_marks" type="number" min="1" value="{{ paper.total_marks if paper else 150 }}">
+        </div>
+        <div class="t-field">
+            <label>Examiner</label>
+            <input name="examiner" value="{{ paper.examiner if paper else '' }}">
+        </div>
+        <div class="t-field">
+            <label>Moderator</label>
+            <input name="moderator" value="{{ paper.moderator if paper else '' }}">
+        </div>
+        <div class="t-field span-2">
+            <label>Instructions to candidates
+                <button type="button" id="openInstrLib" class="t-thin-btn" style="margin-left:10px; padding:4px 10px; font-size:12px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Pick from library</button>
+            </label>
+            <textarea id="instructionsField" name="instructions" placeholder="Click 'Pick from library' to insert ready-made instructions, or type your own (one per line).">{{ paper.instructions if paper else '' }}</textarea>
+            <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="t-thin-btn" onclick="autoFillCoverInstructions(true)" title="Detect Paper 1 / Paper 2 from the header and questions, then fill the official DBE cover instructions."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M21 12a9 9 0 1 1-9-9"/><polyline points="21 3 21 9 15 9"/></svg> Auto-detect cover instructions</button>
+                <span id="autoCoverHint" style="font-size:11.5px; color:var(--text-tertiary);"></span>
+            </div>
+        </div>
+        <div class="t-field">
+            <label>School logo (optional)</label>
+            <input name="logo" type="file" accept="image/*">
+            {% if paper and paper.logo_path %}
+                <small class="logo-current-line">
+                    <span class="logo-current-label">Current:</span>
+                    <a class="logo-current-link" href="{{ url_for('static', filename=paper.logo_path) }}" target="_blank">view</a>
+                    <label class="logo-remove-label"><input type="checkbox" name="logo_clear" value="1"> remove</label>
+                </small>
+            {% endif %}
+        </div>
+    </div>
+
+    <h3 class="gen-h">Cover, header &amp; footer</h3>
+    <p style="margin:-6px 0 12px; color:#323130; font-size:13px; font-weight:500;">Leave any field blank to use the official DBE default. Use {{ '{{page}}' }}, {{ '{{subject}}' }}, {{ '{{paperno}}' }}, {{ '{{month}}' }}, {{ '{{year}}' }} as placeholders inside header/footer text.</p>
+    <div class="t-form-grid">
+        <div class="t-field">
+            <label>Paper number (P1, P2)</label>
+            <input name="paper_number" placeholder="auto from title" value="{{ paper.paper_number if paper else '' }}">
+        </div>
+        <div class="t-field">
+            <label>Memo cover title</label>
+            <input name="memo_title" value="{{ paper.memo_title if paper and paper.memo_title else 'MARKING GUIDELINES' }}">
+        </div>
+        <div class="t-field span-2">
+            <label>Cover authority line(s)</label>
+            <textarea name="cover_authority" placeholder="SENIOR CERTIFICATE EXAMINATIONS/&#10;NATIONAL SENIOR CERTIFICATE EXAMINATIONS" style="min-height:60px;">{{ paper.cover_authority if paper else '' }}</textarea>
+        </div>
+        <div class="t-field span-2">
+            <label>Cover subtitle (top-right of cover)</label>
+            <input name="cover_subtitle" placeholder="Confidential" value="{{ paper.cover_subtitle if paper else '' }}">
+        </div>
+        <div class="t-field span-2">
+            <label>Cover extra note (e.g. info-sheet line)</label>
+            <textarea name="cover_extra_note" placeholder="This question paper consists of N pages, an HTML tag sheet ..." style="min-height:50px;">{{ paper.cover_extra_note if paper else '' }}</textarea>
+        </div>
+        <div class="t-field">
+            <label>Running header (left)</label>
+            <input name="header_left" placeholder="{{ '{{subject}}/P{{paperno}}  {{page}}  DBE/{{month}} {{year}}' }}" value="{{ paper.header_left if paper else '' }}">
+        </div>
+        <div class="t-field">
+            <label>Running header (right)</label>
+            <input name="header_right" placeholder="(blank by default)" value="{{ paper.header_right if paper else '' }}">
+        </div>
+        <div class="t-field span-2">
+            <label>Sub-header line (under page header)</label>
+            <input name="sub_header" placeholder="SC/NSC Confidential   /   SC/NSC – Marking Guidelines" value="{{ paper.sub_header if paper else '' }}">
+        </div>
+        <div class="t-field">
+            <label>Footer (left)</label>
+            <input name="footer_left" value="{{ paper.footer_left if paper and paper.footer_left else 'Copyright reserved' }}">
+        </div>
+        <div class="t-field">
+            <label>Footer (centre)</label>
+            <input name="footer_center" placeholder="Optional centre text" value="{{ paper.footer_center if paper else '' }}">
+        </div>
+        <div class="t-field">
+            <label>Footer (right)</label>
+            <input name="footer_right" value="{{ paper.footer_right if paper and paper.footer_right else 'Please turn over' }}">
+        </div>
+    </div>
+
+    <input type="hidden" name="sections_json" id="sectionsJson" value='{{ paper.sections if paper else "[]" }}'>
+
+    <div class="gen-caps-callout">
+        <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;">
+            <div style="min-width:0;">
+                <strong class="gen-callout-title">CAPS / DBE structure presets</strong>
+                <div style="font-size:13px; color:#323130; margin-top:4px; font-weight:500;">
+                    Scaffolds the paper using the official DBE Examination Guidelines (Grade 12, 2021).
+                    Existing sections will be replaced.
+                </div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                {% for key, tpl in caps_templates.items() %}
+                <button type="button" class="t-thin-btn" onclick="applyCapsTemplate('{{ key }}')">
+                    <i class="fas fa-magic"></i> {{ tpl.label }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script id="capsTemplatesData" type="application/json">{{ caps_templates|tojson }}</script>
+    <script id="instructionLibraryData" type="application/json">{{ instruction_library|tojson }}</script>
+
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin:28px 0 10px;">
+        <h3 class="gen-h gen-h-label" style="margin:0 !important;">Sections &amp; questions</h3>
+        <div class="gen-history-bar" style="display:inline-flex; gap:6px;">
+            <button type="button" id="genUndoBtn" class="t-icon-btn" title="Undo (Ctrl+Z)" disabled onclick="historyUndo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button>
+            <button type="button" id="genRedoBtn" class="t-icon-btn" title="Redo (Ctrl+Y)" disabled onclick="historyRedo()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/></svg></button>
+        </div>
+    </div>
+    <div id="sectionsHost"></div>
+    <div style="margin-top:12px;">
+        <button type="button" class="t-thin-btn" onclick="addSection()"><i class="fas fa-plus"></i> Add section</button>
+    </div>
+
+    <div class="gen-footer-actions">
+        <button class="gen-save-btn"><img src="{{ url_for('static', filename='images/save.png') }}" alt="" width="14" height="14" style="vertical-align:-2px;"> Save paper</button>
+        <a class="t-thin-btn gen-cancel-btn" href="{{ url_for('teacher_papers_generated') }}">Cancel</a>
+    </div>
+</form>
+
+<div class="gen-bank">
+    <h3 class="gen-h">Question bank <span class="gen-h-count">({{ bank|length }})</span></h3>
+    <div id="bankFilterHint" style="display:none; padding:11px 14px; background:rgba(0,120,212,0.08); border:1px solid rgba(0,120,212,0.25); border-radius:6px; font-size:16px; color:var(--text-secondary); margin-bottom:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="17" height="17" style="color:var(--blue, #0078d4); flex-shrink:0;"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <span id="bankFilterHintText" style="flex:1; min-width:0; font-size:16px;"></span>
+        <label class="thin-check-label" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:16px;">
+            <input type="checkbox" id="bankShowAll" class="thin-check"> Show all
+        </label>
+    </div>
+    <input id="bankFilter" placeholder="Filter by topic or text..." style="background:var(--bg-input, rgba(127,127,127,0.08)); border:1px solid rgba(127,127,127,0.30); border-radius:6px; padding:8px 12px; font-size:13px; margin-bottom:12px; width:100%; color:inherit; font-family:inherit;">
+    <div id="bankFilterRow" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:flex-end;">
+        <div class="bf-cell" style="flex:1 1 160px; min-width:0;">
+            <div class="fdd" data-fdd="single" data-bf="paper">
+                <button type="button" class="fdd-toggle">
+                    <span class="fdd-label" data-empty="All papers">All papers</span><span class="caret">▾</span>
+                </button>
+                <div class="fdd-panel">
+                    <label class="fdd-item"><input type="radio" name="bfPaper" value="" checked><span>All papers</span></label>
+                </div>
+            </div>
+        </div>
+        <div class="bf-cell" style="flex:1 1 160px; min-width:0;">
+            <div class="fdd" data-fdd="single" data-bf="topic">
+                <button type="button" class="fdd-toggle">
+                    <span class="fdd-label" data-empty="All topics">All topics</span><span class="caret">▾</span>
+                </button>
+                <div class="fdd-panel">
+                    <label class="fdd-item"><input type="radio" name="bfTopic" value="" checked><span>All topics</span></label>
+                </div>
+            </div>
+        </div>
+        <div class="bf-cell" style="flex:1 1 140px; min-width:0;">
+            <div class="fdd" data-fdd="single" data-bf="type">
+                <button type="button" class="fdd-toggle">
+                    <span class="fdd-label" data-empty="All types">All types</span><span class="caret">▾</span>
+                </button>
+                <div class="fdd-panel">
+                    <label class="fdd-item"><input type="radio" name="bfType" value="" checked><span>All types</span></label>
+                </div>
+            </div>
+        </div>
+        <div class="bf-cell" style="flex:1 1 140px; min-width:0;">
+            <div class="fdd" data-fdd="single" data-bf="difficulty">
+                <button type="button" class="fdd-toggle">
+                    <span class="fdd-label" data-empty="All difficulties">All difficulties</span><span class="caret">▾</span>
+                </button>
+                <div class="fdd-panel">
+                    <label class="fdd-item"><input type="radio" name="bfDifficulty" value="" checked><span>All difficulties</span></label>
+                </div>
+            </div>
+        </div>
+        <div class="bf-cell" style="flex:1 1 120px; min-width:0;">
+            <div class="fdd" data-fdd="single" data-bf="marks">
+                <button type="button" class="fdd-toggle">
+                    <span class="fdd-label" data-empty="Any marks">Any marks</span><span class="caret">▾</span>
+                </button>
+                <div class="fdd-panel">
+                    <label class="fdd-item"><input type="radio" name="bfMarks" value="" checked><span>Any marks</span></label>
+                </div>
+            </div>
+        </div>
+        <button type="button" id="bfReset" class="t-thin-btn bf-btn" style="flex:0 0 auto;">Reset</button>
+        <button type="button" id="bfAddAll" class="t-thin-btn bf-btn" style="flex:0 0 auto;" title="Add every currently-visible question to the active section">
+            <i class="fas fa-plus"></i> Add all <span id="bfAddAllCount" style="opacity:0.7;">(0)</span>
+        </button>
+    </div>
+    <div id="bankList" style="max-height:420px; overflow-y:auto;">
+        {% for q in bank %}
+            <div class="bank-item t-row" data-id="{{ q.id }}" data-text="{{ (q.topic ~ ' ' ~ q.question_text)|e }}" data-qtext="{{ (q.question_text or '')|e }}" data-type="{{ q.question_type or '' }}" data-topic="{{ q.topic or '' }}" data-difficulty="{{ q.difficulty or '' }}" data-marks="{{ q.marks }}" data-tags="{{ q.tags or '' }}">
+                <div style="flex:1; min-width:0;">
+                    <h4>{% if q.image_path %}<span class="bank-img-tag" title="This question has a figure attached">🖼</span> {% endif %}{{ q.question_text|regex_replace('(?i)^\s*Match the following description with the correct term from the list:\s*', '')|truncate(110) }}</h4>
+                    <p style="font-weight:300; color:var(--text-secondary);">
+                        {% if q.topic %}{{ q.topic }} · {% endif %}{{ q.marks }} mark{{ 's' if q.marks != 1 }} · {{ q.difficulty|title }}
+                    </p>
+                </div>
+                <button type="button" class="t-icon-btn bank-add-btn" title="Add to active section" data-id="{{ q.id }}" data-marks="{{ q.marks }}" data-text="{{ q.question_text|regex_replace('(?i)^\s*Match the following description with the correct term from the list:\s*', '')|truncate(80) }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                </button>
+            </div>
+        {% else %}
+            <div class="t-empty"><i class="fas fa-question-circle"></i>No bank questions. <a href="{{ url_for('teacher_bank_edit') }}">Add some</a> first.</div>
+        {% endfor %}
+    </div>
+</div>
+</div>{# /.gen-scale-inner #}
+</div>{# /.gen-split-left #}
+
+{% if paper %}
+<div class="gen-split-divider" id="genSplitDivider" role="separator" aria-orientation="vertical" tabindex="0" title="Drag to resize"></div>
+<aside class="gen-split-right">
+    <div class="gen-preview-bar">
+        <span class="gen-preview-title">Live preview</span>
+        <span id="genPreviewStatus" class="gen-preview-status">Up to date</span>
+        <button type="button" id="genPreviewRefresh" class="t-thin-btn" title="Reload preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Refresh
+        </button>
+        <a class="t-thin-btn" href="{{ url_for('teacher_paper_preview', paper_id=paper.id) }}" target="_blank" title="Open preview in new tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+    </div>
+    <div class="gen-preview-frame-wrap">
+        <iframe id="genPreviewFrame"
+                data-src="{{ url_for('teacher_paper_preview', paper_id=paper.id) }}?embed=1"
+                src="{{ url_for('teacher_paper_preview', paper_id=paper.id) }}?embed=1"
+                title="Paper preview"></iframe>
+    </div>
+    <p class="gen-preview-hint">Click <strong>Save paper</strong> to update the preview with your latest edits.</p>
+</aside>
+{% endif %}
+</div>{# /.gen-split #}
+
+<style>
+/* Edit-paper page is a full-bleed workspace: drop the card chrome and use the full viewport. */
+main { padding: 0 !important; }
+main > .container { max-width: none !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
+body > footer { display: none !important; }
+.t-shell {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: var(--az-bg, #EDEBE9) !important;
+    border-radius: 0 !important;
+    min-height: 100vh;
+}
+/* Hide the big page header to maximise editor space; keep tabs as a slim strip. */
+.t-shell .t-head { display: none !important; }
+.t-shell .t-tabs {
+    padding: 0 14px;
+    margin: 0;
+    background: #FFFFFF;
+    border-bottom: 1px solid var(--az-border-2, #B3B0AD);
+    min-height: 36px;
+    align-items: center;
+    position: relative;
+}
+.t-shell .t-tabs a, .t-shell .t-tabs .t-tab { font-size: 13px !important; padding: 8px 12px !important; }
+/* Floating action buttons (Open preview / Memo) since the header that hosted them is hidden. */
+.gen-floating-actions {
+    position: absolute; right: 12px; top: 4px;
+    display: flex; gap: 6px; z-index: 5;
+}
+.gen-floating-actions .t-thin-btn { padding: 4px 10px; font-size: 12px; }
+
+/* ===== Split layout: editor (left) + live preview (right), edge-to-edge ===== */
+.gen-split {
+    display: grid;
+    grid-template-columns: minmax(200px, var(--gen-left, 1fr)) 5px minmax(280px, var(--gen-right, 1fr));
+    gap: 0;
+    align-items: stretch;
+    height: calc(100vh - 36px);
+    width: 100%;
+    margin: 0;
+}
+.gen-split.gen-split-no-preview { grid-template-columns: 1fr; height: auto; }
+.gen-split-divider {
+    background: #B3B0AD;
+    cursor: col-resize;
+    position: relative;
+    transition: background 0.15s;
+    user-select: none;
+}
+.gen-split-divider:hover, .gen-split-divider.is-dragging { background: #0078D4; }
+.gen-split-divider::before {
+    content: "";
+    position: absolute; left: -3px; right: -3px; top: 0; bottom: 0;
+}
+.gen-split-left {
+    min-width: 0;
+    height: 100%;
+    overflow: auto;
+    border-right: 1px solid var(--separator-light, #D2D0CE);
+    background: #F3F2F1;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(96, 94, 92, 0.30) transparent;
+}
+.gen-split-left::-webkit-scrollbar { width: 6px; height: 6px; }
+.gen-split-left::-webkit-scrollbar-track { background: transparent; }
+.gen-split-left::-webkit-scrollbar-thumb {
+    background: rgba(96, 94, 92, 0.28);
+    border-radius: 3px;
+}
+.gen-split-left::-webkit-scrollbar-thumb:hover { background: rgba(96, 94, 92, 0.50); }
+.gen-split-left::-webkit-scrollbar-corner { background: transparent; }
+.gen-scale-inner {
+    zoom: 0.88;
+    padding: 0 16px 16px;
+    box-sizing: border-box;
+    font-size: 18px;
+    line-height: 1.45;
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+}
+/* Firefox fallback (no zoom): use scale and accept some bottom whitespace */
+@-moz-document url-prefix() {
+    .gen-scale-inner {
+        zoom: 1;
+        transform: scale(0.88);
+        transform-origin: 0 0;
+        width: 113.636%;
+    }
+}
+.gen-scale-inner h1, .gen-scale-inner h2, .gen-scale-inner h3, .gen-scale-inner h4 { font-family: inherit; }
+.gen-scale-inner p, .gen-scale-inner div, .gen-scale-inner span, .gen-scale-inner li,
+.gen-scale-inner button, .gen-scale-inner a { font-size: inherit; }
+/* Soften the dark banner on this page — replace with a light Azure header */
+.t-shell.t-shell .gen-scale-inner .gen-h,
+.t-shell.t-shell .gen-bank > .gen-h {
+    background: #F3F2F1 !important;
+    color: #0078D4 !important;
+    border-bottom: 1px solid #D2D0CE !important;
+    font-size: 19px !important;
+    letter-spacing: 0.06em;
+    padding: 16px 18px !important;
+    margin: 0 -16px 14px !important;
+    border-radius: 0 !important;
+}
+.t-shell.t-shell .gen-bank > .gen-h .gen-h-count { font-size: 17px !important; }
+.t-shell.t-shell .gen-scale-inner .gen-h *,
+.t-shell.t-shell .gen-bank > .gen-h * { color: #0078D4 !important; }
+.t-shell.t-shell .gen-scale-inner .gen-h .gen-h-count,
+.t-shell.t-shell .gen-bank > .gen-h .gen-h-count { color: #605E5C !important; }
+/* "Sections & questions" — render as a plain field-style label, not a banner. */
+.t-shell.t-shell .gen-scale-inner .gen-h.gen-h-label {
+    background: transparent !important;
+    border-bottom: 0 !important;
+    color: var(--text-tertiary, #605E5C) !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    padding: 0 !important;
+    margin: 28px 0 10px !important;
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif !important;
+}
+.t-shell.t-shell .gen-scale-inner .gen-h.gen-h-label * {
+    color: var(--text-tertiary, #605E5C) !important;
+}
+.gen-scale-inner .t-empty { font-size: 16px; }
+/* Make the dark .gen-h banner flush with the slim tab strip and the side edges. */
+.gen-split-left .gen-h:first-child,
+.gen-split-left .gen-form > .gen-h:first-child { margin-top: 0 !important; }
+.t-shell.t-shell .gen-split-left .gen-h { margin-left: -16px !important; margin-right: -16px !important; }
+.gen-split-right {
+    align-self: stretch;
+    height: 100%;
+    display: flex; flex-direction: column;
+    border: 0;
+    border-radius: 0;
+    background: #FFFFFF;
+    overflow: hidden;
+    box-shadow: none;
+}
+.gen-preview-bar {
+    display: flex; align-items: center; gap: 9px;
+    padding: 12px 16px;
+    background: #F3F2F1;
+    color: #0078D4;
+    border-bottom: 1px solid #D2D0CE;
+    flex: 0 0 auto;
+    min-height: 46px;
+    box-sizing: border-box;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+}
+.gen-preview-bar,
+.gen-preview-bar * { color: #0078D4 !important; }
+.gen-preview-bar .gen-preview-title { font-size: 15px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #0078D4 !important; }
+.gen-preview-bar .gen-preview-status { margin-left: auto; font-size: 13px; color: #605E5C !important; opacity: 1; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.gen-preview-bar .t-thin-btn {
+    color: #0078D4 !important; border-color: #D2D0CE; background: #FFFFFF;
+    padding: 5px 10px; font-size: 13px; min-height: 0; line-height: 1.2;
+    border-radius: 4px; gap: 5px; text-transform: none; letter-spacing: 0; font-weight: 500;
+}
+.gen-preview-bar .t-thin-btn:hover { color: #0078D4 !important; border-color: #0078D4; background: #F3F9FD; }
+.gen-preview-bar .t-thin-btn svg { width: 13px; height: 13px; }
+.gen-preview-frame-wrap { flex: 1 1 auto; min-height: 0; background: #F3F2F1; }
+.gen-preview-frame-wrap iframe { width: 153.846%; height: 153.846%; border: 0; background: #fff; display: block; transform: scale(0.65); transform-origin: 0 0; }
+.gen-preview-hint { display: none; }
+@media (max-width: 900px) {
+    .gen-split { grid-template-columns: 1fr; height: auto; }
+    .gen-split-left { height: auto; overflow: visible; padding-right: 0; }
+    .gen-split-right { height: 70vh; }
+}
+
+/* ===== Paper generator — flat workspace look ===== */
+.gen-form { max-width: 100%; }
+
+/* Section heading (eyebrow + bottom rule) */
+.gen-h {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--text-tertiary);
+    padding: 0 0 10px; border-bottom: 1px solid var(--separator-light);
+    margin: 0 0 20px;
+}
+.gen-form > .gen-h:not(:first-child),
+.gen-bank > .gen-h { margin-top: 34px; }
+/* Make sure form sections don't bump into the next dark banner (the layout's negative top margin would otherwise overlap). */
+.gen-form .t-form-grid { padding-bottom: 24px; }
+.gen-h-count { font-weight: 300; letter-spacing: 0.06em; color: var(--text-tertiary); margin-left: 4px; }
+
+/* Inputs */
+.gen-form, .gen-form input, .gen-form select, .gen-form textarea, .gen-form button,
+.gen-bank, .gen-bank input, .gen-bank select, .gen-bank textarea, .gen-bank button {
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif !important;
+}
+.gen-form .t-field input,
+.gen-form .t-field select,
+.gen-form .t-field textarea {
+    background: #FFFFFF;
+    border: 1.5px solid var(--separator-light);
+    border-radius: 6px;
+    padding: 10px 13px;
+    font-size: 19px;
+    line-height: 1.35;
+    color: #000000 !important;
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif !important;
+    outline: none;
+    transition: border-color .15s;
+}
+.gen-form .t-field input::placeholder,
+.gen-form .t-field textarea::placeholder { color: #605E5C !important; opacity: 1; font-size: 17px; }
+.gen-form .t-field .fdd-toggle {
+    min-height: 46px;
+    padding: 10px 13px;
+    font-size: 19px;
+    line-height: 1.35;
+}
+.gen-form .t-field .fdd-toggle .fdd-label { font-size: inherit; }
+.gen-form .t-field .fdd-panel .fdd-item { font-size: 16px; }
+.gen-form .t-field > label { font-size: 14px !important; letter-spacing: 0.10em !important; }
+/* Constrain textarea resizing so the user can't drag it past the pane edge */
+.gen-form .t-field textarea,
+.gen-scale-inner textarea {
+    resize: vertical;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+.gen-form .t-field input:focus,
+.gen-form .t-field select:focus,
+.gen-form .t-field textarea:focus { border-color: var(--blue); }
+.gen-form .t-field > label {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-tertiary); font-weight: 500;
+}
+
+/* Current logo row: thin outlined capsule + thin unfilled checkbox. */
+.logo-current-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 5px 9px;
+    border: 1px solid rgba(96, 94, 92, 0.55);
+    border-radius: 4px;
+    background: transparent;
+    color: #323130;
+    font-size: 13px;
+    line-height: 1.2;
+}
+.logo-current-line .logo-current-link {
+    color: #005A9E;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.logo-current-line .logo-remove-label {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    color: #323130;
+    cursor: pointer;
+}
+.logo-current-line .logo-remove-label input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    border: 1px solid #605E5C;
+    border-radius: 2px;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    position: relative;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    display: inline-block;
+    vertical-align: middle;
+}
+.logo-current-line .logo-remove-label input[type="checkbox"]:hover {
+    border-color: #323130;
+}
+.logo-current-line .logo-remove-label input[type="checkbox"]:checked {
+    border-color: #0078D4;
+    background: transparent;
+}
+.logo-current-line .logo-remove-label input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid #0078D4;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+}
+
+/* Reusable thin unfilled checkbox (matches logo-remove style). */
+input[type="checkbox"].thin-check {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    border: 1px solid #605E5C;
+    border-radius: 2px;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    position: relative;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    display: inline-block;
+    vertical-align: middle;
+    cursor: pointer;
+}
+input[type="checkbox"].thin-check:hover { border-color: #323130; }
+input[type="checkbox"].thin-check:checked { border-color: #0078D4; background: transparent; }
+input[type="checkbox"].thin-check:checked::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid #0078D4;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+}
+
+/* CAPS preset callout — thin top + bottom rule */
+.gen-caps-callout {
+    margin: 28px 0 24px;
+    padding: 18px 0;
+    border-top: 1px solid var(--separator-light);
+    border-bottom: 1px solid var(--separator-light);
+}
+.gen-callout-title {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--text-tertiary);
+    display: block;
+}
+
+/* Footer actions */
+.gen-footer-actions {
+    margin-top: 28px; padding-top: 18px;
+    border-top: 1px solid var(--separator-light);
+    display: flex; gap: 10px; flex-wrap: wrap;
+}
+.gen-save-btn,
+button.gen-save-btn,
+.t-shell .gen-save-btn,
+.t-shell.t-shell button.gen-save-btn {
+    display: inline-flex !important; align-items: center; justify-content: center; gap: 10px;
+    padding: 12px 26px !important;
+    background: linear-gradient(180deg, #1E8BF5 0%, #0A6BD4 100%) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #0A60BC !important;
+    border-radius: 999px !important;
+    font-size: 14.5px !important; font-weight: 600 !important; letter-spacing: 0.2px;
+    cursor: pointer;
+    font-family: "Inter", "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif !important;
+    transition: transform .15s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 6px 16px -6px rgba(10,107,212,0.55), 0 2px 4px rgba(15,23,42,0.10);
+    text-shadow: 0 1px 0 rgba(0,0,0,0.10);
+}
+.t-shell.t-shell .gen-save-btn,
+.t-shell.t-shell .gen-save-btn *,
+.t-shell.t-shell button.gen-save-btn,
+.t-shell.t-shell button.gen-save-btn * { color: #FFFFFF !important; }
+.gen-save-btn:hover,
+button.gen-save-btn:hover {
+    background: linear-gradient(180deg, #2E97FA 0%, #0F76DB 100%) !important;
+    border-color: #0A60BC !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.22) inset, 0 10px 22px -8px rgba(10,107,212,0.65), 0 3px 6px rgba(15,23,42,0.12) !important;
+    transform: translateY(-1px);
+    opacity: 1 !important;
+}
+.gen-save-btn:active,
+button.gen-save-btn:active {
+    background: linear-gradient(180deg, #0A60BC 0%, #074F9F 100%) !important;
+    transform: translateY(0);
+    box-shadow: inset 0 2px 3px rgba(0,0,0,0.22), 0 1px 2px rgba(15,23,42,0.10) !important;
+}
+.gen-save-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(30,139,245,0.45), 0 1px 0 rgba(255,255,255,0.18) inset, 0 6px 16px -6px rgba(10,107,212,0.55) !important; }
+.gen-save-btn img,
+button.gen-save-btn img { filter: brightness(0) invert(1); width: 15px !important; height: 15px !important; vertical-align: 0 !important; }
+.gen-save-btn *,
+button.gen-save-btn * { color: #FFFFFF !important; }
+
+/* Cancel button beside Save paper — pill ghost style */
+.gen-cancel-btn,
+a.gen-cancel-btn,
+.t-shell .gen-cancel-btn,
+.t-shell.t-shell a.gen-cancel-btn {
+    display: inline-flex !important; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 24px !important;
+    background: #FFFFFF !important;
+    color: #334155 !important;
+    border: 1px solid #CBD5E1 !important;
+    border-radius: 999px !important;
+    font-size: 14.5px !important; font-weight: 600 !important; letter-spacing: 0.2px;
+    cursor: pointer; text-decoration: none !important;
+    font-family: "Inter", "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif !important;
+    transition: transform .15s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease, color .15s ease;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 2px 6px rgba(15,23,42,0.06);
+    line-height: 1 !important;
+}
+.gen-cancel-btn:hover,
+a.gen-cancel-btn:hover {
+    background: #F8FAFC !important;
+    border-color: #94A3B8 !important;
+    color: #0F172A !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 6px 14px -6px rgba(15,23,42,0.18) !important;
+    transform: translateY(-1px);
+    opacity: 1 !important;
+}
+.gen-cancel-btn:active,
+a.gen-cancel-btn:active {
+    background: #F1F5F9 !important;
+    transform: translateY(0);
+    box-shadow: inset 0 2px 3px rgba(15,23,42,0.08) !important;
+}
+.gen-cancel-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(148,163,184,0.45), 0 1px 0 rgba(255,255,255,0.6) inset !important;
+}
+
+/* Question bank panel (no card) */
+.gen-bank {
+    max-width: 100%;
+    margin-top: 42px;
+    /* Fill the remainder of the (zoom: 0.7) inner viewport so the bank list always reaches the bottom */
+    min-height: calc((100vh - 36px) / 0.7);
+    display: flex;
+    flex-direction: column;
+}
+.gen-bank > #bankList { flex: 1 1 auto; }
+
+/* Bank filter hint */
+#bankFilterHint {
+    background: transparent !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--separator-light) !important;
+    border-radius: 0 !important;
+    padding: 8px 0 !important;
+    margin-bottom: 12px !important;
+    color: var(--text-secondary);
+}
+#bankFilter {
+    background: #FFFFFF;
+    border: 1.5px solid var(--separator-light);
+    border-radius: 6px;
+    padding: 10px 13px;
+    font-size: 17px;
+    color: #000000;
+    margin-bottom: 4px;
+    width: 100%;
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    outline: none;
+    transition: border-color .15s;
+}
+#bankFilter::placeholder { color: #605E5C; opacity: 1; }
+#bankFilter:focus { border-color: var(--blue); }
+
+/* Bank dropdown filter row — uses generic .fdd flat dropdowns */
+#bankFilterRow .fdd-toggle { min-height: 38px; font-size: 15px; padding: 7px 12px; }
+#bankFilterRow .fdd-label  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#bankFilterRow .bf-btn {
+    min-height: 38px !important;
+    padding: 7px 14px !important;
+    font-size: 15px !important;
+    line-height: 1.2 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px;
+    box-sizing: border-box;
+}
+/* Cleaner dropdown panel — hide native radios, use Azure list-row styling. */
+.t-shell.t-shell #bankFilterRow .fdd-panel {
+    background: #FFFFFF !important;
+    border: 1px solid #D2D0CE !important;
+    border-radius: 4px !important;
+    box-shadow: 0 6.4px 14.4px rgba(0,0,0,0.13) !important;
+    padding: 4px 0 !important;
+}
+.t-shell.t-shell #bankFilterRow .fdd-item {
+    position: relative;
+    display: flex; align-items: center;
+    padding: 8px 14px 8px 36px !important;
+    margin: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+    color: #000000 !important;
+    cursor: pointer;
+    border: 0 !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif !important;
+    font-weight: 400 !important;
+}
+.t-shell.t-shell #bankFilterRow .fdd-item input[type="radio"] {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 1px; height: 1px; margin: 0; padding: 0; pointer-events: none;
+}
+/* Custom check indicator on the left edge — only visible on the selected row. */
+.t-shell.t-shell #bankFilterRow .fdd-item::before {
+    content: "";
+    position: absolute;
+    left: 14px; top: 50%;
+    width: 14px; height: 14px;
+    margin-top: -7px;
+    border-radius: 50%;
+    border: 1.5px solid #C8C6C4;
+    background: #FFFFFF;
+    box-sizing: border-box;
+    transition: border-color .12s, background .12s;
+}
+.t-shell.t-shell #bankFilterRow .fdd-item:has(input[type="radio"]:checked)::before {
+    border-color: #0078D4;
+    background: radial-gradient(circle, #0078D4 0 4px, #FFFFFF 5px 100%);
+}
+.t-shell.t-shell #bankFilterRow .fdd-item:hover {
+    background: #F3F2F1 !important;
+}
+.t-shell.t-shell #bankFilterRow .fdd-item:has(input[type="radio"]:checked) {
+    background: #EFF6FC !important;
+    color: #0078D4 !important;
+    font-weight: 600 !important;
+}
+
+/* Bank list — borderless rows, thin dividers */
+#bankList .bank-item,
+#bankList .bank-item.t-row {
+    border: 0 !important;
+    border-bottom: 1px solid var(--separator-light) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    padding: 14px 2px !important;
+    margin: 0 !important;
+}
+#bankList .bank-item:last-child { border-bottom: 0 !important; }
+#bankList .bank-item,
+#bankList .bank-item * {
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif !important;
+    font-style: normal !important;
+}
+#bankList .bank-item h4 { font-size: 17px !important; font-weight: 400 !important; margin: 0 0 4px; color: #000 !important; }
+#bankList .bank-item p,
+#bankList .bank-item p *  { font-size: 17px !important; font-weight: 400 !important; color: #000 !important; line-height: 1.4; }
+.t-shell.t-shell #bankList .bank-item,
+.t-shell.t-shell #bankList .bank-item *:not(.used-badge) { color: #000 !important; }
+#bankFilterHint { font-size: 14px !important; }
+
+.bank-item.is-used { opacity: 0.55; }
+.bank-item.is-used h4 { text-decoration: line-through; }
+.bank-item.flash-added { animation: bankAdded 0.85s ease-out; }
+.bank-item.flash-dup   { animation: bankDup   0.85s ease-out; }
+@keyframes bankAdded { 0% { background: rgba(34,197,94,0.18); } 100% { background: transparent; } }
+@keyframes bankDup   { 0% { background: rgba(239,68,68,0.18); } 100% { background: transparent; } }
+.bank-item .used-badge {
+    display: inline-block; margin-left: 8px;
+    padding: 0; font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.6px; text-transform: uppercase;
+    color: #16A34A; background: transparent; border: 0; border-radius: 0;
+    vertical-align: middle;
+}
+/* Bank "add to section" button — minimal neutral pill */
+.bank-add-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid rgba(127, 127, 127, 0.30);
+    background: transparent;
+    color: var(--text-secondary, #4b5563);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.bank-add-btn svg { width: 13px; height: 13px; stroke-width: 1.8; }
+.bank-add-btn:hover {
+    background: transparent;
+    border-color: #0078D4;
+    color: #0078D4;
+}
+.bank-add-btn:active {
+    background: transparent;
+    border-color: #0A6BD4;
+    color: #0A6BD4;
+}
+.bank-add-btn:focus-visible {
+    outline: none;
+    border-color: #0078D4;
+    box-shadow: none;
+}
+.bank-add-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    background: transparent;
+    border-color: rgba(127, 127, 127, 0.25);
+}
+
+/* Section cards */
+.sec-card,
+.sec-card *,
+.sec-q,
+.sec-q * {
+    font-family: "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+}
+.t-shell.t-shell .sec-card,
+.t-shell.t-shell .sec-card *:not(.active-badge):not(.q-new-pill):not(.sec-new-count),
+.t-shell.t-shell .sec-q,
+.t-shell.t-shell .sec-q *:not(.q-new-pill) {
+    color: #000000 !important;
+}
+/* Match the form-input text size so cards don't look "thin" next to the fields. */
+.t-shell.t-shell .sec-q { font-size: 17px !important; line-height: 1.4 !important; padding: 12px 14px !important; }
+.t-shell.t-shell .sec-card .sec-head input,
+.t-shell.t-shell .sec-card textarea { font-size: 17px !important; padding: 10px 13px !important; }
+.sec-card {
+    border: 1px solid var(--separator-light); border-radius: 10px;
+    padding: 14px; margin-bottom: 10px;
+    background: transparent; cursor: pointer; position: relative;
+}
+.sec-card.is-active {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(0,120,212,0.12);
+}
+.sec-card .active-badge {
+    display: none; position: absolute; top: -10px; left: 14px;
+    background: var(--bg); color: var(--blue, #0078d4);
+    font-size: 10.5px; font-weight: 600; letter-spacing: 1.2px;
+    padding: 2px 8px; border: 1px solid var(--blue, #0078d4);
+    border-radius: 10px; text-transform: uppercase;
+}
+.sec-card.is-active .active-badge { display: inline-block; }
+.sec-card .sec-head { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.sec-card .sec-head input { flex: 1; }
+.sec-card.flash-added { animation: secFlash 0.85s ease-out; }
+@keyframes secFlash { 0% { background: rgba(34,197,94,0.18); } 100% { background: transparent; } }
+
+/* Question rows within sections */
+.sec-q {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 8px 10px; border: 1px solid var(--separator-light);
+    border-radius: 8px; margin-top: 6px;
+    background: transparent; font-size: 13px;
+}
+.sec-q[draggable="true"] { cursor: grab; }
+.sec-q[draggable="true"]:active { cursor: grabbing; }
+.sec-q.is-dragging { opacity: 0.4; }
+.sec-q.drop-before { border-top: 2px solid var(--blue, #0078d4); }
+.sec-q.drop-after  { border-bottom: 2px solid var(--blue, #0078d4); }
+/* Sub-group heading inside a section card (e.g. Multiple Choice / Matching) */
+.sec-q-subhead {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--text-secondary); padding: 8px 2px 2px 2px; margin-top: 4px;
+    border-bottom: 1px solid var(--separator-light);
+}
+.sec-qgroup {
+    border-top: 1px dashed rgba(127,127,127,0.30);
+    padding-top: 8px;
+    margin-top: 10px;
+}
+.sec-qgroup:first-child {
+    border-top: 0;
+    padding-top: 0;
+    margin-top: 0;
+}
+.sec-qgroup-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px;
+}
+.sec-qgroup-label {
+    font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #0078D4;
+}
+.sec-qgroup-title-input {
+    flex: 1 1 auto; min-width: 120px;
+    background: var(--bg-input, rgba(127,127,127,0.06));
+    border: 1px solid rgba(127,127,127,0.25);
+    border-radius: 4px;
+    padding: 3px 8px; font-size: 12px; color: inherit;
+    font-family: inherit; letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.sec-qgroup-title-input::placeholder { text-transform: none; letter-spacing: 0; color: var(--text-tertiary); font-size: 11.5px; }
+.sec-qgroup-title-select {
+    flex: 1 1 auto; min-width: 160px; max-width: 360px;
+    background: var(--bg-input, rgba(127,127,127,0.06));
+    border: 1px solid rgba(127,127,127,0.25);
+    border-radius: 4px;
+    padding: 3px 8px; font-size: 12px; color: inherit;
+    font-family: inherit; letter-spacing: 0.04em;
+    cursor: pointer;
+}
+.sec-qgroup-title-custom { flex: 1 1 auto; display: inline-flex; min-width: 120px; }
+.sec-qgroup-title-custom input { width: 100%; }
+.sec-qgroup-instr-wrap { margin: 0 0 8px 0; }
+.sec-qgroup-instr {
+    width: 100%;
+    background: var(--bg-input, rgba(127,127,127,0.06));
+    border: 1px solid rgba(127,127,127,0.25);
+    border-radius: 4px;
+    padding: 6px 10px; font-size: 12px; color: inherit;
+    font-family: inherit; line-height: 1.45; resize: vertical;
+}
+.sec-qgroup-instr::placeholder { color: var(--text-tertiary); font-size: 11.5px; }
+.sec-q.is-subitem { margin-left: 22px; border-left: 2px solid rgba(0,120,212,0.35); }
+.sec-q .sub-toggle { color: var(--text-tertiary); }
+.sec-q .sub-toggle.is-on { color: #0078D4; }
+.sec-q.is-new { border-color: rgba(34,197,94,0.45); }
+.sec-q.is-deleted { border-color: rgba(239,68,68,0.30); color: var(--text-secondary); }
+.sec-q.is-deleted s { color: var(--text-secondary); }
+/* Inline action icons inside a question row are plain icons (no box). */
+.sec-q .t-icon-btn,
+.t-shell .sec-q .t-icon-btn {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 22px; height: 22px;
+    margin-left: 4px;
+    color: var(--text-secondary, #605E5C);
+}
+.sec-q .t-icon-btn:hover,
+.t-shell .sec-q .t-icon-btn:hover {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #0078D4;
+}
+.sec-q .t-icon-btn.danger,
+.t-shell .sec-q .t-icon-btn.danger {
+    background: transparent !important;
+    border: none !important;
+    color: #C42B1C;
+}
+.sec-q .t-icon-btn.danger:hover,
+.t-shell .sec-q .t-icon-btn.danger:hover {
+    background: transparent !important;
+    border: none !important;
+    color: #A82218 !important;
+}
+.sec-q .t-icon-btn.danger:hover svg { stroke: #A82218; }
+.drag-handle { display: inline-block; vertical-align: -2px; margin-right: 6px; color: var(--text-tertiary); cursor: grab; }
+
+.q-new-pill {
+    display: inline-block; margin-left: 8px; padding: 0;
+    font-size: 9.5px; font-weight: 600; letter-spacing: 1.2px;
+    color: #16A34A; background: transparent; border: 0; border-radius: 0;
+    vertical-align: middle;
+}
+.sec-new-count { color: #16A34A; font-weight: 600; }
+.t-icon-btn.undo { color: #16A34A; }
+.t-icon-btn.undo:hover { color: #16A34A; border-color: rgba(127,127,127,0.55); background: transparent; }
+</style>
+
+<script>
+let sections = [];
+try { sections = JSON.parse(document.getElementById('sectionsJson').value || '[]'); } catch(e){ sections = []; }
+if (!sections.length) sections = [{ title: 'Section A', instructions: '', question_ids: [], _meta: [] }];
+// Normalize: ensure each section has a `splits` array — indices into question_ids
+// where a NEW Question (5 / 6 / ...) starts. A fresh section always starts at 0.
+// Also normalize `qtitles` (parallel to splits, optional per-Question title)
+// and `subitems` (indices into question_ids that are 3-level sub-items).
+sections.forEach(s => {
+    s.question_ids = s.question_ids || [];
+    s._meta = s._meta || [];
+    if (!Array.isArray(s.splits) || !s.splits.length) s.splits = [0];
+    // Defensive: keep splits sorted, in-range, unique, and starting at 0.
+    s.splits = Array.from(new Set(s.splits.filter(i => Number.isInteger(i) && i >= 0 && i <= s.question_ids.length))).sort((a,b)=>a-b);
+    if (s.splits[0] !== 0) s.splits.unshift(0);
+    // qtitles[gi] = string title for the gi-th Question group (e.g. "SYSTEMS TECHNOLOGIES")
+    if (!Array.isArray(s.qtitles)) s.qtitles = [];
+    while (s.qtitles.length < s.splits.length) s.qtitles.push('');
+    s.qtitles.length = s.splits.length;
+    // qinstructions[gi] = applicable per-Question instruction text (auto-filled
+    // when a preset title is chosen; printed under the QUESTION head).
+    if (!Array.isArray(s.qinstructions)) s.qinstructions = [];
+    while (s.qinstructions.length < s.splits.length) s.qinstructions.push('');
+    s.qinstructions.length = s.splits.length;
+    // subitems = sorted unique array of question_ids indices that are 3-level sub-items.
+    if (!Array.isArray(s.subitems)) s.subitems = [];
+    s.subitems = Array.from(new Set(s.subitems.filter(i => Number.isInteger(i) && i >= 0 && i < s.question_ids.length))).sort((a,b)=>a-b);
+    // First item of any group cannot be a sub-item — strip those.
+    const _splitSet = new Set(s.splits);
+    s.subitems = s.subitems.filter(i => !_splitSet.has(i));
+});
+
+const bankMap = {};
+{% for q in bank %}
+bankMap['{{ q.id }}'] = { marks: {{ q.marks }}, text: {{ (q.question_text|regex_replace('(?i)^\\s*Match the following description with the correct term from the list:\\s*', '')|truncate(80))|tojson }}, raw_text: {{ (q.question_text or '')|tojson }}, type: {{ (q.question_type or '')|tojson }}, topic: {{ (q.topic or '')|tojson }} };
+{% endfor %}
+
+let activeIdx = 0;
+// IDs of questions added during this editing session (cleared on save).
+const newlyAddedIds = new Set();
+
+function normalizeQType(raw) {
+    const t = String(raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+    if (!t) return '';
+    if (t === 'mcq' || t === 'multiple_choice' || t === 'multiplechoice' || t === 'multi_choice') return 'mcq';
+    if (t === 'match_columns' || t === 'matching' || t === 'match') return 'matching';
+    if (t === 'true_false' || t === 'truefalse') return 'true_false';
+    return t;
+}
+function qTypeLabel(t) {
+    t = normalizeQType(t);
+    if (t === 'mcq') return 'MCQ';
+    if (t === 'matching') return 'Matching';
+    if (t === 'true_false') return 'True/False';
+    return t ? t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : '';
+}
+function effectiveQType(rawType, rawText) {
+    const text = String(rawText || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    // Data quality guard: matching-style prompts sometimes arrive mislabeled as MCQ.
+    if (/^match(?:\s+the\s+following)?\b/.test(text)) return 'matching';
+    const t = normalizeQType(rawType);
+    if (t) return t;
+    if (/\bmultiple\s*choice\b|\bmcq\b/.test(text)) return 'mcq';
+    if (/\btrue\s*\/?\s*false\b/.test(text)) return 'true_false';
+    return '';
+}
+
+function render() {
+    const host = document.getElementById('sectionsHost');
+    host.innerHTML = '';
+    // Compute global Question numbers (continuous across all sections / splits).
+    // Each section has at least one group; additional groups are user-inserted "splits".
+    const sectionGroupQns = sections.map(s => {
+        const splits = (s.splits && s.splits.length) ? s.splits : [0];
+        return splits.map(() => 0); // filled below
+    });
+    let _gq = 0;
+    sections.forEach((s, si) => {
+        const splits = (s.splits && s.splits.length) ? s.splits : [0];
+        splits.forEach((_, gi) => { _gq += 1; sectionGroupQns[si][gi] = _gq; });
+    });
+
+    sections.forEach((s, i) => {
+        const card = document.createElement('div');
+        card.className = 'sec-card' + (i === activeIdx ? ' is-active' : '');
+        card.onclick = (e) => {
+            // Don't steal focus / re-render when interacting with form fields or buttons inside the card.
+            if (e.target.closest('input, textarea, select, button, a')) return;
+            if (i === activeIdx) return;
+            activeIdx = i;
+            render();
+            applyBankFilter();
+        };
+        let qsHtml = '';
+        let total = 0;
+        let newCount = 0;
+        const splits = (s.splits && s.splits.length) ? s.splits : [0];
+        const qns = sectionGroupQns[i];
+        const subitemSet = new Set(s.subitems || []);
+        const sectionHasSubitems = (s.subitems && s.subitems.length > 0);
+        // Build one block per group (Question 5, Question 6, ...).
+        splits.forEach((startIdx, gi) => {
+            const endIdx = (gi + 1 < splits.length) ? splits[gi + 1] : (s.question_ids || []).length;
+            const qn = qns[gi];
+            // Compute 2- or 3-level labels in linear order using subitems.
+            // top_k counts top-level items; child_j counts children of the latest top-level.
+            const labels = [];
+            let top_k = 0, child_j = 0;
+            for (let qi = startIdx; qi < endIdx; qi++) {
+                const isChild = (qi !== startIdx) && subitemSet.has(qi);
+                if (isChild) { child_j += 1; labels.push(`${qn}.${top_k}.${child_j}`); }
+                else { top_k += 1; child_j = 0; labels.push(`${qn}.${top_k}`); }
+            }
+            const _mcqRowsBuf = [], _matchRowsBuf = [], _otherRowsBuf = [], _linearRowsBuf = [];
+            for (let qi = startIdx; qi < endIdx; qi++) {
+                const qid = s.question_ids[qi];
+                const m = (s._meta && s._meta[qi]) || bankMap[qid] || { marks: 0, text: qid };
+                total += m.marks || 0;
+                const isNew = newlyAddedIds.has(qid);
+                if (isNew) newCount++;
+                const newPill = isNew ? '<span class="q-new-pill" title="Added in this session — will clear after you save">NEW</span>' : '';
+                const qLabel = labels[qi - startIdx];
+                const isSub = subitemSet.has(qi) && qi !== startIdx;
+                const subClass = isSub ? ' is-subitem' : '';
+                const subBtnClass = isSub ? 'sub-toggle is-on' : 'sub-toggle';
+                const subBtnTitle = isSub ? 'Promote to top-level (e.g. 4.1)' : 'Make this a sub-item (e.g. 4.1.1)';
+                const subBtnDisabled = (qi === startIdx); // first item of a group can't be a sub-item
+                const subBtn = subBtnDisabled
+                    ? ''
+                    : `<button type="button" class="t-icon-btn ${subBtnClass}" title="${subBtnTitle}" onclick="event.stopPropagation(); toggleSubItem(${i},${qi})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></button>`;
+                const marksCell = (m.marks && m.marks > 0)
+                    ? String(m.marks)
+                    : '<span title="Stem / no marks" style="opacity:0.45;">—</span>';
+                const editBtn = `<a class="t-icon-btn" href="/teacher/bank/${encodeURIComponent(qid)}/edit?next=${encodeURIComponent(window.location.pathname + window.location.search + '#qid=' + qid)}" title="Edit this question, then return here" onclick="event.stopPropagation(); try { sessionStorage.setItem('genFocusQid', '${qid.replace(/'/g, "\\'")}'); } catch(_) {}"><img src="{{ url_for('static', filename='images/edit.png') }}" alt="Edit" width="14" height="14"></a>`;
+                const _row = `<div class="sec-q${isNew ? ' is-new' : ''}${subClass}" draggable="true" data-si="${i}" data-qi="${qi}" data-qid="${escapeAttr(qid)}"><span><span class="drag-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg></span>${qLabel} ${escapeHtml(m.text)} ${newPill}</span><span style="display:inline-flex; align-items:center; gap:8px;"><span style="color:var(--text-secondary); font-variant-numeric:tabular-nums;">${marksCell}</span> ${editBtn} ${subBtn} <button type="button" class="t-icon-btn danger" title="Remove" onclick="event.stopPropagation(); removeQ(${i},${qi})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></span></div>`;
+                _linearRowsBuf.push(_row);
+                const _qt = effectiveQType(m.type || m.question_type || '', m.raw_text || m.text || '');
+                if (_qt === 'matching') _matchRowsBuf.push(_row);
+                else if (_qt === 'mcq') _mcqRowsBuf.push(_row);
+                else _otherRowsBuf.push(_row);
+            }
+            let groupBody = '';
+            if (sectionHasSubitems) {
+                // Preserve linear order so parent → child relationships read correctly.
+                groupBody = _linearRowsBuf.length ? _linearRowsBuf.join('') : '<div style="color:var(--text-tertiary); font-size:13px; padding:6px 0;">No questions in Question ' + qn + ' yet — pick one from the bank.</div>';
+            } else {
+                const _typeGroups = [];
+                if (_mcqRowsBuf.length) _typeGroups.push({ label: 'Multiple Choice', rows: _mcqRowsBuf });
+                if (_matchRowsBuf.length) _typeGroups.push({ label: 'Matching', rows: _matchRowsBuf });
+                if (_otherRowsBuf.length) _typeGroups.push({ label: 'Other', rows: _otherRowsBuf });
+                if (_typeGroups.length <= 1) {
+                    groupBody = _typeGroups.length ? _typeGroups[0].rows.join('') : '<div style="color:var(--text-tertiary); font-size:13px; padding:6px 0;">No questions in Question ' + qn + ' yet — pick one from the bank.</div>';
+                } else {
+                    groupBody = _typeGroups.map(g => '<div class="sec-q-subhead">' + g.label + '</div>' + g.rows.join('')).join('');
+                }
+            }
+            const removeGroupBtn = (gi > 0) ? `<button type="button" class="t-icon-btn" title="Merge this Question back into the previous one" onclick="event.stopPropagation(); mergeQuestionGroup(${i}, ${gi})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg></button>` : '';
+            const qtitleVal = (s.qtitles && s.qtitles[gi]) ? s.qtitles[gi] : '';
+            const qinstrVal = (s.qinstructions && s.qinstructions[gi]) ? s.qinstructions[gi] : '';
+            const isCustom = qtitleVal && !QUESTION_TITLE_PRESETS[qtitleVal];
+            const titleSelect = `<select class="sec-qgroup-title-select" onchange="event.stopPropagation(); onQuestionTitleSelect(${i}, ${gi}, this)" onclick="event.stopPropagation()" title="Pick a DBE-standard title and auto-fill its instructions, or choose Custom to type your own.">${buildQuestionTitleOptions(qtitleVal)}</select>`;
+            const customInput = `<span class="sec-qgroup-title-custom" style="display:${isCustom ? 'inline-flex' : 'none'};"><input type="text" class="sec-qgroup-title-input" value="${escapeHtml(qtitleVal)}" placeholder="Custom title (UPPERCASE)" oninput="setQuestionTitle(${i}, ${gi}, this.value)" onclick="event.stopPropagation()"></span>`;
+            const instrBlock = (qinstrVal || '').trim() ? `<div class="sec-qgroup-instr-wrap"><textarea class="sec-qgroup-instr" rows="2" placeholder="Applicable instructions for this Question (printed under the QUESTION head)" oninput="setQuestionInstructions(${i}, ${gi}, this.value)" onclick="event.stopPropagation()">${escapeHtml(qinstrVal)}</textarea></div>` : '';
+            qsHtml += `<div class="sec-qgroup" data-gi="${gi}"><div class="sec-qgroup-head"><span class="sec-qgroup-label">Question ${qn}</span>${titleSelect}${customInput}${removeGroupBtn}</div>${instrBlock}${groupBody}</div>`;
+        });
+        // Tombstone rows for recently-deleted questions in this section.
+        (s._trash || []).forEach((t, ti) => {
+            const txt = ((t.meta && t.meta.text) || 'Question').toString();
+            qsHtml += `<div class="sec-q is-deleted" title="Deleted from this section"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" style="vertical-align:-2px; margin-right:6px; opacity:0.7;"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/></svg><s>${escapeHtml(txt)}</s></span><span style="display:inline-flex; align-items:center; gap:8px;"><span style="color:var(--text-secondary); font-variant-numeric:tabular-nums;">${(t.meta && t.meta.marks) || 0}</span> <button type="button" class="t-icon-btn undo" title="Undo delete" onclick="event.stopPropagation(); restoreDeletedQ(${i},${ti})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg></button></span></div>`;
+        });
+        card.innerHTML = `
+            <span class="active-badge">▶ Active — new questions land here</span>
+            <div class="sec-head">
+                <input style="flex:1; background:var(--bg-input, rgba(127,127,127,0.08)); border:1px solid rgba(127,127,127,0.30); border-radius:6px; padding:8px 12px; color:inherit; font-family:inherit; font-size:13px;" value="${escapeAttr(s.title || '')}" onfocus="this.dataset.oldVal=this.value" onchange="_secFieldChange(${i}, 'title', this)" placeholder="Section title">
+                <span style="color:var(--text-secondary); font-size:12px; white-space:nowrap;">${ (s.question_ids||[]).length } Q · ${total} marks${ newCount ? ' · <span class=\'sec-new-count\'>+' + newCount + ' new</span>' : '' }</span>
+                <button type="button" class="t-icon-btn danger" title="Delete section" onclick="event.stopPropagation(); removeSection(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>
+            </div>
+            <textarea style="background:var(--bg-input, rgba(127,127,127,0.08)); border:1px solid rgba(127,127,127,0.30); border-radius:6px; padding:8px 12px; width:100%; min-height:50px; font-family:inherit; font-size:13px; color:inherit;" placeholder="Section instructions (optional)" onfocus="this.dataset.oldVal=this.value" onchange="_secFieldChange(${i}, 'instructions', this)">${escapeHtml(s.instructions || '')}</textarea>
+            <div style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <button type="button" class="t-thin-btn" onclick="event.stopPropagation(); autoFillSectionInstructions(${i}, true)" title="Detect the question types in this section and insert the matching DBE instructions."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M21 12a9 9 0 1 1-9-9"/><polyline points="21 3 21 9 15 9"/></svg> Auto-detect instructions</button>
+                <button type="button" class="t-thin-btn" onclick="event.stopPropagation(); beginAddQuestion(${i})" title="Pick a question from the bank to add to this section."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Add question</button>
+                <button type="button" class="t-thin-btn" onclick="event.stopPropagation(); startNewQuestion(${i})" title="Start a new numbered Question (e.g. Question 6) within this same section."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><path d="M12 5v14"/><path d="M5 12h14"/></svg> New Question (split)</button>
+                <button type="button" class="t-thin-btn" onclick="event.stopPropagation(); openStemDialog(${i})" title="Add a scenario stem (intro text + optional image, no marks). Follow-up questions can then be marked as sub-items (e.g. 4.1.1, 4.1.2)."><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><rect x="3" y="4" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m21 14-5-5-9 9"/></svg> Add scenario stem</button>
+            </div>
+            <div style="margin-top:8px;">${qsHtml}</div>
+        `;
+        host.appendChild(card);
+    });
+    sync();
+    if (typeof updateHistoryButtons === 'function') updateHistoryButtons();
+}
+
+function sync() { document.getElementById('sectionsJson').value = JSON.stringify(sections.map(s => ({ title: s.title, instructions: s.instructions, question_ids: s.question_ids, splits: (s.splits && s.splits.length) ? s.splits : [0], qtitles: (s.qtitles && s.qtitles.length) ? s.qtitles : [], qinstructions: (s.qinstructions && s.qinstructions.length) ? s.qinstructions : [], subitems: (s.subitems && s.subitems.length) ? s.subitems : [] }))); refreshBankUsedState(); applyBankFilter(); }
+// Inline-onchange helper for section title / instructions: pushes a history
+// entry with the snapshotted old value (recorded on focus) and applies the new.
+function _secFieldChange(si, key, el) {
+    const oldVal = (el.dataset.oldVal != null) ? el.dataset.oldVal : '';
+    const newVal = el.value;
+    if (oldVal !== newVal && sections[si]) {
+        pushHistory({ kind: key === 'title' ? 'sec-title' : 'sec-instr', si, oldVal, newVal });
+    }
+    if (sections[si]) sections[si][key] = newVal;
+    el.dataset.oldVal = newVal;
+    sync();
+}
+function addSection() {
+    const newSec = { title: 'Section ' + String.fromCharCode(65 + sections.length), instructions: '', question_ids: [], _meta: [], splits: [0], qtitles: [''], qinstructions: [''], subitems: [] };
+    sections.push(newSec);
+    activeIdx = sections.length - 1;
+    pushHistory({ kind: 'add-section', i: activeIdx, section: JSON.parse(JSON.stringify(newSec)) });
+    render();
+}
+// Start a new numbered Question (e.g. Question 6) within the same section.
+// Implemented as a "split" marker at the end of the current question_ids list,
+// so the next added bank pick begins a fresh sub-numbering (6.1, 6.2, ...).
+function startNewQuestion(si) {
+    if (!sections[si]) return;
+    sections[si].question_ids = sections[si].question_ids || [];
+    sections[si].splits = sections[si].splits && sections[si].splits.length ? sections[si].splits : [0];
+    sections[si].qtitles = sections[si].qtitles || [];
+    const at = sections[si].question_ids.length;
+    if (sections[si].splits.indexOf(at) === -1) {
+        sections[si].splits.push(at);
+        sections[si].splits.sort((a,b)=>a-b);
+        // Keep qtitles parallel to splits.
+        const gi = sections[si].splits.indexOf(at);
+        sections[si].qtitles.splice(gi, 0, '');
+        sections[si].qinstructions = sections[si].qinstructions || [];
+        sections[si].qinstructions.splice(gi, 0, '');
+        // The item at `at` (when added next) is a group head and cannot be a subitem.
+        sections[si].subitems = (sections[si].subitems || []).filter(i => i !== at);
+        pushHistory({ kind: 'add-split', si, at });
+    }
+    activeIdx = si;
+    render();
+    flashSectionAdded(si);
+    showToast('New Question started — pick the next bank items to fill it.');
+}
+window.startNewQuestion = startNewQuestion;
+// Merge a question group back into the previous one (drops the split marker).
+function mergeQuestionGroup(si, gi) {
+    if (!sections[si] || !sections[si].splits || gi <= 0 || gi >= sections[si].splits.length) return;
+    const removed = sections[si].splits.splice(gi, 1)[0];
+    if (Array.isArray(sections[si].qtitles)) sections[si].qtitles.splice(gi, 1);
+    if (Array.isArray(sections[si].qinstructions)) sections[si].qinstructions.splice(gi, 1);
+    pushHistory({ kind: 'remove-split', si, at: removed });
+    render();
+    showToast('Question merged with the previous one.');
+}
+window.mergeQuestionGroup = mergeQuestionGroup;
+// Auto-split a section into separate Questions wherever the question type transitions
+// between Multiple Choice and Matching. Lets the user make MCQ = Question N and
+// Matching = Question N+1 (or vice versa, in whichever order they currently appear)
+// with a single click. Other question types ("other") are ignored as transition points.
+function autoSplitByType(si) {
+    const s = sections[si];
+    if (!s) return;
+    const ids = s.question_ids || [];
+    if (ids.length < 2) {
+        showToast('Add at least two questions before splitting by type.');
+        return;
+    }
+    s.splits = (s.splits && s.splits.length) ? s.splits.slice() : [0];
+    const types = ids.map((qid, qi) => {
+        const m = (s._meta && s._meta[qi]) || bankMap[qid] || {};
+        return effectiveQType(m.type || m.question_type || '', m.raw_text || m.text || '');
+    });
+    let added = 0;
+    for (let k = 1; k < types.length; k++) {
+        const prev = types[k - 1], cur = types[k];
+        const isMcqMatchTransition = (prev === 'mcq' && cur === 'matching') || (prev === 'matching' && cur === 'mcq');
+        if (isMcqMatchTransition && s.splits.indexOf(k) === -1) {
+            s.splits.push(k);
+            added++;
+        }
+    }
+    if (added > 0) {
+        s.splits.sort((a, b) => a - b);
+        pushHistory({ kind: 'auto-split', si, splits: s.splits.slice() });
+        render();
+        flashSectionAdded(si);
+        showToast(added === 1 ? 'Section split: MCQ and Matching are now separate Questions.' : `Section split into ${s.splits.length} Questions by type.`);
+    } else {
+        const hasMcq = types.indexOf('mcq') !== -1;
+        const hasMatch = types.indexOf('matching') !== -1;
+        if (!hasMcq || !hasMatch) {
+            showToast('This section needs both Multiple Choice and Matching questions to auto-split.');
+        } else {
+            showToast('Already split by type — no changes.');
+        }
+    }
+}
+window.autoSplitByType = autoSplitByType;
+// Toggle whether the qi-th item in section si is a 3-level sub-item.
+// Sub-items render as `{qn}.{parent_top}.{child_seq}` (e.g. 4.1.1, 4.1.2).
+// The first item of any group cannot be a sub-item.
+function toggleSubItem(si, qi) {
+    const s = sections[si]; if (!s) return;
+    s.subitems = s.subitems || [];
+    const splitSet = new Set(s.splits || [0]);
+    if (splitSet.has(qi)) {
+        showToast('The first item of a Question can\u2019t be a sub-item.');
+        return;
+    }
+    const idx = s.subitems.indexOf(qi);
+    if (idx === -1) {
+        s.subitems.push(qi);
+        s.subitems.sort((a,b)=>a-b);
+        pushHistory({ kind: 'add-subitem', si, qi });
+    } else {
+        s.subitems.splice(idx, 1);
+        pushHistory({ kind: 'remove-subitem', si, qi });
+    }
+    render();
+}
+window.toggleSubItem = toggleSubItem;
+// =====================================================================
+// Per-Question title presets (DBE-standard) and applicable instructions.
+// Picking a title from the dropdown sets sections[si].qtitles[gi] AND
+// auto-fills sections[si].qinstructions[gi] with the matching instruction
+// block. Custom titles are still allowed via the "✎ Custom title…" option.
+// =====================================================================
+const QUESTION_TITLE_PRESETS = {
+    // ---- Paper 2 (Theory) – Section A ----
+    'MULTIPLE-CHOICE QUESTIONS': {
+        group: 'Section A — Objective items',
+        instructions: 'Various options are provided as possible answers to the following questions. Choose the answer and write only the letter (A–D) next to the question number in the ANSWER BOOK.'
+    },
+    'MATCHING ITEMS': {
+        group: 'Section A — Objective items',
+        instructions: 'Choose a term/concept from COLUMN B that matches a description in COLUMN A. Write only the letter (A–T) next to the question number in the ANSWER BOOK.'
+    },
+    'TRUE/FALSE ITEMS': {
+        group: 'Section A — Objective items',
+        instructions: 'Indicate whether the following statements are TRUE or FALSE. Write \u2018true\u2019 or \u2018false\u2019 next to the question number in the ANSWER BOOK. Correct the statement if it is FALSE by changing the underlined word(s) to make the statement TRUE. (Do NOT simply use the word \u2018NOT\u2019 to change the statement.)'
+    },
+    // ---- Paper 2 (Theory) – Section B ----
+    'SYSTEMS TECHNOLOGIES': { group: 'Section B — Theory topics', instructions: '' },
+    'INTERNET AND NETWORK TECHNOLOGIES': { group: 'Section B — Theory topics', instructions: '' },
+    'INFORMATION MANAGEMENT': { group: 'Section B — Theory topics', instructions: '' },
+    'SOCIAL IMPLICATIONS': { group: 'Section B — Theory topics', instructions: '' },
+    'SOLUTION DEVELOPMENT': { group: 'Section B — Theory topics', instructions: '' },
+    // ---- Paper 2 (Theory) – Section C ----
+    'INTEGRATED SCENARIO': { group: 'Section C — Integrated', instructions: '' },
+    // ---- Paper 1 (Practical) ----
+    'WORD PROCESSING': { group: 'Paper 1 — Practical', instructions: '' },
+    'SPREADSHEET': { group: 'Paper 1 — Practical', instructions: '' },
+    'DATABASE': { group: 'Paper 1 — Practical', instructions: '' },
+    'WEB DESIGN (HTML)': { group: 'Paper 1 — Practical', instructions: '' },
+    'GENERAL': { group: 'Paper 1 — Practical', instructions: '' },
+};
+function buildQuestionTitleOptions(currentValue) {
+    const groups = {};
+    Object.entries(QUESTION_TITLE_PRESETS).forEach(([title, meta]) => {
+        const g = meta.group || 'Other';
+        (groups[g] = groups[g] || []).push(title);
+    });
+    const isCustom = currentValue && !QUESTION_TITLE_PRESETS[currentValue];
+    let html = '<option value="">— No title —</option>';
+    Object.keys(groups).forEach(g => {
+        html += `<optgroup label="${escapeHtml(g)}">`;
+        groups[g].forEach(t => {
+            const sel = (t === currentValue) ? ' selected' : '';
+            html += `<option value="${escapeHtml(t)}"${sel}>${escapeHtml(t)}</option>`;
+        });
+        html += '</optgroup>';
+    });
+    html += `<option value="__custom__"${isCustom ? ' selected' : ''}>\u270E Custom title\u2026</option>`;
+    return html;
+}
+// Update a per-Question title (e.g. "SYSTEMS TECHNOLOGIES").
+function setQuestionTitle(si, gi, value) {
+    const s = sections[si]; if (!s) return;
+    s.qtitles = s.qtitles || [];
+    s.qinstructions = s.qinstructions || [];
+    while (s.qtitles.length <= gi) s.qtitles.push('');
+    while (s.qinstructions.length <= gi) s.qinstructions.push('');
+    s.qtitles[gi] = (value || '').toString();
+    sync();
+}
+window.setQuestionTitle = setQuestionTitle;
+// Handle dropdown change: apply preset title + instructions, or switch to
+// custom-text mode for the inline input.
+function onQuestionTitleSelect(si, gi, selectEl) {
+    const v = selectEl.value;
+    const card = selectEl.closest('.sec-qgroup-head');
+    const customWrap = card && card.querySelector('.sec-qgroup-title-custom');
+    if (v === '__custom__') {
+        if (customWrap) {
+            customWrap.style.display = '';
+            const input = customWrap.querySelector('input');
+            if (input) { input.focus(); input.select(); }
+        }
+        return;
+    }
+    if (customWrap) customWrap.style.display = 'none';
+    const s = sections[si]; if (!s) return;
+    s.qtitles = s.qtitles || [];
+    s.qinstructions = s.qinstructions || [];
+    while (s.qtitles.length <= gi) s.qtitles.push('');
+    while (s.qinstructions.length <= gi) s.qinstructions.push('');
+    s.qtitles[gi] = v;
+    const preset = QUESTION_TITLE_PRESETS[v];
+    if (preset && (preset.instructions || '').trim()) {
+        const existing = (s.qinstructions[gi] || '').trim();
+        if (!existing || existing.startsWith('[Auto] ') || isPresetInstruction(existing)) {
+            s.qinstructions[gi] = preset.instructions;
+        }
+    } else if (v === '') {
+        // Cleared title — drop auto-filled instructions if present.
+        const existing = (s.qinstructions[gi] || '').trim();
+        if (isPresetInstruction(existing)) s.qinstructions[gi] = '';
+    }
+    pushHistory({ kind: 'set-qtitle', si, gi, title: v });
+    render();
+}
+window.onQuestionTitleSelect = onQuestionTitleSelect;
+// Set per-Question instructions directly (textarea oninput).
+function setQuestionInstructions(si, gi, value) {
+    const s = sections[si]; if (!s) return;
+    s.qinstructions = s.qinstructions || [];
+    while (s.qinstructions.length <= gi) s.qinstructions.push('');
+    s.qinstructions[gi] = (value || '').toString();
+    sync();
+}
+window.setQuestionInstructions = setQuestionInstructions;
+// True if the given text matches one of the preset instruction strings.
+function isPresetInstruction(text) {
+    const t = (text || '').trim();
+    if (!t) return false;
+    return Object.values(QUESTION_TITLE_PRESETS).some(p => (p.instructions || '').trim() === t);
+}
+// =====================================================================
+// Add scenario stem — inline modal that uploads a 0-mark stem (text +
+// optional image) directly to the server, then injects it into the chosen
+// section as the next item. Follow-up questions can then be marked as
+// sub-items (4.1.1, 4.1.2, ...) via the existing toggle.
+// =====================================================================
+function openStemDialog(si) {
+    if (!sections[si]) return;
+    activeIdx = si;
+    let ov = document.getElementById('stemOverlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'stemOverlay';
+        ov.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,.55); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; z-index:10000;';
+        ov.innerHTML = `
+            <div role="dialog" aria-modal="true" style="background:#fff; color:#0f172a; width:min(560px, calc(100% - 32px)); border-radius:14px; box-shadow:0 24px 60px rgba(0,0,0,.35); overflow:hidden; border:1px solid #e5e7eb; position:relative;">
+                <button type="button" id="stemClose" aria-label="Close" style="position:absolute; top:10px; right:10px; width:30px; height:30px; border:none; background:transparent; border-radius:6px; cursor:pointer; color:#64748b; display:inline-flex; align-items:center; justify-content:center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+                <div style="padding:22px 26px 6px;">
+                    <h4 style="margin:0 0 6px; font-size:17px; font-weight:700; color:#0f172a;">Add scenario stem</h4>
+                    <p style="margin:0; font-size:13px; line-height:1.45; color:#475569;">Stem prints with no marks badge. Follow-up questions added afterwards can be marked as sub-items (e.g. 4.1.1, 4.1.2) using the \u21B0 button next to each row.</p>
+                </div>
+                <div style="padding:14px 26px 4px; display:flex; flex-direction:column; gap:14px;">
+                    <label style="display:block; font-size:12px; font-weight:600; color:#334155; letter-spacing:.01em;">Stem text
+                        <textarea id="stemText" rows="3" style="display:block; width:100%; box-sizing:border-box; margin-top:6px; padding:10px 12px; background:#fff; color:#0f172a; border:1px solid #cbd5e1; border-radius:8px; font-family:inherit; font-size:14px; line-height:1.45; resize:vertical; outline:none; box-shadow:inset 0 1px 2px rgba(15,23,42,.04);" placeholder="e.g. Study the advertisement below and answer the questions that follow."></textarea>
+                    </label>
+                    <label style="display:block; font-size:12px; font-weight:600; color:#334155; letter-spacing:.01em;">Image (optional)
+                        <div id="stemDrop" style="margin-top:6px; display:flex; align-items:center; gap:12px; padding:10px 12px; background:#f8fafc; color:#0f172a; border:1.5px dashed #cbd5e1; border-radius:8px;">
+                            <button type="button" id="stemPick" style="background:#fff; color:#0f172a; border:1px solid #cbd5e1; border-radius:6px; padding:6px 12px; font-size:13px; font-weight:500; cursor:pointer;">Choose image\u2026</button>
+                            <span id="stemFileName" style="font-size:13px; color:#64748b; font-weight:400;">No file selected</span>
+                            <button type="button" id="stemClear" style="margin-left:auto; display:none; background:transparent; color:#dc2626; border:none; cursor:pointer; font-size:12.5px; font-weight:500;">Remove</button>
+                            <input id="stemImage" type="file" accept="image/*" style="display:none;">
+                        </div>
+                    </label>
+                    <div id="stemError" style="display:none; color:#dc2626; background:#fef2f2; border:1px solid #fecaca; padding:8px 10px; border-radius:6px; font-size:12.5px;"></div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px; padding:18px 22px; margin-top:8px; background:#f8fafc; border-top:1px solid #e5e7eb;">
+                    <button type="button" id="stemCancel" style="background:#fff; color:#0f172a; border:1px solid #cbd5e1; border-radius:8px; padding:8px 18px; font-size:14px; font-weight:500; cursor:pointer;">Cancel</button>
+                    <button type="button" id="stemSubmit" style="background:#0078d4; color:#fff; border:1px solid #0078d4; border-radius:8px; padding:8px 18px; font-size:14px; font-weight:600; cursor:pointer; display:inline-flex; gap:8px; align-items:center; box-shadow:0 1px 2px rgba(0,120,212,.25);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Add stem</button>
+                </div>
+            </div>`;
+        document.body.appendChild(ov);
+        ov.addEventListener('click', e => { if (e.target === ov) ov.style.display = 'none'; });
+        document.addEventListener('keydown', e => {
+            if (ov.style.display !== 'flex') return;
+            if (e.key === 'Escape') ov.style.display = 'none';
+        });
+    }
+    const ta = ov.querySelector('#stemText');
+    const file = ov.querySelector('#stemImage');
+    const err = ov.querySelector('#stemError');
+    const submit = ov.querySelector('#stemSubmit');
+    const cancel = ov.querySelector('#stemCancel');
+    const closeX = ov.querySelector('#stemClose');
+    const pick = ov.querySelector('#stemPick');
+    const clearBtn = ov.querySelector('#stemClear');
+    const fileName = ov.querySelector('#stemFileName');
+    ta.value = '';
+    file.value = '';
+    err.style.display = 'none';
+    err.textContent = '';
+    fileName.textContent = 'No file selected';
+    fileName.style.color = '#64748b';
+    clearBtn.style.display = 'none';
+    // Re-bind submit/cancel/close/pick to current si.
+    const newSubmit = submit.cloneNode(true);
+    submit.parentNode.replaceChild(newSubmit, submit);
+    const newCancel = cancel.cloneNode(true);
+    cancel.parentNode.replaceChild(newCancel, cancel);
+    const newClose = closeX.cloneNode(true);
+    closeX.parentNode.replaceChild(newClose, closeX);
+    const newPick = pick.cloneNode(true);
+    pick.parentNode.replaceChild(newPick, pick);
+    const newClear = clearBtn.cloneNode(true);
+    clearBtn.parentNode.replaceChild(newClear, clearBtn);
+    const closeModal = () => { ov.style.display = 'none'; };
+    newCancel.addEventListener('click', closeModal);
+    newClose.addEventListener('click', closeModal);
+    newPick.addEventListener('click', () => file.click());
+    file.onchange = () => {
+        if (file.files && file.files[0]) {
+            fileName.textContent = file.files[0].name;
+            fileName.style.color = '#0f172a';
+            newClear.style.display = 'inline-flex';
+        } else {
+            fileName.textContent = 'No file selected';
+            fileName.style.color = '#64748b';
+            newClear.style.display = 'none';
+        }
+    };
+    newClear.addEventListener('click', () => { file.value = ''; file.onchange(); });
+    newSubmit.addEventListener('click', async () => {
+        const text = (ta.value || '').trim();
+        if (!text) {
+            err.textContent = 'Please enter the stem text.';
+            err.style.display = 'block';
+            ta.focus();
+            return;
+        }
+        newSubmit.disabled = true;
+        newSubmit.style.opacity = '0.6';
+        err.style.display = 'none';
+        try {
+            const fd = new FormData();
+            fd.append('text', text);
+            if (file.files && file.files[0]) fd.append('image', file.files[0]);
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMeta) fd.append('csrf_token', csrfMeta.content);
+            const resp = await fetch(window.addStemUrl, { method: 'POST', body: fd, credentials: 'same-origin' });
+            if (!resp.ok) {
+                let msg = 'Could not add stem.';
+                try { const j = await resp.json(); if (j && j.error) msg = j.error; } catch(e){}
+                err.textContent = msg;
+                err.style.display = 'block';
+                return;
+            }
+            const data = await resp.json();
+            // Inject into bankMap so render() can resolve text/marks immediately.
+            bankMap[data.id] = {
+                marks: 0,
+                text: (data.text || 'Scenario stem').slice(0, 80),
+                raw_text: data.text || '',
+                type: 'stem',
+                topic: 'Stem',
+            };
+            const s = sections[si];
+            s.question_ids = s.question_ids || [];
+            s._meta = s._meta || [];
+            s.subitems = Array.isArray(s.subitems) ? s.subitems : [];
+            s.splits = (Array.isArray(s.splits) && s.splits.length) ? s.splits : [0];
+            // Insert the new stem at the START of the current (last) Question
+            // group so it becomes the parent. Existing items in that group
+            // become its sub-items (e.g. 4.10.1, 4.10.2) and keep their marks.
+            const insertPos = s.splits[s.splits.length - 1] || 0;
+            const tailLen = s.question_ids.length - insertPos;
+            // Shift existing subitem indices that are >= insertPos by +1.
+            s.subitems = s.subitems.map(i => (i >= insertPos ? i + 1 : i));
+            s.question_ids.splice(insertPos, 0, data.id);
+            s._meta.splice(insertPos, 0, { marks: 0, text: bankMap[data.id].text, type: 'stem', topic: 'Stem' });
+            // Mark every item that follows the stem in this group as a sub-item.
+            const _newSubs = [];
+            for (let _k = 1; _k <= tailLen; _k++) _newSubs.push(insertPos + _k);
+            s.subitems = Array.from(new Set([...s.subitems, ..._newSubs])).sort((a, b) => a - b);
+            // Defensive: the first item of any split-group cannot be a sub-item.
+            const _splitSet = new Set(s.splits);
+            s.subitems = s.subitems.filter(i => !_splitSet.has(i));
+            newlyAddedIds.add(data.id);
+            pushHistory({ kind: 'add-q', si, qi: insertPos, qid: data.id, meta: s._meta[insertPos], wasNew: true });
+            render();
+            flashSectionAdded(si);
+            ov.style.display = 'none';
+            showToast('Scenario stem added \u2014 the questions in this group are now sub-items beneath it.');
+        } catch (e) {
+            err.textContent = (e && e.message) ? e.message : 'Network error.';
+            err.style.display = 'block';
+        } finally {
+            newSubmit.disabled = false;
+            newSubmit.style.opacity = '1';
+        }
+    });
+    ov.style.display = 'flex';
+    setTimeout(() => ta.focus(), 30);
+}
+window.openStemDialog = openStemDialog;
+function removeSection(i) {
+    const s = sections[i] || {};
+    const n = (s.question_ids || []).length;
+    const detail = '"' + (s.title || 'Untitled') + '"' + (n ? ' and its ' + n + ' question(s)' : '');
+    confirmDialog({
+        title: 'Delete section?',
+        body: 'You are about to delete the section ' + detail + '. You can undo this immediately afterwards.',
+        confirmText: 'Delete section',
+        onConfirm: () => {
+            const removed = JSON.parse(JSON.stringify(s));
+            sections.splice(i,1);
+            if (!sections.length) sections=[{title:'Section A',instructions:'',question_ids:[],_meta:[]}];
+            activeIdx = Math.min(activeIdx, sections.length-1);
+            pushHistory({ kind: 'remove-section', i, section: removed });
+            render();
+            showToast('Section deleted — Undo (Ctrl+Z) to restore.');
+        }
+    });
+}
+function addQuestionToActive(qid, marks, text) {
+    if (!sections[activeIdx]) activeIdx = 0;
+    sections[activeIdx].question_ids = sections[activeIdx].question_ids || [];
+    sections[activeIdx]._meta = sections[activeIdx]._meta || [];
+    // Block duplicates anywhere in the paper.
+    const existingIdx = sections.findIndex(s => (s.question_ids || []).includes(qid));
+    if (existingIdx !== -1) {
+        const where = sections[existingIdx].title || ('Section ' + (existingIdx + 1));
+        flashBankItem(qid, false);
+        showToast('Already in ' + where);
+        return;
+    }
+    sections[activeIdx].question_ids.push(qid);
+    const bm = bankMap[qid] || {};
+    const meta = { marks, text, type: bm.type || '', topic: bm.topic || '' };
+    sections[activeIdx]._meta.push(meta);
+    newlyAddedIds.add(qid);
+    pushHistory({ kind: 'add-q', si: activeIdx, qi: sections[activeIdx].question_ids.length - 1, qid, meta, wasNew: true });
+    // Instructions are no longer auto-populated — the teacher adds them manually
+    // via the "Auto-detect" buttons or by typing directly into the textareas.
+    render();
+    flashBankItem(qid, true);
+    flashSectionAdded(activeIdx);
+    showToast('Added to “' + (sections[activeIdx].title || 'section') + '”');
+}
+
+function beginAddQuestion(si) {
+    if (typeof si === 'number' && sections[si]) {
+        if (activeIdx !== si) {
+            activeIdx = si;
+            render();
+            applyBankFilter();
+        }
+    }
+    flashSectionAdded(activeIdx);
+    const filter = document.getElementById('bankFilter');
+    const scroller = document.querySelector('.gen-split-left');
+    if (filter && scroller) {
+        try {
+            const top = filter.getBoundingClientRect().top
+                      - scroller.getBoundingClientRect().top
+                      + scroller.scrollTop - 24;
+            scroller.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+        } catch (e) {}
+        setTimeout(() => { try { filter.focus(); } catch (e) {} }, 280);
+    }
+    const title = (sections[activeIdx] && sections[activeIdx].title) || ('Section ' + (activeIdx + 1));
+    showToast('Pick a question below — it will land in “' + title + '”.');
+}
+window.beginAddQuestion = beginAddQuestion;
+
+function flashBankItem(qid, success) {
+    const row = document.querySelector('.bank-item[data-id="' + qid + '"]');
+    if (!row) return;
+    row.classList.remove('flash-added', 'flash-dup');
+    // Force reflow so the animation re-triggers on rapid repeats.
+    void row.offsetWidth;
+    row.classList.add(success ? 'flash-added' : 'flash-dup');
+    setTimeout(() => row.classList.remove('flash-added', 'flash-dup'), 900);
+}
+
+function flashSectionAdded(i) {
+    const card = document.querySelectorAll('.sec-card')[i];
+    if (!card) return;
+    card.classList.remove('flash-added');
+    void card.offsetWidth;
+    card.classList.add('flash-added');
+    setTimeout(() => card.classList.remove('flash-added'), 900);
+}
+
+function refreshBankUsedState() {
+    const used = new Set();
+    sections.forEach(s => (s.question_ids || []).forEach(id => used.add(id)));
+    document.querySelectorAll('.bank-item').forEach(row => {
+        const id = row.dataset.id;
+        const isUsed = used.has(id);
+        row.classList.toggle('is-used', isUsed);
+        const btn = row.querySelector('.bank-add-btn');
+        if (btn) {
+            btn.disabled = isUsed;
+            btn.title = isUsed ? 'Already in this paper' : 'Add to active section';
+        }
+        let badge = row.querySelector('.used-badge');
+        if (isUsed && !badge) {
+            badge = document.createElement('span');
+            badge.className = 'used-badge';
+            badge.textContent = 'Added';
+            row.querySelector('div').appendChild(badge);
+        } else if (!isUsed && badge) {
+            badge.remove();
+        }
+    });
+}
+// Unified undo/redo history. Each entry is the *forward* action; we know how
+// to invert each kind. New actions truncate any pending redo branch.
+let history = [];
+let historyPtr = -1; // index of last applied action; -1 == empty
+function pushHistory(action) {
+    history = history.slice(0, historyPtr + 1);
+    history.push(action);
+    historyPtr = history.length - 1;
+    updateHistoryButtons();
+}
+function updateHistoryButtons() {
+    const canUndo = historyPtr >= 0;
+    const canRedo = historyPtr < history.length - 1;
+    const u = document.getElementById('genUndoBtn');
+    const r = document.getElementById('genRedoBtn');
+    if (u) u.disabled = !canUndo;
+    if (r) r.disabled = !canRedo;
+}
+function _applyInverse(a) {
+    if (a.kind === 'add-q') {
+        // Undo of add = remove from current position
+        if (sections[a.si] && sections[a.si].question_ids) {
+            const idx = sections[a.si].question_ids.indexOf(a.qid);
+            if (idx !== -1) {
+                sections[a.si].question_ids.splice(idx, 1);
+                if (sections[a.si]._meta) sections[a.si]._meta.splice(idx, 1);
+            }
+        }
+        if (a.wasNew) newlyAddedIds.delete(a.qid);
+    } else if (a.kind === 'remove-q') {
+        if (!sections[a.si]) return;
+        sections[a.si].question_ids = sections[a.si].question_ids || [];
+        sections[a.si]._meta = sections[a.si]._meta || [];
+        const at = Math.min(a.qi, sections[a.si].question_ids.length);
+        sections[a.si].question_ids.splice(at, 0, a.qid);
+        sections[a.si]._meta.splice(at, 0, a.meta);
+        if (a.wasNew) newlyAddedIds.add(a.qid);
+        // Drop matching tombstone if any.
+        if (sections[a.si]._trash) {
+            const ti = sections[a.si]._trash.findIndex(t => t.qid === a.qid);
+            if (ti !== -1) sections[a.si]._trash.splice(ti, 1);
+        }
+    } else if (a.kind === 'remove-section') {
+        sections.splice(Math.min(a.i, sections.length), 0, JSON.parse(JSON.stringify(a.section)));
+        activeIdx = a.i;
+    } else if (a.kind === 'add-section') {
+        sections.splice(a.i, 1);
+        if (!sections.length) sections = [{title:'Section A',instructions:'',question_ids:[],_meta:[]}];
+        activeIdx = Math.min(activeIdx, sections.length - 1);
+    } else if (a.kind === 'field') {
+        _setField(a.selector, a.oldVal);
+    } else if (a.kind === 'sec-title') {
+        if (sections[a.si]) sections[a.si].title = a.oldVal;
+    } else if (a.kind === 'sec-instr') {
+        if (sections[a.si]) sections[a.si].instructions = a.oldVal;
+    }
+}
+function _applyForward(a) {
+    if (a.kind === 'add-q') {
+        if (!sections[a.si]) return;
+        sections[a.si].question_ids = sections[a.si].question_ids || [];
+        sections[a.si]._meta = sections[a.si]._meta || [];
+        const at = Math.min(a.qi, sections[a.si].question_ids.length);
+        sections[a.si].question_ids.splice(at, 0, a.qid);
+        sections[a.si]._meta.splice(at, 0, a.meta);
+        if (a.wasNew) newlyAddedIds.add(a.qid);
+    } else if (a.kind === 'remove-q') {
+        if (!sections[a.si] || !sections[a.si].question_ids) return;
+        const idx = sections[a.si].question_ids.indexOf(a.qid);
+        if (idx !== -1) {
+            sections[a.si].question_ids.splice(idx, 1);
+            if (sections[a.si]._meta) sections[a.si]._meta.splice(idx, 1);
+        }
+        newlyAddedIds.delete(a.qid);
+    } else if (a.kind === 'add-section') {
+        sections.splice(a.i, 0, JSON.parse(JSON.stringify(a.section)));
+        activeIdx = a.i;
+    } else if (a.kind === 'remove-section') {
+        sections.splice(a.i, 1);
+        if (!sections.length) sections = [{title:'Section A',instructions:'',question_ids:[],_meta:[]}];
+        activeIdx = Math.min(activeIdx, sections.length - 1);
+    } else if (a.kind === 'field') {
+        // Restore an arbitrary form field to its new value (forward) / old value (inverse handled below).
+        _setField(a.selector, a.newVal);
+    } else if (a.kind === 'sec-title') {
+        if (sections[a.si]) sections[a.si].title = a.newVal;
+    } else if (a.kind === 'sec-instr') {
+        if (sections[a.si]) sections[a.si].instructions = a.newVal;
+    }
+}
+function historyUndo() {
+    if (historyPtr < 0) return;
+    const a = history[historyPtr];
+    _applyInverse(a);
+    historyPtr--;
+    render();
+    updateHistoryButtons();
+    showToast('Undid: ' + _describeAction(a));
+}
+function historyRedo() {
+    if (historyPtr >= history.length - 1) return;
+    historyPtr++;
+    const a = history[historyPtr];
+    _applyForward(a);
+    render();
+    updateHistoryButtons();
+    showToast('Redid: ' + _describeAction(a));
+}
+function _describeAction(a) {
+    if (a.kind === 'add-q')         return 'add question';
+    if (a.kind === 'remove-q')      return 'remove question';
+    if (a.kind === 'add-section')   return 'add section';
+    if (a.kind === 'remove-section')return 'remove section';
+    if (a.kind === 'field')         return 'edit ' + (a.label || 'field');
+    if (a.kind === 'sec-title')     return 'rename section';
+    if (a.kind === 'sec-instr')     return 'edit section instructions';
+    return 'change';
+}
+// Locate a form field by stable selector and write its value, dispatching
+// input/change so listeners (autosave, preview) react.
+function _emitFieldEvents(el) {
+    if (!el) return;
+    el.dispatchEvent(new Event('input',  { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    if (typeof window.savePaperSoon === 'function') {
+        window.savePaperSoon(0);
+    }
+}
+function _setField(selector, value) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    el.value = value == null ? '' : value;
+    _emitFieldEvents(el);
+}
+// Build a stable selector for a form field. Prefers id, then name, then index.
+function _fieldSelector(el) {
+    if (el.id) return '#' + CSS.escape(el.id);
+    if (el.name) return '[name="' + CSS.escape(el.name) + '"]';
+    return null;
+}
+function _fieldLabel(el) {
+    // Try to find an associated <label> in the same .t-field block.
+    const wrap = el.closest('.t-field, .form-row, label');
+    if (wrap) {
+        const lab = wrap.querySelector('label');
+        if (lab && lab.textContent) return lab.textContent.trim();
+    }
+    return el.name || el.id || 'field';
+}
+// Capture form-field changes for the unified history. We snapshot on focus
+// and push a single 'field' action when the value differs on blur/change.
+(function attachFieldHistory(){
+    const form = document.getElementById('paperForm');
+    if (!form) return;
+    const snap = new WeakMap();
+    function eligible(el) {
+        if (!el) return false;
+        if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button' || el.type === 'file') return false;
+        // Skip inputs that live inside the dynamic sections host — those are
+        // handled by sec-title / sec-instr capture in the render() output.
+        if (el.closest('#sectionsHost')) return false;
+        return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT';
+    }
+    form.addEventListener('focusin', (e) => {
+        if (!eligible(e.target)) return;
+        snap.set(e.target, e.target.value);
+    });
+    form.addEventListener('change', (e) => {
+        const el = e.target;
+        if (!eligible(el)) return;
+        const oldVal = snap.has(el) ? snap.get(el) : null;
+        const newVal = el.value;
+        if (oldVal === newVal) return;
+        const sel = _fieldSelector(el);
+        if (!sel) return;
+        pushHistory({ kind: 'field', selector: sel, oldVal, newVal, label: _fieldLabel(el) });
+        snap.set(el, newVal);
+    });
+})();
+document.addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    const tag = (e.target && e.target.tagName) || '';
+    // Allow native undo inside text fields.
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+    if (e.key === 'z' || e.key === 'Z') {
+        if (e.shiftKey) { e.preventDefault(); historyRedo(); }
+        else            { e.preventDefault(); historyUndo(); }
+    } else if (e.key === 'y' || e.key === 'Y') {
+        e.preventDefault(); historyRedo();
+    }
+});
+// Backwards compat shim — older code paths still reference undoStack.
+let undoStack = [];
+function removeQ(si, qi) {
+    const meta = (sections[si]._meta && sections[si]._meta[qi]) || { marks: 0, text: '' };
+    const label = (meta.text || 'this question').toString().slice(0, 140);
+    confirmDialog({
+        title: 'Delete this question?',
+        body: label,
+        confirmText: 'Delete question',
+        onConfirm: () => {
+            const qid = sections[si].question_ids[qi];
+            sections[si].question_ids.splice(qi, 1);
+            if (sections[si]._meta) sections[si]._meta.splice(qi, 1);
+            // Adjust split markers: any marker > qi shifts down by 1; markers
+            // pointing to qi (now removed) collapse down too. Always keep [0].
+            if (Array.isArray(sections[si].splits)) {
+                sections[si].splits = sections[si].splits.map(s => s > qi ? s - 1 : s);
+                sections[si].splits = Array.from(new Set(sections[si].splits.filter(s => s >= 0 && s <= sections[si].question_ids.length))).sort((a,b)=>a-b);
+                if (sections[si].splits[0] !== 0) sections[si].splits.unshift(0);
+            }
+            // Adjust subitems indices the same way.
+            if (Array.isArray(sections[si].subitems)) {
+                sections[si].subitems = sections[si].subitems
+                    .filter(s => s !== qi)
+                    .map(s => s > qi ? s - 1 : s);
+                const _splitSet = new Set(sections[si].splits || [0]);
+                sections[si].subitems = sections[si].subitems.filter(s => !_splitSet.has(s) && s < sections[si].question_ids.length);
+            }
+            const wasNew = newlyAddedIds.has(qid);
+            newlyAddedIds.delete(qid);
+            sections[si]._trash = sections[si]._trash || [];
+            sections[si]._trash.push({ qid, qi, meta, wasNew });
+            pushHistory({ kind: 'remove-q', si, qi, qid, meta, wasNew });
+            // Auto-fill on delete is disabled — instructions are user-managed.
+            render();
+            showToast('Deleted — Undo (Ctrl+Z) or use the section\u2019s inline undo.');
+        }
+    });
+}
+
+// Restore a tombstoned question (inline Undo button next to the bin icon).
+function restoreDeletedQ(si, ti) {
+    if (!sections[si] || !sections[si]._trash || !sections[si]._trash[ti]) return;
+    const t = sections[si]._trash.splice(ti, 1)[0];
+    sections[si].question_ids = sections[si].question_ids || [];
+    sections[si]._meta = sections[si]._meta || [];
+    const insertAt = Math.min(t.qi, sections[si].question_ids.length);
+    sections[si].question_ids.splice(insertAt, 0, t.qid);
+    sections[si]._meta.splice(insertAt, 0, t.meta);
+    if (t.wasNew) newlyAddedIds.add(t.qid);
+    // Drop the matching remove-q entry from history so toolbar Undo doesn't
+    // double-restore. Push an add-q so this restore is itself undoable/redoable.
+    for (let k = historyPtr; k >= 0; k--) {
+        const a = history[k];
+        if (a.kind === 'remove-q' && a.si === si && a.qid === t.qid) {
+            history.splice(k, 1);
+            if (k <= historyPtr) historyPtr--;
+            break;
+        }
+    }
+    pushHistory({ kind: 'add-q', si, qi: insertAt, qid: t.qid, meta: t.meta, wasNew: !!t.wasNew });
+    // Auto-fill on restore is disabled — instructions are user-managed.
+    render();
+    showToast('Question restored');
+}
+
+function confirmDialog({ title, body, confirmText, onConfirm, tone }) {
+    tone = tone || 'delete';
+    const palette = tone === 'add'
+        ? { iconColor: '#0078d4', okColor: '#0078d4',
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="9"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>',
+            okIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 5v14"/><path d="M5 12h14"/></svg>' }
+        : { iconColor: '#dc2626', okColor: '#dc2626',
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            okIcon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>' };
+    let ov = document.getElementById('confirmOverlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'confirmOverlay';
+        ov.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,.55); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; z-index:10000;';
+        ov.innerHTML = `
+            <div id="confirmModal" role="dialog" aria-modal="true" style="background:#ffffff; color:#0f172a; width:min(440px, calc(100% - 32px)); border-radius:14px; box-shadow:0 24px 60px rgba(0,0,0,.35); overflow:hidden; border:1px solid #e5e7eb;">
+                <div style="padding:20px 22px 14px; display:flex; gap:14px; align-items:flex-start;">
+                    <div id="genConfirmIcon" style="flex:0 0 24px; display:flex; align-items:flex-start; justify-content:center; padding-top:2px;"></div>
+                    <div style="flex:1;">
+                        <h4 id="genConfirmTitle" style="margin:0 0 6px; font-size:17px; font-weight:700; color:#0f172a;"></h4>
+                        <p id="genConfirmBody" style="margin:0; font-size:14px; line-height:1.5; color:#000000; font-weight:500; word-break:break-word;"></p>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px; padding:14px 18px; background:#f8fafc; border-top:1px solid #e5e7eb;">
+                    <button type="button" id="genConfirmCancel" style="background:transparent; color:#0f172a; border:1px solid #cbd5e1; border-radius:8px; padding:8px 16px; font-size:14px; font-weight:500; cursor:pointer;">Cancel</button>
+                    <button type="button" id="genConfirmOk" style="background:transparent; border-radius:8px; padding:8px 16px; font-size:14px; font-weight:500; cursor:pointer; display:inline-flex; gap:8px; align-items:center;"><span id="genConfirmOkIcon" style="display:inline-flex;"></span><span id="genConfirmOkText">Delete</span></button>
+                </div>
+            </div>`;
+        document.body.appendChild(ov);
+        ov.addEventListener('click', e => { if (e.target === ov) closeConfirm(); });
+        document.addEventListener('keydown', e => {
+            if (ov.style.display !== 'flex') return;
+            if (e.key === 'Escape') closeConfirm();
+            if (e.key === 'Enter') { e.preventDefault(); document.getElementById('genConfirmOk').click(); }
+        });
+    }
+    document.getElementById('genConfirmTitle').textContent = title;
+    document.getElementById('genConfirmBody').textContent = body;
+    document.getElementById('genConfirmOkText').textContent = confirmText || 'Delete';
+    document.getElementById('genConfirmIcon').innerHTML = palette.icon;
+    document.getElementById('genConfirmIcon').style.color = palette.iconColor;
+    document.getElementById('genConfirmOkIcon').innerHTML = palette.okIcon;
+    const okBtn = document.getElementById('genConfirmOk');
+    okBtn.style.color = palette.okColor;
+    okBtn.style.border = '1px solid ' + palette.okColor;
+    const cancelBtn = document.getElementById('genConfirmCancel');
+    const newOk = okBtn.cloneNode(true); okBtn.parentNode.replaceChild(newOk, okBtn);
+    const newCancel = cancelBtn.cloneNode(true); cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+    newOk.addEventListener('click', () => { closeConfirm(); onConfirm(); });
+    newCancel.addEventListener('click', closeConfirm);
+    ov.style.display = 'flex';
+    setTimeout(() => newCancel.focus(), 30);
+}
+function closeConfirm() { const ov = document.getElementById('confirmOverlay'); if (ov) ov.style.display = 'none'; }
+function undoLast() {
+    // Legacy toast handler — delegate to the unified history.
+    historyUndo();
+    hideUndo();
+}
+let undoTimer = null;
+// Plain notification toast (no Undo button).
+function showToast(msg) { return _showBar(msg, false, 3500); }
+// Undo-capable toast — only call this when something has been pushed onto undoStack.
+function showUndo(msg) { return _showBar(msg, true, 12000); }
+function _showBar(msg, withUndo, ms) {
+    let bar = document.getElementById('undoBar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'undoBar';
+        bar.style.cssText = 'position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1f2937; color:#fff; padding:10px 14px; border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,.25); display:flex; gap:14px; align-items:center; font-size:14px; z-index:9999;';
+        bar.innerHTML = '<span id="undoMsg"></span><button type="button" id="undoBtn" title="Undo" style="background:transparent; color:#fbbf24; border:1px solid #fbbf24; border-radius:6px; padding:4px 10px; cursor:pointer; display:inline-flex; gap:6px; align-items:center;"><i class="fas fa-undo"></i> Undo</button>';
+        document.body.appendChild(bar);
+        document.getElementById('undoBtn').addEventListener('click', undoLast);
+    }
+    document.getElementById('undoMsg').textContent = msg;
+    document.getElementById('undoBtn').style.display = withUndo ? 'inline-flex' : 'none';
+    bar.style.display = 'flex';
+    if (undoTimer) clearTimeout(undoTimer);
+    undoTimer = setTimeout(hideUndo, ms);
+}
+function hideUndo() { const bar = document.getElementById('undoBar'); if (bar) bar.style.display = 'none'; if (undoTimer) { clearTimeout(undoTimer); undoTimer = null; } }
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return escapeHtml(s); }
+
+// ===================== CAPS / DBE structure presets =====================
+let capsTemplates = {};
+try { capsTemplates = JSON.parse(document.getElementById('capsTemplatesData').textContent || '{}'); } catch(e){ capsTemplates = {}; }
+
+function applyCapsTemplate(key) {
+    const tpl = capsTemplates[key];
+    if (!tpl) return;
+    confirmDialog({
+        title: 'Apply CAPS structure?',
+        body: 'This will replace the current sections with the official DBE structure: ' + tpl.label + '. The header fields will also be filled in.',
+        confirmText: 'Apply template',
+        onConfirm: () => {
+            // Header fields
+            const f = document.querySelector('form');
+            const set = (name, val) => { const el = f && f.querySelector('[name="' + name + '"]'); if (el && val != null && val !== '') el.value = val; };
+            set('subject', tpl.subject);
+            set('paper_number', tpl.paper_number);
+            set('grade', tpl.grade);
+            set('duration_minutes', tpl.duration_minutes);
+            set('total_marks', tpl.total_marks);
+            const ins = f && f.querySelector('[name="instructions"]');
+            if (ins && tpl.instructions) ins.value = tpl.instructions;
+            // Sections
+            sections = (tpl.sections || []).map(s => ({
+                title: s.title || '',
+                instructions: s.instructions || '',
+                question_ids: [],
+                _meta: [],
+                _kind: s.kind || '',
+                _topic: s.topic || '',
+                _hint: s.marks_target ? ('Target: ' + s.marks_target + ' marks' + (s.topic ? ' · ' + s.topic : '') + (s.kind ? ' · ' + s.kind : '')) : ''
+            }));
+            if (!sections.length) sections = [{ title: 'Section A', instructions: '', question_ids: [], _meta: [] }];
+            activeIdx = 0;
+            render();
+            showUndo('CAPS template applied');
+        }
+    });
+}
+
+document.getElementById('bankFilter').addEventListener('input', e => {
+    applyBankFilter();
+});
+
+// ===================== Dropdown bank filters =====================
+// Populate Paper / Topic / Type / Difficulty / Marks dropdowns from bank items.
+const PAPER_TAG_RE = /^[A-Z]{2,5}\s+P\d+\s+(May\/June|Nov(ember)?|March|Sept(ember)?|Feb(ruary)?)\s+\d{4}$/;
+function paperFromTags(tags) {
+    if (!tags) return '';
+    const parts = tags.split(',').map(s => s.trim());
+    for (const t of parts) if (PAPER_TAG_RE.test(t)) return t;
+    return '';
+}
+function paperSortKey(label) {
+    const ym = label.match(/(\d{4})$/);
+    const year = ym ? parseInt(ym[1], 10) : 0;
+    const season = /Nov/.test(label) ? 1 : 0;
+    return [-year, -season, label];
+}
+function marksBucket(m) {
+    m = parseInt(m, 10) || 0;
+    if (m <= 1)  return '1';
+    if (m <= 3)  return '2-3';
+    if (m <= 6)  return '4-6';
+    if (m <= 10) return '7-10';
+    return '11+';
+}
+(function populateBankDropdowns() {
+    const items = document.querySelectorAll('.bank-item');
+    const papers = new Set(), topics = new Set(), types = new Set(), diffs = new Set(), buckets = new Set();
+    items.forEach(el => {
+        const p = paperFromTags(el.dataset.tags);
+        if (p) { papers.add(p); el.dataset.paper = p; }
+        if (el.dataset.topic) topics.add(el.dataset.topic);
+        const tNorm = effectiveQType(el.dataset.type, el.dataset.qtext || el.dataset.text || '');
+        el.dataset.typeNorm = tNorm;
+        if (tNorm) types.add(tNorm);
+        if (el.dataset.difficulty) diffs.add(el.dataset.difficulty);
+        buckets.add(marksBucket(el.dataset.marks));
+    });
+    const titleCase = s => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    function fillFdd(bfKey, fieldName, values, formatter) {
+        const dd = document.querySelector('.fdd[data-bf="' + bfKey + '"]');
+        if (!dd) return;
+        const panel = dd.querySelector('.fdd-panel');
+        if (!values.length) { dd.closest('.bf-cell').style.display = 'none'; return; }
+        values.forEach(v => {
+            const labelEl = document.createElement('label');
+            labelEl.className = 'fdd-item';
+            labelEl.innerHTML = '<input type="radio" name="' + fieldName + '" value="'
+                + String(v).replace(/"/g, '&quot;') + '"><span></span>';
+            labelEl.querySelector('span').textContent = formatter ? formatter(v) : v;
+            panel.appendChild(labelEl);
+        });
+    }
+    fillFdd('paper', 'bfPaper', Array.from(papers).sort((a,b) => {
+        const [a1,a2,a3] = paperSortKey(a), [b1,b2,b3] = paperSortKey(b);
+        return a1-b1 || a2-b2 || (a3<b3?-1:a3>b3?1:0);
+    }));
+    fillFdd('topic',      'bfTopic',      Array.from(topics).sort());
+    fillFdd('type',       'bfType',       Array.from(types).sort(),  qTypeLabel);
+    fillFdd('difficulty', 'bfDifficulty', Array.from(diffs).sort(),  titleCase);
+    const bucketOrder = ['1','2-3','4-6','7-10','11+'];
+    fillFdd('marks',      'bfMarks',
+        bucketOrder.filter(b => buckets.has(b)),
+        b => b === '1' ? '1 mark' : b + ' marks');
+
+    // Wire up: clicking a radio updates the toggle label, closes the panel,
+    // and triggers a re-filter. (The generic open/close + outside-click logic
+    // lives in templates/teacher/_layout.html.)
+    document.querySelectorAll('#bankFilterRow .fdd[data-fdd="single"]').forEach(dd => {
+        const toggleLabel = dd.querySelector('.fdd-label');
+        const radios = dd.querySelectorAll('input[type="radio"]');
+        radios.forEach(r => {
+            r.addEventListener('change', () => {
+                const span = r.parentElement.querySelector('span');
+                toggleLabel.textContent = span ? span.textContent : (toggleLabel.dataset.empty || '');
+                dd.classList.remove('open');
+                applyBankFilter();
+            });
+        });
+    });
+})();
+function bfValue(key) {
+    const dd = document.querySelector('.fdd[data-bf="' + key + '"]');
+    if (!dd) return '';
+    const r = dd.querySelector('input[type="radio"]:checked');
+    return r ? r.value : '';
+}
+document.getElementById('bfReset').addEventListener('click', () => {
+    document.querySelectorAll('#bankFilterRow .fdd[data-fdd="single"]').forEach(dd => {
+        const first = dd.querySelector('input[type="radio"]');
+        if (first) {
+            first.checked = true;
+            const span = first.parentElement.querySelector('span');
+            const lbl = dd.querySelector('.fdd-label');
+            if (lbl) lbl.textContent = span ? span.textContent : (lbl.dataset.empty || '');
+        }
+    });
+    document.getElementById('bankFilter').value = '';
+    const sa = document.getElementById('bankShowAll'); if (sa) sa.checked = false;
+    applyBankFilter();
+});
+
+// ===================== Section-aware bank filter =====================
+// Build a filter spec for a given section based on its title (and existing
+// questions), so when the teacher clicks a section card the bank only shows
+// questions appropriate for that section.
+function bankFilterSpecForSection(section) {
+    if (!section) return null;
+    const title = (section.title || '').toLowerCase();
+    const types = new Set();
+    const topics = [];
+    // Section A subtypes — strict type match.
+    if (/multiple[- ]?choice|\bmcq\b/.test(title)) { types.add('mcq'); }
+    if (/match/.test(title)) { types.add('matching'); }
+    if (/true.{0,3}false/.test(title)) { types.add('true_false'); }
+    // Topic-driven sections (Paper 2 Section B + Paper 1 practical).
+    const topicMap = [
+        [/system.*tech|hardware|software/i, ['systems', 'hardware', 'software']],
+        [/internet|network/i, ['internet', 'network', 'networks', 'communications']],
+        [/information.*management|info\s*mgmt/i, ['information management', 'data', 'information']],
+        [/social|ethic|impact/i, ['social', 'ethics', 'impact']],
+        [/solution.*develop|programming|algorithm/i, ['solution development', 'programming', 'algorithm']],
+        [/word\s*processing|word/i, ['word processing', 'word']],
+        [/spreadsheet|excel/i, ['spreadsheet', 'excel']],
+        [/database|access|sql/i, ['database', 'access']],
+        [/web|html|css/i, ['web', 'html', 'css']],
+    ];
+    topicMap.forEach(([re, kws]) => { if (re.test(title)) topics.push(...kws); });
+    // Section C — integrated scenario — accepts everything.
+    if (/integrated|scenario|section\s*c\b/.test(title)) {
+        return { any: true, label: 'Integrated scenario \u2014 any question accepted' };
+    }
+    // Generic Section A header (no subtype) -> all three Section A types.
+    if (/section\s*a\b/.test(title) && !types.size) {
+        types.add('mcq');
+        types.add('matching');
+        types.add('true_false');
+    }
+    if (!types.size && !topics.length) return null;
+    const parts = [];
+    if (types.size) parts.push(Array.from(types).map(qTypeLabel).join('/'));
+    if (topics.length) parts.push('topics: ' + topics.slice(0, 4).join(', '));
+    return {
+        types: types.size ? types : null,
+        topics: topics.length ? topics : null,
+        label: 'Filtering bank for \u201c' + (section.title || 'this section') + '\u201d \u2014 ' + parts.join(' \u00b7 ')
+    };
+}
+
+function applyBankFilter() {
+    const text = (document.getElementById('bankFilter').value || '').toLowerCase();
+    const showAllEl = document.getElementById('bankShowAll');
+    const hint = document.getElementById('bankFilterHint');
+    const hintText = document.getElementById('bankFilterHintText');
+    const showAll = !!(showAllEl && showAllEl.checked);
+    const spec = showAll ? null : bankFilterSpecForSection(sections[activeIdx]);
+    // Explicit dropdown filters (always applied, AND'd with everything else).
+    const fPaper = bfValue('paper');
+    const fTopic = bfValue('topic');
+    const fType  = normalizeQType(bfValue('type'));
+    const fDiff  = bfValue('difficulty');
+    const fMarks = bfValue('marks');
+    const dropdownActive = !!(fPaper || fTopic || fType || fDiff || fMarks);
+    if (hint) {
+        if (spec && !spec.any) {
+            hint.style.display = 'flex';
+            hintText.textContent = spec.label;
+        } else if (spec && spec.any) {
+            hint.style.display = 'flex';
+            hintText.textContent = spec.label;
+        } else if (sections[activeIdx]) {
+            hint.style.display = 'flex';
+            hintText.textContent = 'No section-specific filter \u2014 showing all questions for \u201c' + (sections[activeIdx].title || 'this section') + '\u201d.';
+        } else {
+            hint.style.display = 'none';
+        }
+    }
+    let visible = 0;
+    document.querySelectorAll('.bank-item').forEach(el => {
+        const t = effectiveQType(el.dataset.typeNorm || el.dataset.type || '', el.dataset.qtext || el.dataset.text || '');
+        const matchesText = !text || (el.dataset.text || '').toLowerCase().includes(text);
+        let matchesSpec = true;
+        if (spec && !spec.any) {
+            const topic = (el.dataset.topic || '').toLowerCase();
+            const okType = spec.types ? spec.types.has(t) : false;
+            const okTopic = spec.topics ? spec.topics.some(k => topic.includes(k)) : false;
+            // If both filters present, accept either match (type OR topic).
+            if (spec.types && spec.topics) matchesSpec = okType || okTopic;
+            else if (spec.types) matchesSpec = okType;
+            else matchesSpec = okTopic;
+        }
+        let matchesDD = true;
+        if (dropdownActive) {
+            if (fPaper && el.dataset.paper !== fPaper) matchesDD = false;
+            if (matchesDD && fTopic && el.dataset.topic !== fTopic) matchesDD = false;
+            if (matchesDD && fType  && t !== fType) matchesDD = false;
+            if (matchesDD && fDiff  && el.dataset.difficulty !== fDiff) matchesDD = false;
+            if (matchesDD && fMarks && marksBucket(el.dataset.marks) !== fMarks) matchesDD = false;
+        }
+        const show = matchesText && matchesSpec && matchesDD;
+        el.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    // If filter hides everything but the bank isn't empty, surface a tip.
+    if (hint && spec && !spec.any && visible === 0) {
+        hintText.textContent = spec.label + ' \u2014 nothing matches. Tick \u201cShow all\u201d or \u201cReset\u201d the filters.';
+    }
+    // Update the "Add all (N)" button — counts visible AND not-yet-used items.
+    const addAllBtn = document.getElementById('bfAddAll');
+    const addAllCt  = document.getElementById('bfAddAllCount');
+    if (addAllBtn && addAllCt) {
+        let addable = 0;
+        document.querySelectorAll('.bank-item').forEach(el => {
+            if (el.style.display !== 'none' && !el.classList.contains('is-used')) addable++;
+        });
+        addAllCt.textContent = '(' + addable + ')';
+        addAllBtn.disabled = addable === 0;
+        addAllBtn.style.opacity = addable === 0 ? '0.45' : '';
+        addAllBtn.style.cursor  = addable === 0 ? 'not-allowed' : 'pointer';
+    }
+}
+
+// Bulk-add every currently visible (and not yet used) bank item to the active section.
+document.getElementById('bfAddAll').addEventListener('click', () => {
+    const rows = Array.from(document.querySelectorAll('.bank-item'))
+        .filter(el => el.style.display !== 'none' && !el.classList.contains('is-used'));
+    if (!rows.length) { showToast('Nothing to add'); return; }
+    const sectionLabel = (sections[activeIdx] && sections[activeIdx].title) || 'this section';
+    const doAdd = () => {
+        if (!sections[activeIdx]) activeIdx = 0;
+        const sec = sections[activeIdx];
+        sec.question_ids = sec.question_ids || [];
+        sec._meta        = sec._meta || [];
+        let added = 0, skipped = 0;
+        rows.forEach(el => {
+            const qid = el.dataset.id;
+            if (sections.some(s => (s.question_ids || []).includes(qid))) { skipped++; return; }
+            sec.question_ids.push(qid);
+            const bm = bankMap[qid] || {};
+            sec._meta.push({
+                marks: parseInt(el.dataset.marks, 10) || 0,
+                text:  (el.querySelector('h4') || {}).textContent || '',
+                type:  bm.type  || el.dataset.type  || '',
+                topic: bm.topic || el.dataset.topic || ''
+            });
+            newlyAddedIds.add(qid);
+            added++;
+        });
+        if (added) {
+            // Auto-fill on bulk-add is disabled — instructions are user-managed.
+            render();
+            flashSectionAdded(activeIdx);
+        }
+        showToast('Added ' + added + ' question' + (added === 1 ? '' : 's')
+            + (skipped ? ' (' + skipped + ' already in paper)' : ''));
+    };
+    if (rows.length > 12) {
+        confirmDialog({
+            tone: 'add',
+            title: 'Add ' + rows.length + ' questions?',
+            body:  'They will all be added to \u201c' + sectionLabel + '\u201d. Anything already in the paper is skipped automatically.',
+            confirmText: 'Add ' + rows.length,
+            onConfirm: doAdd
+        });
+    } else {
+        doAdd();
+    }
+});
+
+// "Show all" override.
+document.addEventListener('change', e => {
+    if (e.target && e.target.id === 'bankShowAll') applyBankFilter();
+});
+
+// Delegated click for the bank + buttons (avoids HTML-attribute escaping issues
+// when question text contains quotes).
+document.getElementById('bankList').addEventListener('click', e => {
+    const btn = e.target.closest('.bank-add-btn');
+    if (!btn) return;
+    e.preventDefault();
+    addQuestionToActive(btn.dataset.id, parseInt(btn.dataset.marks, 10) || 0, btn.dataset.text || '');
+});
+
+// ===================== Drag-to-reorder questions within a section =====================
+let dragSrc = null;
+document.getElementById('sectionsHost').addEventListener('dragstart', e => {
+    const row = e.target.closest('.sec-q[draggable="true"]');
+    if (!row) return;
+    dragSrc = { si: parseInt(row.dataset.si, 10), qi: parseInt(row.dataset.qi, 10) };
+    row.classList.add('is-dragging');
+    if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        // Firefox requires data to be set for the drag to fire.
+        try { e.dataTransfer.setData('text/plain', row.dataset.qi); } catch(_) {}
+    }
+});
+document.getElementById('sectionsHost').addEventListener('dragend', () => {
+    document.querySelectorAll('.sec-q.is-dragging, .sec-q.drop-before, .sec-q.drop-after')
+        .forEach(el => el.classList.remove('is-dragging', 'drop-before', 'drop-after'));
+    dragSrc = null;
+});
+document.getElementById('sectionsHost').addEventListener('dragover', e => {
+    if (!dragSrc) return;
+    const row = e.target.closest('.sec-q[draggable="true"]');
+    if (!row) return;
+    const si = parseInt(row.dataset.si, 10);
+    if (si !== dragSrc.si) return; // only reorder within the same section
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.sec-q.drop-before, .sec-q.drop-after')
+        .forEach(el => el.classList.remove('drop-before', 'drop-after'));
+    const rect = row.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < (rect.height / 2);
+    row.classList.add(before ? 'drop-before' : 'drop-after');
+});
+document.getElementById('sectionsHost').addEventListener('drop', e => {
+    if (!dragSrc) return;
+    const row = e.target.closest('.sec-q[draggable="true"]');
+    if (!row) return;
+    const si = parseInt(row.dataset.si, 10);
+    if (si !== dragSrc.si) return;
+    e.preventDefault();
+    const rect = row.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < (rect.height / 2);
+    let target = parseInt(row.dataset.qi, 10);
+    const from = dragSrc.qi;
+    let to = before ? target : target + 1;
+    if (to > from) to -= 1; // account for the source being removed first
+    if (from === to) { dragSrc = null; render(); return; }
+    const s = sections[si];
+    const [movedId] = s.question_ids.splice(from, 1);
+    const [movedMeta] = s._meta.splice(from, 1);
+    s.question_ids.splice(to, 0, movedId);
+    s._meta.splice(to, 0, movedMeta);
+    dragSrc = null;
+    render();
+    showToast('Question reordered');
+});
+
+// ===================== Smart instruction auto-detection =====================
+let instructionLibrary = {};
+try { instructionLibrary = JSON.parse(document.getElementById('instructionLibraryData').textContent || '{}'); } catch(e){ instructionLibrary = {}; }
+
+// Map a single question (by its bank metadata) to one or more instruction
+// category names from INSTRUCTION_LIBRARY.
+function categoriesForQuestion(meta) {
+    const cats = new Set();
+    const t = (meta.type || '').toLowerCase();
+    const topic = (meta.topic || '').toLowerCase();
+    if (t === 'multiple_choice' || t === 'mcq') cats.add('Section A – Multiple-choice');
+    if (t === 'match_columns' || t === 'matching') cats.add('Section A – Matching items');
+    if (t === 'true_false' || t === 'truefalse') cats.add('Section A – True/False items');
+    if (/web|html|css/.test(topic)) cats.add('Web development (HTML)');
+    if (/database|access|sql/.test(topic)) cats.add('Databases');
+    return cats;
+}
+
+// Map a section title to category names (e.g. "Section C" -> Integrated Scenario,
+// titles containing 'mcq' / 'matching' / 'true' even when questions have not
+// been added yet).
+function categoriesForSectionTitle(title) {
+    const cats = new Set();
+    const t = (title || '').toLowerCase();
+    if (/mcq|multiple[- ]?choice/.test(t)) cats.add('Section A – Multiple-choice');
+    if (/match/.test(t)) cats.add('Section A – Matching items');
+    if (/true.{0,3}false/.test(t)) cats.add('Section A – True/False items');
+    if (/integrated|scenario|section\s*c\b/.test(t)) cats.add('Section C – Integrated Scenario');
+    if (/web|html/.test(t)) cats.add('Web development (HTML)');
+    if (/database/.test(t)) cats.add('Databases');
+    return cats;
+}
+
+function detectSectionCategories(section, idx) {
+    const cats = new Set();
+    categoriesForSectionTitle(section.title).forEach(c => cats.add(c));
+    (section._meta || []).forEach(m => categoriesForQuestion(m || {}).forEach(c => cats.add(c)));
+    // Restrict section-letter-prefixed categories to the matching section so
+    // e.g. "Section A – Multiple-choice" doesn't get auto-attached to a
+    // section that simply happens to contain MCQ-typed questions (the DBE
+    // convention is that those instructions belong on Section A only).
+    return Array.from(cats).filter(c => {
+        if (!instructionLibrary[c]) return false;
+        const m = c.match(/^Section ([A-C]) –/);
+        if (!m) return true; // topic-based (e.g. Web, Databases) — always OK
+        const expectedIdx = { A: 0, B: 1, C: 2 }[m[1]];
+        return typeof idx !== 'number' || idx === expectedIdx;
+    });
+}
+
+function describeDetectedSection(section, idx) {
+    const cats = detectSectionCategories(section, idx);
+    if (!cats.length) return '';
+    return 'Detected: ' + cats.map(c => c.replace(/^Section [A-C] – /, '')).join(', ');
+}
+
+// True if the textarea looks empty / placeholder-only / previously auto-generated.
+function looksAutoFillable(text) {
+    if (!text) return true;
+    const trimmed = text.trim();
+    if (!trimmed) return true;
+    return trimmed.startsWith('[Auto] ');
+}
+
+function buildInstructionBlock(categories) {
+    const lines = [];
+    categories.forEach(cat => {
+        const items = instructionLibrary[cat] || [];
+        items.forEach(line => lines.push(line));
+    });
+    return lines.length ? '[Auto] ' + categories.join(' + ') + '\n' + lines.join('\n') : '';
+}
+
+function autoFillSectionInstructions(i, force) {
+    const s = sections[i];
+    if (!s) return;
+    const cats = detectSectionCategories(s, i);
+    if (!cats.length) {
+        if (force) {
+            // User explicitly clicked Auto-detect. If a previous auto-fill left
+            // a stale [Auto] block here (e.g. before section-aware filtering),
+            // wipe it so it stops appearing on the printed paper. Manual edits
+            // are preserved because looksAutoFillable() only matches '[Auto] '.
+            if (looksAutoFillable(s.instructions) && (s.instructions || '').trim()) {
+                s.instructions = '';
+                render();
+            }
+            showToast('No matching instructions detected for this section.');
+        }
+        return;
+    }
+    if (!force && !looksAutoFillable(s.instructions)) return; // respect manual edits
+    s.instructions = buildInstructionBlock(cats);
+    render();
+    if (force) showToast('Section instructions auto-filled');
+}
+
+function detectCoverCategories() {
+    const cats = new Set();
+    const f = document.querySelector('form');
+    const paperNo = ((f && f.querySelector('[name=\"paper_number\"]').value) || '').toLowerCase();
+    const subject = ((f && f.querySelector('[name=\"subject\"]').value) || '').toLowerCase();
+    const title = (document.querySelector('input[name=\"title\"]') || {}).value || '';
+    const titleLow = title.toLowerCase();
+    let isPractical = /p1|paper\s*1|practical/.test(paperNo + ' ' + titleLow);
+    let isTheory = /p2|paper\s*2|theory/.test(paperNo + ' ' + titleLow);
+    // Fall back to heuristic on the questions themselves: practical question types
+    // (e.g. "practical") imply Paper 1, otherwise default to Paper 2.
+    if (!isPractical && !isTheory) {
+        let practicalSeen = false, theorySeen = false;
+        sections.forEach(s => (s._meta || []).forEach(m => {
+            const t = (m.type || '').toLowerCase();
+            if (t === 'practical') practicalSeen = true;
+            else if (t) theorySeen = true;
+        }));
+        if (practicalSeen && !theorySeen) isPractical = true;
+        else if (theorySeen && !practicalSeen) isTheory = true;
+    }
+    if (isPractical) cats.add('Paper 1 – Practical (cover instructions)');
+    if (isTheory || (!isPractical && /computer applications technology|cat/.test(subject))) {
+        if (!isPractical) cats.add('Paper 2 – Theory (cover instructions)');
+    }
+    // Always add general conduct as a baseline.
+    cats.add('General conduct & equipment');
+    // Topic add-ons: if any section uses HTML / Databases topics, append those.
+    const topicCats = new Set();
+    sections.forEach(s => (s._meta || []).forEach(m => {
+        const topic = (m.topic || '').toLowerCase();
+        if (/web|html|css/.test(topic)) topicCats.add('Web development (HTML)');
+        if (/database/.test(topic)) topicCats.add('Databases');
+    }));
+    topicCats.forEach(c => cats.add(c));
+    return Array.from(cats).filter(c => instructionLibrary[c]);
+}
+
+function autoFillCoverInstructions(force) {
+    const ta = document.getElementById('instructionsField');
+    if (!ta) return;
+    const cats = detectCoverCategories();
+    const hint = document.getElementById('autoCoverHint');
+    if (!cats.length) {
+        if (force && hint) hint.textContent = 'Nothing to detect yet — add some questions first.';
+        return;
+    }
+    if (!force && !looksAutoFillable(ta.value)) {
+        if (hint) hint.textContent = 'Existing instructions kept (clear the box to enable auto-fill).';
+        return;
+    }
+    _setField('#instructionsField', buildInstructionBlock(cats));
+    if (hint) hint.textContent = 'Filled from: ' + cats.join('; ');
+    if (force) showToast('Cover instructions auto-filled');
+}
+
+// Hydrate _meta for existing question_ids (now also pulls in type & topic).
+sections.forEach(s => {
+    s._meta = (s.question_ids || []).map(qid => {
+        const bm = bankMap[qid] || { marks: 0, text: qid };
+        return { marks: bm.marks, text: bm.text, type: bm.type || '', topic: bm.topic || '' };
+    });
+});
+render();
+// If we returned from editing a question (#qid=...), jump to the
+// corresponding row and briefly highlight it. Poll briefly because
+// render() may run before all data is hydrated; also re-apply on
+// `load` to fight any late layout shifts (images, fonts).
+(function focusEditedRow(){
+    try {
+        var hash = window.location.hash || '';
+        var m = hash.match(/qid=([^&]+)/);
+        var qid = m ? decodeURIComponent(m[1]) : '';
+        if (!qid) {
+            try { qid = sessionStorage.getItem('genFocusQid') || ''; } catch(_) {}
+        }
+        try { sessionStorage.removeItem('genFocusQid'); } catch(_) {}
+        if (!qid) return;
+        if ('scrollRestoration' in history) {
+            try { history.scrollRestoration = 'manual'; } catch(_) {}
+        }
+        var attempts = 0;
+        var maxAttempts = 40; // ~2s @ 50ms
+        var jumped = false;
+        function tryJump(){
+            attempts += 1;
+            var sel = '.sec-q[data-qid="' + qid.replace(/"/g, '\\"') + '"]';
+            var row = document.querySelector(sel);
+            if (!row) {
+                if (attempts < maxAttempts) return setTimeout(tryJump, 50);
+                return;
+            }
+            // Find the nearest actual scroll container (the editor uses
+            // an internal `.gen-split-left` pane that scrolls, not the
+            // window). Walk up until we hit something with overflow auto/scroll.
+            function findScroller(el){
+                var node = el.parentElement;
+                while (node && node !== document.body) {
+                    var s = getComputedStyle(node);
+                    if (/(auto|scroll)/.test(s.overflowY) && node.scrollHeight > node.clientHeight) {
+                        return node;
+                    }
+                    node = node.parentElement;
+                }
+                return null;
+            }
+            var scroller = findScroller(row);
+            if (scroller) {
+                var rRect = row.getBoundingClientRect();
+                var sRect = scroller.getBoundingClientRect();
+                var target = scroller.scrollTop + (rRect.top - sRect.top) - (sRect.height / 2) + (rRect.height / 2);
+                scroller.scrollTo({ top: Math.max(0, target), left: 0, behavior: 'auto' });
+            } else {
+                var rect = row.getBoundingClientRect();
+                var absoluteTop = rect.top + window.pageYOffset;
+                var t = absoluteTop - (window.innerHeight / 2) + (rect.height / 2);
+                window.scrollTo({ top: Math.max(0, t), left: 0, behavior: 'auto' });
+            }
+            if (!jumped) {
+                jumped = true;
+                // Clear any previous persistent highlight on the editor side.
+                document.querySelectorAll('.sec-q.is-edited-focus').forEach(function(el){
+                    el.classList.remove('is-edited-focus');
+                    el.style.boxShadow = '';
+                });
+                row.classList.add('is-edited-focus');
+                row.style.transition = 'box-shadow .25s';
+                row.style.boxShadow = '0 0 0 3px rgba(0,120,212,0.55)';
+                try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(_) {}
+            }
+            // Also scroll the right-side preview iframe to the same question.
+            scrollPreviewToQid(qid);
+        }
+        // Helper: scroll the preview iframe to the row whose data-qid matches.
+        function scrollPreviewToQid(targetQid){
+            try {
+                var ifr = document.getElementById('genPreviewFrame');
+                if (!ifr) return;
+                function attempt(left){
+                    try {
+                        var doc = ifr.contentDocument;
+                        var win = ifr.contentWindow;
+                        if (!doc || !win) {
+                            if (left > 0) return setTimeout(function(){ attempt(left-1); }, 100);
+                            return;
+                        }
+                        var safeQid = targetQid.replace(/"/g, '\\"');
+                        var el = doc.querySelector('[data-qid="' + safeQid + '"]')
+                              || doc.querySelector('[data-qids~="' + safeQid + '"]');
+                        if (!el) {
+                            if (left > 0) return setTimeout(function(){ attempt(left-1); }, 100);
+                            return;
+                        }
+                        var rect = el.getBoundingClientRect();
+                        var vh = win.innerHeight || doc.documentElement.clientHeight;
+                        var top = rect.top + (win.pageYOffset || doc.documentElement.scrollTop || 0)
+                                - (vh / 2) + (rect.height / 2);
+                        win.scrollTo({ top: Math.max(0, top), left: 0, behavior: 'auto' });
+                        // Clear previous persistent highlight in the iframe.
+                        try {
+                            doc.querySelectorAll('.is-edited-focus').forEach(function(p){
+                                p.classList.remove('is-edited-focus');
+                                p.style.boxShadow = '';
+                            });
+                        } catch(_) {}
+                        el.classList.add('is-edited-focus');
+                        el.style.transition = 'box-shadow .25s';
+                        el.style.boxShadow = '0 0 0 3px rgba(0,120,212,0.55)';
+                    } catch(_) {
+                        if (left > 0) return setTimeout(function(){ attempt(left-1); }, 100);
+                    }
+                }
+                attempt(30); // ~3s
+            } catch(_) {}
+        }
+        tryJump();
+        // Re-pin the position after window load and a moment after, in
+        // case images/fonts shift the page.
+        window.addEventListener('load', function(){ setTimeout(tryJump, 0); });
+        setTimeout(tryJump, 500);
+    } catch(_) {}
+})();
+// Initial auto-fill on page load is disabled — instructions are user-managed.
+// Use the on-screen "Auto-detect instructions" / "Auto-detect cover instructions"
+// buttons to populate them on demand.
+
+// ===================== Instruction library =====================
+let instrLib = { defaults: [], mine: [] };
+async function loadInstrLib() {
+    try {
+        const r = await fetch('{{ url_for("teacher_instruction_templates_list") }}', { credentials: 'same-origin' });
+        if (r.ok) instrLib = await r.json();
+    } catch(e) { /* ignore */ }
+}
+function openInstrLib() {
+    let ov = document.getElementById('instrLibOverlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'instrLibOverlay';
+        ov.style.cssText = 'position:fixed; inset:0; background:rgba(15,23,42,.55); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center; z-index:10000;';
+        ov.innerHTML = `
+            <div style="background:var(--bg-elevated, #1f1f1f); color:var(--text, #fff); width:min(640px, calc(100% - 32px)); max-height:85vh; border-radius:14px; box-shadow:0 24px 60px rgba(0,0,0,.55); overflow:hidden; display:flex; flex-direction:column; border:1px solid rgba(127,127,127,0.30);">
+                <div style="padding:16px 20px; display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(127,127,127,0.20);">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="color:var(--text-secondary);"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    <h4 style="margin:0; font-size:15px; font-weight:600; color:inherit;">Instruction library</h4>
+                    <span style="margin-left:auto; font-size:12px; color:var(--text-tertiary);">Click to insert</span>
+                    <button type="button" id="instrLibClose" aria-label="Close" class="t-icon-btn" title="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+                </div>
+                <div id="instrLibBody" style="padding:14px 20px; overflow:auto; flex:1;"></div>
+                <div style="padding:12px 20px; border-top:1px solid rgba(127,127,127,0.20); background:rgba(127,127,127,0.06);">
+                    <label style="display:block; font-size:11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1.4px; margin-bottom:8px;">Add your own instruction</label>
+                    <div style="display:flex; gap:8px;">
+                        <input id="newInstrText" type="text" placeholder="Type a new instruction and save it to your library..." style="flex:1; background:var(--bg-input, rgba(127,127,127,0.08)); color:inherit; border:1px solid rgba(127,127,127,0.30); border-radius:6px; padding:8px 12px; font-size:13px; font-family:inherit;">
+                        <button type="button" id="newInstrSave" class="t-thin-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 5v14"/><path d="M5 12h14"/></svg> Save</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(ov);
+        ov.addEventListener('click', e => { if (e.target === ov) closeInstrLib(); });
+        document.getElementById('instrLibClose').addEventListener('click', closeInstrLib);
+        document.getElementById('newInstrSave').addEventListener('click', saveNewInstr);
+        document.getElementById('newInstrText').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveNewInstr(); } });
+    }
+    renderInstrLib();
+    ov.style.display = 'flex';
+}
+function closeInstrLib() { const ov = document.getElementById('instrLibOverlay'); if (ov) ov.style.display = 'none'; }
+function renderInstrLib() {
+    const body = document.getElementById('instrLibBody');
+    if (!body) return;
+    const itemStyle = 'display:flex; gap:10px; align-items:center; padding:10px 12px; border:1px solid rgba(127,127,127,0.20); border-radius:6px; margin-bottom:6px; background:transparent; cursor:pointer; transition:background .15s, border-color .15s;';
+    let html = '';
+    if (instrLib.mine && instrLib.mine.length) {
+        html += '<div style="font-size:11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1.4px; margin:4px 0 8px;">My saved instructions</div>';
+        instrLib.mine.forEach(it => {
+            html += `<div class="instr-item" data-text="${escapeAttr(it.text)}" style="${itemStyle}">
+                <span style="flex:1; font-size:13px; color:inherit;">${escapeHtml(it.text)}</span>
+                <button type="button" class="instr-del t-icon-btn danger" data-id="${it.id}" title="Delete from my library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>
+            </div>`;
+        });
+    }
+    html += '<div style="font-size:11px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1.4px; margin:14px 0 8px;">DBE / CAPS instruction library</div>';
+    const renderItem = (text) => `<div class="instr-item" data-text="${escapeAttr(text)}" style="${itemStyle}">
+            <span style="flex:1; font-size:13px; color:inherit;">${escapeHtml(text)}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="color:var(--text-secondary); flex-shrink:0;"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+        </div>`;
+    if (instrLib.categories && instrLib.categories.length) {
+        instrLib.categories.forEach(cat => {
+            html += `<details open style="margin-bottom:10px; border:1px solid rgba(127,127,127,0.18); border-radius:8px; padding:8px 10px; background:rgba(127,127,127,0.04);">
+                <summary style="cursor:pointer; font-size:12.5px; font-weight:600; color:var(--text); padding:4px 2px; display:flex; align-items:center; gap:6px;">
+                    <span style="flex:1;">${escapeHtml(cat.name)}</span>
+                    <span style="font-size:10.5px; color:var(--text-tertiary); font-weight:500;">${cat.items.length} item${cat.items.length===1?'':'s'}</span>
+                </summary>
+                <div style="margin-top:8px;">${cat.items.map(renderItem).join('')}</div>
+            </details>`;
+        });
+    } else {
+        (instrLib.defaults || []).forEach(t => { html += renderItem(t); });
+    }
+    body.innerHTML = html;
+    body.querySelectorAll('.instr-item').forEach(el => {
+        el.addEventListener('mouseenter', () => { el.style.background = 'rgba(127,127,127,0.08)'; el.style.borderColor = 'rgba(127,127,127,0.40)'; });
+        el.addEventListener('mouseleave', () => { el.style.background = 'transparent'; el.style.borderColor = 'rgba(127,127,127,0.20)'; });
+        el.addEventListener('click', e => {
+            if (e.target.closest('.instr-del')) return;
+            insertInstruction(el.dataset.text);
+        });
+    });
+    body.querySelectorAll('.instr-del').forEach(btn => {
+        btn.addEventListener('click', async e => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const r = await fetch('/teacher/instruction-templates/' + id, { method: 'DELETE', credentials: 'same-origin' });
+            if (r.ok) { instrLib.mine = instrLib.mine.filter(x => x.id !== id); renderInstrLib(); }
+        });
+    });
+}
+function insertInstruction(text) {
+    const ta = document.getElementById('instructionsField');
+    const cur = (ta.value || '').replace(/\s+$/, '');
+    _setField('#instructionsField', cur ? cur + '\n' + text : text);
+    ta.focus();
+}
+async function saveNewInstr() {
+    const inp = document.getElementById('newInstrText');
+    const text = (inp.value || '').trim();
+    if (!text) return;
+    const r = await fetch('{{ url_for("teacher_instruction_templates_create") }}', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ text })
+    });
+    if (r.ok) {
+        const j = await r.json();
+        if (!j.duplicate) instrLib.mine.unshift({ id: j.id, text: j.text });
+        inp.value = '';
+        renderInstrLib();
+    }
+}
+document.getElementById('openInstrLib').addEventListener('click', () => { loadInstrLib().then(openInstrLib); });
+loadInstrLib();
+
+/* ---- Live preview iframe controls ---- */
+(function(){
+    const iframe = document.getElementById('genPreviewFrame');
+    if (!iframe) return;
+    const refreshBtn = document.getElementById('genPreviewRefresh');
+    const status = document.getElementById('genPreviewStatus');
+    const reload = async () => {
+        if (status) { status.textContent = 'Loading…'; }
+        const base = iframe.dataset.src;
+        const url = base + (base.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now();
+        // Smooth in-place swap: fetch the new HTML and replace just the
+        // <body> contents of the existing iframe document. This avoids the
+        // full-navigation flash and keeps the iframe's scroll position
+        // because we never navigate away.
+        try {
+            const r = await fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!r.ok) throw new Error('http ' + r.status);
+            const html = await r.text();
+            const doc = iframe.contentDocument;
+            if (!doc) throw new Error('no contentDocument');
+            // Parse the new HTML and lift its <body> into the existing doc.
+            const parser = new DOMParser();
+            const newDoc = parser.parseFromString(html, 'text/html');
+            // Sync any new <link>/<style> from the new <head> (idempotent).
+            const newHeadHTML = newDoc.head ? newDoc.head.innerHTML : '';
+            if (newHeadHTML && doc.head && doc.head.innerHTML !== newHeadHTML) {
+                doc.head.innerHTML = newHeadHTML;
+            }
+            // Preserve scroll across the swap.
+            const w = iframe.contentWindow;
+            const sx = (w && w.scrollX) || 0;
+            const sy = (w && w.scrollY) || 0;
+            if (newDoc.body && doc.body) {
+                // Copy attributes then innerHTML to avoid losing classes.
+                Array.from(newDoc.body.attributes).forEach(a => doc.body.setAttribute(a.name, a.value));
+                doc.body.innerHTML = newDoc.body.innerHTML;
+            }
+            try { if (w) w.scrollTo(sx, sy); } catch(_) {}
+            // Re-apply once more after layout settles (images, fonts).
+            requestAnimationFrame(() => { try { if (w) w.scrollTo(sx, sy); } catch(_) {} });
+            if (status) status.textContent = 'Up to date';
+        } catch (err) {
+            // Fallback: full reload (preserves scroll via the load handler below).
+            let savedScroll = null;
+            try {
+                const w = iframe.contentWindow;
+                if (w) savedScroll = { x: w.scrollX || 0, y: w.scrollY || 0 };
+            } catch(_) {}
+            iframe._restoreScroll = savedScroll;
+            iframe.src = url;
+        }
+    };
+    iframe.addEventListener('load', () => {
+        if (status) status.textContent = 'Up to date';
+        const s = iframe._restoreScroll;
+        if (s) {
+            try {
+                const w = iframe.contentWindow;
+                if (w) {
+                    w.scrollTo(s.x, s.y);
+                    requestAnimationFrame(() => { try { w.scrollTo(s.x, s.y); } catch(_) {} });
+                    setTimeout(() => { try { w.scrollTo(s.x, s.y); } catch(_) {} }, 60);
+                }
+            } catch(_) {}
+            iframe._restoreScroll = null;
+        }
+    });
+    if (refreshBtn) refreshBtn.addEventListener('click', function(){
+        // Clear any persistent edit-focus highlight when the user manually refreshes.
+        try {
+            document.querySelectorAll('.sec-q.is-edited-focus').forEach(function(el){
+                el.classList.remove('is-edited-focus');
+                el.style.boxShadow = '';
+            });
+            var ifr = document.getElementById('genPreviewFrame');
+            if (ifr && ifr.contentDocument) {
+                ifr.contentDocument.querySelectorAll('.is-edited-focus').forEach(function(el){
+                    el.classList.remove('is-edited-focus');
+                    el.style.boxShadow = '';
+                });
+            }
+        } catch(_) {}
+        reload();
+    });
+    // After saving via the main form, reload preview once the page comes back.
+    // Also expose a global hook so other code (drag/drop, add-question) can refresh.
+    window.refreshPaperPreview = reload;
+    // Auto-refresh whenever the form is submitted via the normal save button
+    const form = document.getElementById('paperForm');
+    if (form) form.addEventListener('submit', () => { if (status) status.textContent = 'Saving…'; });
+
+    // ---- Auto-save: POST the form in the background whenever the user
+    // changes anything on the left, then refresh the preview. Heavily debounced
+    // so typing doesn't trigger constant reloads, and the iframe is only
+    // reloaded once the user has actually paused (no focus inside the form for
+    // a moment) — this prevents the "jumping" effect while editing.
+    if (form) {
+        const SAVE_DEBOUNCE = 350;     // wait this long after last keystroke before saving
+        const SAVE_MAX_WAIT = 1200;    // …but never wait longer than this once edits start
+        let saveTimer = null;
+        let maxTimer = null;
+        let inFlight = false;
+        let queued = false;
+        const setStatus = (t) => { if (status) status.textContent = t; };
+        const doSave = async () => {
+            if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+            if (maxTimer)  { clearTimeout(maxTimer);  maxTimer  = null; }
+            if (inFlight) { queued = true; return; }
+            inFlight = true;
+            setStatus('Saving…');
+            try {
+                const fd = new FormData(form);
+                fd.append('__autosave', '1');
+                const r = await fetch(form.action || window.location.pathname, {
+                    method: 'POST',
+                    body: fd,
+                    credentials: 'same-origin',
+                    redirect: 'follow',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (r.ok) {
+                    reload();
+                    // Reload any open Memo / preview tabs so deletes, additions
+                    // and edits in the editor flow through to them too.
+                    if (window.__refreshMemoWindows) window.__refreshMemoWindows();
+                } else {
+                    let msg = 'Save failed';
+                    try {
+                        const t = (await r.text() || '').trim();
+                        if (t) msg = t;
+                    } catch(_) {}
+                    setStatus('Save failed');
+                    if (typeof showToast === 'function') showToast(msg);
+                }
+            } catch (err) {
+                setStatus('Offline');
+            } finally {
+                inFlight = false;
+                if (queued) { queued = false; scheduleSave(0); }
+            }
+        };
+        const scheduleSave = (delay = SAVE_DEBOUNCE) => {
+            if (saveTimer) clearTimeout(saveTimer);
+            setStatus('Editing…');
+            saveTimer = setTimeout(doSave, delay);
+            // Hard ceiling: even if the user keeps typing, fire at most every
+            // SAVE_MAX_WAIT ms so the preview keeps tracking continuously.
+            if (!maxTimer) {
+                maxTimer = setTimeout(() => { maxTimer = null; doSave(); }, SAVE_MAX_WAIT);
+            }
+        };
+        form.addEventListener('input',  () => scheduleSave());
+        form.addEventListener('change', () => scheduleSave());
+        const logoInput = form.querySelector('input[name="logo"]');
+        if (logoInput) logoInput.addEventListener('change', () => scheduleSave(0));
+        const logoClear = form.querySelector('input[name="logo_clear"]');
+        if (logoClear) logoClear.addEventListener('change', () => scheduleSave(0));
+        // Watch the hidden #sectionsJson (mutated by the section editor JS).
+        const sectionsJson = document.getElementById('sectionsJson');
+        if (sectionsJson) {
+            const mo = new MutationObserver(() => scheduleSave());
+            mo.observe(sectionsJson, { attributes: true, attributeFilter: ['value'] });
+            let lastHash = sectionsJson.value;
+            setInterval(() => {
+                if (sectionsJson.value !== lastHash) {
+                    lastHash = sectionsJson.value;
+                    scheduleSave();
+                }
+            }, 600);
+        }
+        // Save immediately if the user navigates away or closes the tab.
+        window.addEventListener('beforeunload', () => {
+            if (saveTimer) { clearTimeout(saveTimer); navigator.sendBeacon && navigator.sendBeacon(form.action || window.location.pathname, new FormData(form)); }
+        });
+        window.savePaperSoon = (delay = SAVE_DEBOUNCE) => scheduleSave(delay);
+        window.savePaperNow = () => { if (saveTimer) clearTimeout(saveTimer); doSave(); };
+    }
+})();
+
+/* ---- Resizable split divider ---- */
+(function(){
+    const split = document.querySelector('.gen-split');
+    const divider = document.getElementById('genSplitDivider');
+    if (!split || !divider) return;
+    const STORAGE_KEY = 'genSplitLeftFr';
+    const apply = (leftFr) => {
+        leftFr = Math.max(0.15, Math.min(0.85, leftFr));
+        const rightFr = 1 - leftFr;
+        split.style.setProperty('--gen-left', leftFr + 'fr');
+        split.style.setProperty('--gen-right', rightFr + 'fr');
+    };
+    const saved = parseFloat(localStorage.getItem(STORAGE_KEY));
+    if (!isNaN(saved)) apply(saved);
+    let dragging = false;
+    let activePointerId = null;
+    let dragOverlay = null;
+    const removeOverlay = () => {
+        if (dragOverlay && dragOverlay.parentNode) dragOverlay.parentNode.removeChild(dragOverlay);
+        dragOverlay = null;
+    };
+    const restoreIframe = () => {
+        // Belt-and-braces: clear any stuck inline pointer-events from old code paths.
+        const iframe = document.getElementById('genPreviewFrame');
+        if (iframe && iframe.style.pointerEvents === 'none') iframe.style.pointerEvents = '';
+        removeOverlay();
+    };
+    const onMove = (e) => {
+        if (!dragging) return;
+        const rect = split.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const frac = x / rect.width;
+        apply(frac);
+    };
+    const stop = () => {
+        if (!dragging) return;
+        dragging = false;
+        divider.classList.remove('is-dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        restoreIframe();
+        if (activePointerId !== null) {
+            try { divider.releasePointerCapture(activePointerId); } catch(_) {}
+            activePointerId = null;
+        }
+        const cur = parseFloat(getComputedStyle(split).getPropertyValue('--gen-left')) || NaN;
+        if (!isNaN(cur)) localStorage.setItem(STORAGE_KEY, cur);
+    };
+    const start = (e) => {
+        dragging = true;
+        divider.classList.add('is-dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        // Cover the whole viewport with a transparent overlay so the iframe (and
+        // anything else) can't swallow the drag. The overlay is removed on stop()
+        // so there's no way to get permanently stuck.
+        if (!dragOverlay) {
+            dragOverlay = document.createElement('div');
+            dragOverlay.style.cssText = 'position:fixed;inset:0;z-index:9999;cursor:col-resize;background:transparent;';
+            document.body.appendChild(dragOverlay);
+        }
+        e.preventDefault();
+    };
+    // Prefer Pointer Events: setPointerCapture guarantees pointerup fires on the
+    // divider even if the cursor ends up over the iframe.
+    if (window.PointerEvent) {
+        divider.addEventListener('pointerdown', (e) => {
+            start(e);
+            activePointerId = e.pointerId;
+            try { divider.setPointerCapture(e.pointerId); } catch(_) {}
+        });
+        divider.addEventListener('pointermove', onMove);
+        divider.addEventListener('pointerup', stop);
+        divider.addEventListener('pointercancel', stop);
+        divider.addEventListener('lostpointercapture', stop);
+    } else {
+        divider.addEventListener('mousedown', start);
+        divider.addEventListener('touchstart', start, { passive: false });
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('mouseup', stop);
+        window.addEventListener('touchend', stop);
+    }
+    // Safety nets: if anything weird happens (window blur, tab hidden, escape),
+    // make sure we never leave the iframe blocked.
+    window.addEventListener('blur', stop);
+    window.addEventListener('mouseup', stop);   // fallback for any edge case
+    window.addEventListener('pointerup', stop); // fallback when capture is lost early
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) restoreIframe(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') stop(); });
+    divider.addEventListener('keydown', (e) => {
+        const cur = parseFloat(getComputedStyle(split).getPropertyValue('--gen-left')) || 0.5;
+        if (e.key === 'ArrowLeft')  { apply(cur - 0.03); localStorage.setItem(STORAGE_KEY, cur - 0.03); e.preventDefault(); }
+        if (e.key === 'ArrowRight') { apply(cur + 0.03); localStorage.setItem(STORAGE_KEY, cur + 0.03); e.preventDefault(); }
+    });
+})();
+</script>
+
+<style>
+/* Custom tooltips (replaces native browser title popup) */
+.gen-tip {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    background: rgba(245, 245, 247, 0.95);
+    color: #6B7280;
+    font: 400 10px/1.2 "Segoe UI", "Segoe UI Variable", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    letter-spacing: 0.05px;
+    padding: 2px 5px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 2px;
+    max-width: 200px;
+    white-space: normal;
+    word-wrap: break-word;
+    box-shadow: none;
+    opacity: 0;
+    transition: opacity 70ms ease;
+}
+.gen-tip.is-visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+    .gen-tip { transition: none; }
+}
+</style>
+<script>
+/* Lightweight tooltip system that hijacks `title` attributes on this page. */
+(function () {
+    if (window.__genTipInit) return;
+    window.__genTipInit = true;
+
+    const TIP_DELAY = 220;
+    const tip = document.createElement('div');
+    tip.className = 'gen-tip';
+    tip.setAttribute('role', 'tooltip');
+    tip.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(tip);
+
+    let showTimer = null;
+    let currentTarget = null;
+
+    function findTipTarget(el) {
+        while (el && el !== document.body) {
+            if (el.nodeType === 1) {
+                if (el.hasAttribute('data-tip'))  return el;
+                if (el.hasAttribute('title') && el.getAttribute('title').trim() !== '') return el;
+            }
+            el = el.parentElement;
+        }
+        return null;
+    }
+
+    function getText(el) {
+        return (el.getAttribute('data-tip') || el.getAttribute('title') || '').trim();
+    }
+
+    function suppressNative(el) {
+        if (el.hasAttribute('title') && !el.hasAttribute('data-tip')) {
+            el.setAttribute('data-tip', el.getAttribute('title'));
+            el.removeAttribute('title');
+        }
+    }
+
+    function hide() {
+        if (showTimer) { clearTimeout(showTimer); showTimer = null; }
+        currentTarget = null;
+        tip.classList.remove('is-visible');
+        tip.setAttribute('aria-hidden', 'true');
+    }
+
+    function position(el) {
+        const r = el.getBoundingClientRect();
+        const tipRect = tip.getBoundingClientRect();
+        const margin = 8;
+        let top = r.top - tipRect.height - margin;
+        let pos = 'top';
+        if (top < 4) {
+            top = r.bottom + margin;
+            pos = 'bottom';
+        }
+        let left = r.left + (r.width / 2) - (tipRect.width / 2);
+        const minL = 4;
+        const maxL = window.innerWidth - tipRect.width - 4;
+        if (left < minL) left = minL;
+        if (left > maxL) left = maxL;
+        const arrowX = (r.left + r.width / 2) - left;
+        tip.style.left = left + 'px';
+        tip.style.top = top + 'px';
+        tip.style.setProperty('--tip-arrow-x', arrowX + 'px');
+        tip.setAttribute('data-pos', pos);
+    }
+
+    function show(el) {
+        const text = getText(el);
+        if (!text) return;
+        currentTarget = el;
+        tip.textContent = text;
+        tip.style.left = '-9999px';
+        tip.style.top = '-9999px';
+        tip.classList.add('is-visible');
+        tip.setAttribute('aria-hidden', 'false');
+        // Position after render so we have width/height
+        requestAnimationFrame(() => { if (currentTarget === el) position(el); });
+    }
+
+    document.addEventListener('mouseover', (e) => {
+        const t = findTipTarget(e.target);
+        if (!t) return;
+        suppressNative(t);
+        if (currentTarget === t) return;
+        if (showTimer) clearTimeout(showTimer);
+        showTimer = setTimeout(() => show(t), TIP_DELAY);
+    }, true);
+
+    document.addEventListener('mouseout', (e) => {
+        const t = findTipTarget(e.target);
+        if (!t) return;
+        // Only hide when leaving the tipped element entirely
+        if (e.relatedTarget && t.contains(e.relatedTarget)) return;
+        hide();
+    }, true);
+
+    document.addEventListener('focusin', (e) => {
+        const t = findTipTarget(e.target);
+        if (!t) return;
+        suppressNative(t);
+        show(t);
+    });
+    document.addEventListener('focusout', hide);
+
+    document.addEventListener('mousedown', hide, true);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+})();
+</script>
+{% endblock %}

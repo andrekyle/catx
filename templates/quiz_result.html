@@ -1,0 +1,315 @@
+﻿{% extends "lms_base.html" %}
+{% block title %}Results: {{ attempt.quiz.title }} - CAT LMS{% endblock %}
+
+{% block extra_css %}
+<style>
+.qr-wrap {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui,
+                 'Helvetica Neue', Arial, sans-serif;
+    max-width: 760px; margin: 8px auto 0;
+    color: #242424;
+}
+.qr-crumb {
+    font-size: 13px; color: #605E5C;
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin-bottom: 24px;
+}
+.qr-crumb a { color: #0078D4; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.qr-crumb a:hover { text-decoration: underline; }
+.qr-crumb i { font-size: 14px !important; }
+
+/* Hero result card -------------------------------------------- */
+.qr-hero {
+    background: #fff;
+    border: 1px solid #E1DFDD;
+    border-radius: 8px;
+    padding: 36px 32px 32px;
+    margin-bottom: 24px;
+    text-align: center;
+}
+.qr-medal {
+    width: 64px; height: 64px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+    border: 1px solid;
+}
+.qr-medal i { font-size: 32px !important; line-height: 1; }
+.qr-medal.pass { background: #DFF6DD; border-color: #9FD89F; color: #107C10; }
+.qr-medal.fail { background: #FED9CC; border-color: #F4B6A6; color: #D13438; }
+
+.qr-kicker {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin: 0 0 6px;
+}
+.qr-kicker.pass { color: #107C10; }
+.qr-kicker.fail { color: #D13438; }
+
+.qr-title {
+    font-size: 28px; font-weight: 600; letter-spacing: -0.4px;
+    color: #242424; line-height: 1.2; margin: 0 0 6px;
+}
+.qr-quiz-name { color: #605E5C; font-size: 14px; margin: 0; }
+
+.qr-score-block { margin: 28px 0 8px; }
+.qr-score {
+    font-size: 56px; font-weight: 600;
+    letter-spacing: -2px; line-height: 1;
+    color: #242424;
+}
+.qr-score.pass { color: #107C10; }
+.qr-score.fail { color: #D13438; }
+.qr-score-detail { color: #605E5C; font-size: 14px; margin-top: 4px; }
+
+/* Progress bar */
+.qr-progress {
+    max-width: 360px; margin: 18px auto 4px;
+    height: 6px; background: #EDEBE9; border-radius: 3px; overflow: hidden;
+    position: relative;
+}
+.qr-progress-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+.qr-progress-fill.pass { background: #107C10; }
+.qr-progress-fill.fail { background: #D13438; }
+.qr-progress-mark {
+    position: absolute; top: -3px; bottom: -3px;
+    width: 2px; background: #605E5C;
+}
+.qr-progress-legend {
+    display: flex; justify-content: space-between;
+    max-width: 360px; margin: 6px auto 0;
+    font-size: 11px; color: #605E5C;
+}
+
+/* Stats row */
+.qr-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 0; margin-top: 28px;
+    border-top: 1px solid #E1DFDD;
+}
+.qr-stat {
+    padding: 18px 12px 4px;
+    border-right: 1px solid #E1DFDD;
+}
+.qr-stat:last-child { border-right: 0; }
+.qr-stat-label {
+    font-size: 11px; font-weight: 600; color: #605E5C;
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+}
+.qr-stat-value {
+    font-size: 16px; font-weight: 600; color: #242424;
+    letter-spacing: -0.2px;
+}
+.qr-stat-value.pass { color: #107C10; }
+.qr-stat-value.fail { color: #D13438; }
+
+/* Section header */
+.qr-section-label {
+    font-size: 11px; font-weight: 700; color: #605E5C;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    margin: 28px 0 10px;
+}
+
+/* Review list */
+.qr-review {
+    background: #fff; border: 1px solid #E1DFDD;
+    border-radius: 6px; overflow: hidden;
+    margin-bottom: 24px;
+}
+.qr-item {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 16px 18px;
+    border-bottom: 1px solid #EDEBE9;
+}
+.qr-item:last-child { border-bottom: 0; }
+.qr-mark {
+    width: 26px; height: 26px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px; border: 1px solid;
+}
+.qr-mark i { font-size: 14px !important; line-height: 1; }
+.qr-mark.ok { background: #DFF6DD; border-color: #9FD89F; color: #107C10; }
+.qr-mark.bad { background: #FED9CC; border-color: #F4B6A6; color: #D13438; }
+.qr-q { flex: 1; min-width: 0; }
+.qr-q-text {
+    font-size: 14px; font-weight: 600; color: #242424;
+    line-height: 1.45; margin: 0 0 6px;
+    letter-spacing: -0.1px;
+}
+.qr-ans-row {
+    font-size: 13px; color: #605E5C; line-height: 1.5;
+    margin: 2px 0; display: flex; gap: 6px; flex-wrap: wrap;
+}
+.qr-ans-row .ans-label { font-weight: 600; color: #605E5C; }
+.qr-ans-row .ans-val { color: #242424; }
+.qr-ans-row.correct .ans-label { color: #107C10; }
+.qr-ans-row.correct .ans-val { color: #107C10; font-weight: 600; }
+.qr-ans-row.muted .ans-val { color: #8A8886; font-style: italic; }
+
+/* Action row */
+.qr-actions {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    margin-top: 4px;
+}
+.qr-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 20px; border-radius: 4px;
+    font-size: 14px; font-weight: 600;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    text-decoration: none; cursor: pointer; border: 1px solid transparent;
+    transition: background .12s ease, border-color .12s ease;
+}
+.qr-btn.primary { background: #0078D4; color: #fff; border-color: #0078D4; box-shadow: 0 1px 0 rgba(0,0,0,0.05); }
+.qr-btn.primary:hover { background: #106EBE; border-color: #106EBE; color: #fff; }
+.qr-btn.primary:active { background: #005A9E; }
+.qr-btn.secondary { background: transparent; color: #242424; border-color: #C8C6C4; }
+.qr-btn.secondary:hover { background: #F3F2F1; border-color: #8A8886; }
+.qr-btn i { font-size: 14px !important; }
+
+/* Dark mode --------------------------------------------------- */
+[data-theme="dark"] .qr-wrap { color: #E6E6E6; }
+[data-theme="dark"] .qr-crumb { color: #A19F9D; }
+[data-theme="dark"] .qr-crumb a { color: #4CC2FF; }
+
+[data-theme="dark"] .qr-hero {
+    background: #252424; border-color: #3B3A39;
+}
+[data-theme="dark"] .qr-medal.pass {
+    background: rgba(108,203,95,0.14); border-color: rgba(108,203,95,0.4); color: #6CCB5F;
+}
+[data-theme="dark"] .qr-medal.fail {
+    background: rgba(255,59,48,0.16); border-color: rgba(255,59,48,0.42); color: #FF3B30;
+}
+[data-theme="dark"] .qr-kicker.pass { color: #6CCB5F; }
+[data-theme="dark"] .qr-kicker.fail { color: #FF3B30; }
+[data-theme="dark"] .qr-title { color: #FFFFFF; }
+[data-theme="dark"] .qr-quiz-name { color: #A19F9D; }
+[data-theme="dark"] .qr-score { color: #FFFFFF; }
+[data-theme="dark"] .qr-score.pass { color: #6CCB5F; }
+[data-theme="dark"] .qr-score.fail { color: #FF3B30; }
+[data-theme="dark"] .qr-score-detail { color: #A19F9D; }
+
+[data-theme="dark"] .qr-progress { background: #3B3A39; }
+[data-theme="dark"] .qr-progress-fill.pass { background: #6CCB5F; }
+[data-theme="dark"] .qr-progress-fill.fail { background: #FF3B30; }
+[data-theme="dark"] .qr-progress-mark { background: #A19F9D; }
+[data-theme="dark"] .qr-progress-legend { color: #A19F9D; }
+
+[data-theme="dark"] .qr-stats { border-top-color: #3B3A39; }
+[data-theme="dark"] .qr-stat { border-right-color: #3B3A39; }
+[data-theme="dark"] .qr-stat-label { color: #A19F9D; }
+[data-theme="dark"] .qr-stat-value { color: #FFFFFF; }
+[data-theme="dark"] .qr-stat-value.pass { color: #6CCB5F; }
+[data-theme="dark"] .qr-stat-value.fail { color: #FF3B30; }
+
+[data-theme="dark"] .qr-section-label { color: #A19F9D; }
+[data-theme="dark"] .qr-review { background: #252424; border-color: #3B3A39; }
+[data-theme="dark"] .qr-item { border-bottom-color: #3B3A39; }
+[data-theme="dark"] .qr-mark.ok {
+    background: rgba(108,203,95,0.14); border-color: rgba(108,203,95,0.4); color: #6CCB5F;
+}
+[data-theme="dark"] .qr-mark.bad {
+    background: rgba(255,59,48,0.16); border-color: rgba(255,59,48,0.42); color: #FF3B30;
+}
+[data-theme="dark"] .qr-q-text { color: #FFFFFF; }
+[data-theme="dark"] .qr-ans-row { color: #A19F9D; }
+[data-theme="dark"] .qr-ans-row .ans-label { color: #A19F9D; }
+[data-theme="dark"] .qr-ans-row .ans-val { color: #E6E6E6; }
+[data-theme="dark"] .qr-ans-row.correct .ans-label { color: #6CCB5F; }
+[data-theme="dark"] .qr-ans-row.correct .ans-val { color: #6CCB5F; }
+[data-theme="dark"] .qr-ans-row.muted .ans-val { color: #8A8886; }
+
+[data-theme="dark"] .qr-btn.primary { background: #0078D4; border-color: #0078D4; color: #fff; }
+[data-theme="dark"] .qr-btn.primary:hover { background: #106EBE; border-color: #106EBE; }
+[data-theme="dark"] .qr-btn.secondary { background: transparent; color: #E6E6E6; border-color: #605E5C; }
+[data-theme="dark"] .qr-btn.secondary:hover { background: #2B2B2B; border-color: #8A8886; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set passed = attempt.passed %}
+{% set pass_mark = attempt.quiz.pass_percentage|int %}
+{% set score = attempt.score|round(1) %}
+<div class="qr-wrap">
+    <div class="qr-crumb">
+        <a href="{{ url_for('grade_courses', grade_number=attempt.quiz.course.grade.number) }}">
+            <i class="ph-thin ph-arrow-left"></i>{{ attempt.quiz.course.grade.name }}
+        </a>
+    </div>
+
+    <div class="qr-hero">
+        <div class="qr-medal {{ 'pass' if passed else 'fail' }}">
+            <i class="ph-thin {{ 'ph-trophy' if passed else 'ph-x-circle' }}"></i>
+        </div>
+        <p class="qr-kicker {{ 'pass' if passed else 'fail' }}">
+            {% if passed %}You passed{% else %}Not passed{% endif %}
+        </p>
+        <h1 class="qr-title">{% if passed %}Congratulations!{% else %}Keep trying{% endif %}</h1>
+        <p class="qr-quiz-name">{{ attempt.quiz.title }}</p>
+
+        <div class="qr-score-block">
+            <div class="qr-score {{ 'pass' if passed else 'fail' }}">{{ score }}%</div>
+            <div class="qr-score-detail">{{ attempt.correct_answers }} of {{ attempt.total_questions }} correct</div>
+        </div>
+
+        <div class="qr-progress">
+            <div class="qr-progress-fill {{ 'pass' if passed else 'fail' }}" style="width: {{ score }}%;"></div>
+            <div class="qr-progress-mark" style="left: {{ pass_mark }}%;" title="Pass mark"></div>
+        </div>
+        <div class="qr-progress-legend">
+            <span>0%</span>
+            <span>Pass mark {{ pass_mark }}%</span>
+            <span>100%</span>
+        </div>
+
+        <div class="qr-stats">
+            <div class="qr-stat">
+                <div class="qr-stat-label">Status</div>
+                <div class="qr-stat-value {{ 'pass' if passed else 'fail' }}">{% if passed %}Passed{% else %}Not passed{% endif %}</div>
+            </div>
+            <div class="qr-stat">
+                <div class="qr-stat-label">Pass mark</div>
+                <div class="qr-stat-value">{{ pass_mark }}%</div>
+            </div>
+            <div class="qr-stat">
+                <div class="qr-stat-label">Date</div>
+                <div class="qr-stat-value">{% if attempt.completed_at %}{{ attempt.completed_at.strftime('%d %b %Y') }}{% else %}â€”{% endif %}</div>
+            </div>
+        </div>
+    </div>
+
+    {% if review %}
+    <p class="qr-section-label">Answer review</p>
+    <div class="qr-review">
+        {% for item in review %}
+        <div class="qr-item">
+            <div class="qr-mark {{ 'ok' if item.correct else 'bad' }}">
+                <i class="ph-thin {{ 'ph-check' if item.correct else 'ph-x' }}"></i>
+            </div>
+            <div class="qr-q">
+                <p class="qr-q-text">{{ item.question | safe }}</p>
+                <div class="qr-ans-row {% if item.user_answer in [None, '', 'No answer'] %}muted{% endif %}">
+                    <span class="ans-label">Your answer:</span>
+                    <span class="ans-val">{{ (item.user_answer or 'No answer') | safe }}</span>
+                </div>
+                {% if not item.correct %}
+                <div class="qr-ans-row correct">
+                    <span class="ans-label">Correct answer:</span>
+                    <span class="ans-val">{{ item.correct_answer | safe }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="qr-actions">
+        <a href="{{ url_for('quiz_start', quiz_id=attempt.quiz.id) }}" class="qr-btn primary">
+            <i class="ph-thin ph-arrow-clockwise"></i> Try again
+        </a>
+        <a href="{{ url_for('grade_courses', grade_number=attempt.quiz.course.grade.number) }}" class="qr-btn secondary">
+            <i class="ph-thin ph-arrow-left"></i> Back to {{ attempt.quiz.course.grade.name }}
+        </a>
+    </div>
+</div>
+{% endblock %}

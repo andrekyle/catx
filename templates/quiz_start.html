@@ -1,0 +1,317 @@
+﻿{% extends "lms_base.html" %}
+{% block title %}{{ quiz.title }} - {{ quiz.course.title }}{% endblock %}
+{% block content %}
+<style>
+/* ====================================================================== */
+/*  Microsoft Learn-style knowledge check / assessment start page          */
+/* ====================================================================== */
+.qs-wrap {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui,
+                 'Helvetica Neue', Arial, sans-serif;
+    max-width: 760px; margin: 8px auto 0;
+    color: #242424;
+}
+.qs-crumb {
+    font-size: 13px; color: #605E5C;
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin-bottom: 28px;
+}
+.qs-crumb a { color: #0078D4; text-decoration: none; }
+.qs-crumb a:hover { text-decoration: underline; }
+.qs-crumb .sep { color: #A19F9D; font-size: 11px; }
+.qs-crumb .current { color: #242424; font-weight: 500; }
+
+/* Hero header --------------------------------------------------- */
+.qs-header { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 28px; }
+.qs-icon {
+    width: 56px; height: 56px; border-radius: 8px;
+    background: #F0F6FC;
+    border: 1px solid #C7E0F4;
+    color: #0078D4;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.qs-icon i { font-size: 30px !important; line-height: 1; }
+.qs-icon.exam { background: #F5F0FA; border-color: #D9C7EC; color: #8764B8; }
+.qs-header-text { flex: 1; min-width: 0; padding-top: 2px; }
+.qs-kicker {
+    font-size: 11px; font-weight: 700; color: #0078D4;
+    text-transform: uppercase; letter-spacing: 0.8px; margin: 0 0 4px;
+}
+.qs-icon.exam ~ .qs-header-text .qs-kicker { color: #8764B8; }
+.qs-title {
+    font-size: 32px; font-weight: 600; letter-spacing: -0.4px;
+    color: #242424; line-height: 1.15; margin: 0 0 6px;
+}
+.qs-subtitle { color: #605E5C; font-size: 14px; margin: 0; line-height: 1.5; }
+
+/* Facts grid (time / questions / pass / type) */
+.qs-facts {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0; margin: 0 0 28px;
+    border: 1px solid #E1DFDD; border-radius: 6px;
+    background: #fff; overflow: hidden;
+}
+@media (max-width: 720px) {
+    .qs-facts { grid-template-columns: repeat(2, 1fr); }
+}
+.qs-fact { padding: 16px 18px; border-right: 1px solid #E1DFDD; transition: background .15s; }
+.qs-fact:last-child { border-right: 0; }
+.qs-fact:hover { background: #FAFAFA; }
+@media (max-width: 720px) {
+    .qs-fact:nth-child(2) { border-right: 0; }
+    .qs-fact:nth-child(1), .qs-fact:nth-child(2) { border-bottom: 1px solid #E1DFDD; }
+}
+.qs-fact-label {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11px; font-weight: 600; color: #605E5C;
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+}
+.qs-fact-label i { color: #605E5C; font-size: 16px !important; }
+.qs-fact-value {
+    font-size: 18px; font-weight: 600; color: #242424;
+    letter-spacing: -0.2px; line-height: 1.2;
+}
+
+/* Instructions panel */
+.qs-instructions {
+    background: #FAFAFA; border: 1px solid #EDEBE9;
+    border-left: 3px solid #0078D4;
+    padding: 16px 20px; border-radius: 4px;
+    margin-bottom: 28px;
+    font-size: 14px; line-height: 1.6; color: #242424;
+}
+.qs-instructions strong.label {
+    color: #242424; font-weight: 600; display: flex; align-items: center; gap: 6px;
+    margin-bottom: 6px; font-size: 13px;
+}
+.qs-instructions strong.label i { color: #0078D4; font-size: 16px !important; }
+.qs-instructions ul { margin: 4px 0 0; padding-left: 22px; }
+.qs-instructions li { margin-bottom: 3px; }
+.qs-instructions li:last-child { margin-bottom: 0; }
+
+/* Action row */
+.qs-actions {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    padding-top: 4px;
+}
+.qs-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 20px; border-radius: 4px;
+    font-size: 14px; font-weight: 600;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    text-decoration: none; cursor: pointer; border: 1px solid transparent;
+    transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.qs-btn.primary { background: #0078D4; color: #fff; border-color: #0078D4; box-shadow: 0 1px 0 rgba(0,0,0,0.05); }
+.qs-btn.primary:hover { background: #106EBE; border-color: #106EBE; color: #fff; }
+.qs-btn.primary:active { background: #005A9E; }
+.qs-btn.secondary { background: transparent; color: #242424; border-color: #C8C6C4; }
+.qs-btn.secondary:hover { background: #F3F2F1; border-color: #8A8886; }
+.qs-btn i { font-size: 14px !important; }
+.qs-btn.primary i { color: #fff; }
+
+/* Past attempts */
+.qs-section-label {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.6px; color: #9E9E9E;
+    margin: 40px 0 12px;
+    display: flex; align-items: center; gap: 10px;
+}
+.qs-section-label::after {
+    content: ''; flex: 1; height: 1px; background: #E8E8E8;
+}
+.qs-section-label { color: #888; font-size: 10.5px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; display: flex; align-items: center; gap: 12px; margin: 28px 0 12px; }
+.qs-section-label::after { content: ''; flex: 1; height: 1px; background: #E8E8E8; }
+.qs-attempts {
+    display: flex; flex-direction: column; gap: 8px;
+}
+.qs-attempt {
+    display: grid; grid-template-columns: 44px 1fr auto;
+    gap: 0 16px; align-items: center;
+    padding: 16px 20px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.07);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 14px rgba(0,0,0,0.04);
+    font-size: 14px;
+    transition: transform .15s, box-shadow .15s;
+}
+.qs-attempt:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.10); }
+.qs-attempt-left { display: flex; align-items: center; gap: 14px; }
+.qs-attempt-status {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: #fff;
+}
+.qs-attempt-status.pass {
+    background: linear-gradient(135deg,#22C55E,#16A34A);
+}
+.qs-attempt-status.fail {
+    background: linear-gradient(135deg,#F87171,#DC2626);
+}
+.qs-attempt-info { display: flex; flex-direction: column; gap: 5px; }
+.qs-attempt-score-row { display: flex; align-items: baseline; gap: 8px; }
+.qs-attempt-score {
+    font-weight: 800; font-size: 18px; letter-spacing: -0.5px;
+}
+.is-pass .qs-attempt-score { color: #16A34A; }
+.is-fail .qs-attempt-score { color: #DC2626; }
+.qs-attempt-label {
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.is-pass .qs-attempt-label { color: #16A34A; }
+.is-fail .qs-attempt-label { color: #DC2626; }
+.qs-attempt-bar-wrap {
+    height: 4px; width: 140px; background: #f0f0f0; border-radius: 999px; overflow: hidden;
+}
+.qs-attempt-bar {
+    height: 100%; border-radius: 999px;
+    transition: width .4s ease;
+}
+.is-pass .qs-attempt-bar { background: linear-gradient(90deg,#22C55E,#16A34A); }
+.is-fail .qs-attempt-bar { background: linear-gradient(90deg,#F87171,#DC2626); }
+.qs-attempt-date {
+    color: #999; font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.qs-attempt-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.qs-attempt a {
+    display: inline-flex; align-items: center; gap: 5px;
+    color: #fff; font-size: 12px; font-weight: 600;
+    text-decoration: none; white-space: nowrap;
+    background: #111; padding: 7px 16px; border-radius: 980px;
+    letter-spacing: 0.2px;
+    transition: background .15s, transform .12s;
+}
+.qs-attempt a:hover { background: #333; transform: translateY(-1px); }
+.qs-attempt a i { font-size: 10px !important; }
+
+/* Dark mode */
+[data-theme="dark"] .qs-wrap { color: #E6E6E6; }
+[data-theme="dark"] .qs-crumb { color: #A19F9D; }
+[data-theme="dark"] .qs-crumb a { color: #4CC2FF; }
+[data-theme="dark"] .qs-crumb .current { color: #FFFFFF; }
+[data-theme="dark"] .qs-crumb .sep { color: #605E5C; }
+[data-theme="dark"] .qs-icon { background: rgba(0,120,212,0.14); border-color: rgba(76,194,255,0.35); color: #4CC2FF; }
+[data-theme="dark"] .qs-icon.exam { background: rgba(135,100,184,0.18); border-color: rgba(180,140,224,0.4); color: #B48CE0; }
+[data-theme="dark"] .qs-kicker { color: #4CC2FF; }
+[data-theme="dark"] .qs-icon.exam ~ .qs-header-text .qs-kicker { color: #B48CE0; }
+[data-theme="dark"] .qs-title { color: #FFFFFF; }
+[data-theme="dark"] .qs-subtitle { color: #A19F9D; }
+[data-theme="dark"] .qs-facts { background: #252424; border-color: #3B3A39; }
+[data-theme="dark"] .qs-fact { border-right-color: #3B3A39; }
+[data-theme="dark"] .qs-fact:hover { background: #2B2B2B; }
+[data-theme="dark"] .qs-fact-label { color: #A19F9D; }
+[data-theme="dark"] .qs-fact-label i { color: #A19F9D; }
+[data-theme="dark"] .qs-fact-value { color: #FFFFFF; }
+[data-theme="dark"] .qs-instructions { background: #252424; border-color: #3B3A39; border-left-color: #4CC2FF; color: #E6E6E6; }
+[data-theme="dark"] .qs-instructions strong.label,
+[data-theme="dark"] .qs-instructions strong { color: #FFFFFF; }
+[data-theme="dark"] .qs-instructions strong.label i { color: #4CC2FF; }
+[data-theme="dark"] .qs-btn.primary { background: #0078D4; border-color: #0078D4; color: #fff; }
+[data-theme="dark"] .qs-btn.primary:hover { background: #106EBE; border-color: #106EBE; }
+[data-theme="dark"] .qs-btn.secondary { background: transparent; color: #E6E6E6; border-color: #605E5C; }
+[data-theme="dark"] .qs-btn.secondary:hover { background: #2B2B2B; border-color: #8A8886; }
+[data-theme="dark"] .qs-section-label { color: #6B6B6B; }
+[data-theme="dark"] .qs-section-label::after { background: #333; }
+[data-theme="dark"] .qs-attempt { background: #1C1C1C; border-color: rgba(255,255,255,0.07); box-shadow: 0 2px 12px rgba(0,0,0,0.35); }
+[data-theme="dark"] .qs-attempt:hover { background: #222; box-shadow: 0 6px 24px rgba(0,0,0,0.5); }
+[data-theme="dark"] .qs-attempt-bar-wrap { background: rgba(255,255,255,0.08); }
+[data-theme="dark"] .qs-attempt-date { color: #555; }
+[data-theme="dark"] .qs-attempt a { background: rgba(255,255,255,0.1); color: #fff; }
+[data-theme="dark"] .qs-attempt a:hover { background: rgba(255,255,255,0.18); }
+</style>
+
+<div class="qs-wrap">
+
+    <nav class="qs-crumb" aria-label="Breadcrumb">
+        <a href="{{ url_for('index') }}">Learn</a>
+        <span class="sep">â€º</span>
+        {% if quiz.course.grade %}
+        <a href="{{ url_for('grade_courses', grade_number=quiz.course.grade.number) }}">{{ quiz.course.grade.name }}</a>
+        <span class="sep">â€º</span>
+        {% endif %}
+        <a href="{{ url_for('grade_courses', grade_number=quiz.course.grade.number) }}">{{ quiz.course.title }}</a>
+        <span class="sep">â€º</span>
+        <span class="current">{{ quiz.title }}</span>
+    </nav>
+
+    <div class="qs-header">
+        <div class="qs-icon {% if quiz.quiz_type == 'exam' %}exam{% endif %}">
+            <i class="ph-thin {% if quiz.quiz_type == 'exam' %}ph-trophy{% else %}ph-clipboard-text{% endif %}"></i>
+        </div>
+        <div class="qs-header-text">
+            <p class="qs-kicker">{% if quiz.quiz_type == 'exam' %}Assessment{% else %}Knowledge check{% endif %}</p>
+            <h1 class="qs-title">{{ quiz.title }}</h1>
+            <p class="qs-subtitle">Test what you've learned in <strong style="color:inherit; font-weight:600;">{{ quiz.course.title }}</strong>{% if quiz.course.grade %} &middot; {{ quiz.course.grade.name }}{% endif %}</p>
+        </div>
+    </div>
+
+    <div class="qs-facts">
+        <div class="qs-fact">
+            <div class="qs-fact-label"><i class="ph-thin ph-clock"></i> Time limit</div>
+            <div class="qs-fact-value">{{ quiz.time_limit_minutes }} min</div>
+        </div>
+        <div class="qs-fact">
+            <div class="qs-fact-label"><i class="ph-thin ph-list-numbers"></i> Questions</div>
+            <div class="qs-fact-value">{{ quiz.questions|length }}</div>
+        </div>
+        <div class="qs-fact">
+            <div class="qs-fact-label"><i class="ph-thin ph-target"></i> Pass score</div>
+            <div class="qs-fact-value">{{ quiz.pass_percentage }}%</div>
+        </div>
+        <div class="qs-fact">
+            <div class="qs-fact-label"><i class="ph-thin ph-tag"></i> Type</div>
+            <div class="qs-fact-value">{{ quiz.quiz_type|replace('_', ' ')|title }}</div>
+        </div>
+    </div>
+
+    <div class="qs-instructions">
+        <strong class="label"><i class="ph-thin ph-info"></i> Before you begin</strong>
+        <ul>
+            <li>You have <strong>{{ quiz.time_limit_minutes }} minutes</strong> to complete {{ quiz.questions|length }} question{{ 's' if quiz.questions|length != 1 }}.</li>
+            <li>You need <strong>{{ quiz.pass_percentage }}%</strong> or higher to pass.</li>
+            <li>Your answers are submitted when the timer ends or when you click Submit.</li>
+        </ul>
+    </div>
+
+    <div class="qs-actions">
+        <a href="{{ url_for('quiz_take', quiz_id=quiz.id) }}" class="qs-btn primary">
+            Start {% if quiz.quiz_type == 'exam' %}assessment{% else %}knowledge check{% endif %}
+            <i class="ph-thin ph-arrow-right"></i>
+        </a>
+        <a href="{{ url_for('grade_courses', grade_number=quiz.course.grade.number) }}" class="qs-btn secondary">
+            Cancel
+        </a>
+    </div>
+
+    {% if attempts %}
+    <p class="qs-section-label">Previous attempts</p>
+    <div class="qs-attempts">
+        {% for attempt in attempts %}
+        <div class="qs-attempt {% if attempt.passed %}is-pass{% else %}is-fail{% endif %}">
+            <div class="qs-attempt-left">
+                <span class="qs-attempt-status {% if attempt.passed %}pass{% else %}fail{% endif %}">
+                    <i class="ph-thin {% if attempt.passed %}ph-check{% else %}ph-x{% endif %}"></i>
+                </span>
+                <div class="qs-attempt-info">
+                    <div class="qs-attempt-score-row">
+                        <span class="qs-attempt-score">{{ attempt.percentage|round(1) }}%</span>
+                        <span class="qs-attempt-label">{% if attempt.passed %}Passed{% else %}Failed{% endif %}</span>
+                    </div>
+                    <div class="qs-attempt-bar-wrap">
+                        <div class="qs-attempt-bar" style="width:{{ [attempt.percentage,100]|min }}%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="qs-attempt-right">
+                <span class="qs-attempt-date">{% if attempt.completed_at %}{{ attempt.completed_at.strftime('%d %b %Y %H:%M') }}{% else %}In progress{% endif %}</span>
+                <a href="{{ url_for('quiz_result', attempt_id=attempt.id) }}">View <i class="ph-thin ph-caret-right"></i></a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

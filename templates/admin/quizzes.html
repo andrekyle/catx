@@ -1,0 +1,166 @@
+{% extends "lms_base.html" %}
+{% block title %}Quizzes — Admin{% endblock %}
+{% block content %}
+<style>
+    .qx-shell { max-width: 1200px; margin: 0 auto; padding: 28px 24px 80px; }
+    .qx-head {
+        display: flex; align-items: flex-end; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap;
+        padding-bottom: 18px; border-bottom: 1px solid var(--separator-light);
+        margin-bottom: 22px;
+    }
+    .qx-eyebrow {
+        font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+        color: var(--text-tertiary); margin: 0 0 6px;
+    }
+    .qx-title {
+        font-size: clamp(36px, 4.2vw, 56px); font-weight: 700;
+        letter-spacing: -1.8px; line-height: 1.02;
+        margin: 0; color: var(--text);
+    }
+    .qx-sub { color: var(--text-secondary); margin: 6px 0 0; font-size: 14px; }
+
+    .qx-head-right { display: flex; align-items: center; gap: 12px; }
+    .qx-count { font-size: 13px; color: var(--text-tertiary); font-weight: 300; }
+
+    .qx-thin-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 7px 14px;
+        background: transparent;
+        border: 1px solid rgba(127,127,127,0.30);
+        border-radius: 6px;
+        color: inherit;
+        font-size: 13px; font-weight: 400;
+        cursor: pointer; text-decoration: none;
+        transition: color .15s, border-color .15s;
+    }
+    .qx-thin-btn:hover { color: #0078D4; border-color: #0078D4; }
+
+    /* Transparent table — no card wrapper */
+    table.qx-table { width: 100%; border-collapse: collapse; }
+    .qx-table th, .qx-table td {
+        text-align: left; padding: 12px 14px;
+        font-size: 13.5px;
+        border-bottom: 1px solid var(--separator-light);
+    }
+    .qx-table th {
+        font-size: 11.5px; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--text-tertiary);
+        font-weight: 500;
+    }
+    .qx-table tbody tr:hover { background: transparent; }
+    .qx-table td { color: var(--text); vertical-align: middle; }
+    .qx-table th:last-child, .qx-table td:last-child { text-align: right; }
+    .qx-title-cell { font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+
+    /* Flat thin pills — no background, just thin label */
+    .qx-pill {
+        display: inline-flex; align-items: center;
+        font-size: 13px; font-weight: 300;
+        color: var(--text-secondary);
+        background: transparent; border: 0; padding: 0;
+        white-space: nowrap;
+    }
+    .qx-pill-course { color: #0078D4; }
+    .qx-pill-mc    { color: #0078D4; }
+    .qx-pill-dd    { color: #D97706; }
+    .qx-pill-match { color: #9b51c7; }
+
+    .qx-num {
+        font-weight: 500; font-size: 14px;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+    }
+    .qx-time {
+        font-size: 13.5px; color: var(--text-secondary); font-weight: 300;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .qx-actions { display: inline-flex; align-items: center; gap: 6px; }
+    .qx-icon-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 30px; height: 30px;
+        background: transparent;
+        border: 1px solid rgba(127,127,127,0.30);
+        border-radius: 6px;
+        color: var(--text-secondary);
+        cursor: pointer; text-decoration: none;
+        font-family: inherit; font-size: 12px;
+        transition: color .15s, border-color .15s;
+        padding: 0;
+    }
+    .qx-icon-btn:hover { color: #0078D4; border-color: #0078D4; }
+    .qx-icon-btn.danger:hover { color: #C42B1C; border-color: #C42B1C; }
+
+    .qx-empty {
+        padding: 56px 20px; text-align: center;
+        color: var(--text-tertiary); font-size: 14px;
+        border: 1px dashed var(--separator-light); border-radius: 14px;
+    }
+    .qx-empty a { color: #0078D4; font-weight: 500; text-decoration: none; }
+
+    @media (max-width: 720px) {
+        .qx-table th:nth-child(3),
+        .qx-table td:nth-child(3),
+        .qx-table th:nth-child(5),
+        .qx-table td:nth-child(5) { display: none; }
+    }
+</style>
+
+<div class="qx-shell">
+    <div class="qx-head">
+        <div>
+            <p class="qx-eyebrow">Admin workspace</p>
+            <h1 class="qx-title">Quizzes</h1>
+            <p class="qx-sub">Manage course quizzes — multiple choice, drag &amp; drop and matching.</p>
+        </div>
+        <div class="qx-head-right">
+            <span class="qx-count">{{ quizzes|length }} quiz{{ 'zes' if quizzes|length != 1 else '' }}</span>
+            <a href="{{ url_for('admin_quiz_create') }}" class="qx-thin-btn">
+                <i class="fas fa-plus"></i> New quiz
+            </a>
+        </div>
+    </div>
+
+    {% if quizzes %}
+    <table class="qx-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Course</th>
+                <th>Type</th>
+                <th>Questions</th>
+                <th>Time</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for quiz in quizzes %}
+        <tr>
+            <td class="qx-title-cell">{{ quiz.title }}</td>
+            <td><span class="qx-pill qx-pill-course">{{ quiz.course.title }}</span></td>
+            <td>
+                {% if quiz.quiz_type == 'multiple_choice' %}<span class="qx-pill qx-pill-mc">MC</span>
+                {% elif quiz.quiz_type == 'drag_drop' %}<span class="qx-pill qx-pill-dd">D&amp;D</span>
+                {% else %}<span class="qx-pill qx-pill-match">Match</span>{% endif %}
+            </td>
+            <td><span class="qx-num">{{ quiz.questions|length }}</span></td>
+            <td><span class="qx-time">{{ quiz.time_limit_minutes or '—' }}m</span></td>
+            <td>
+                <div class="qx-actions">
+                    <a href="{{ url_for('admin_questions', quiz_id=quiz.id) }}" class="qx-icon-btn" title="Questions"><i class="fas fa-list-ul"></i></a>
+                    <a href="{{ url_for('admin_quiz_edit', quiz_id=quiz.id) }}" class="qx-icon-btn" title="Edit"><img src="{{ url_for('static', filename='images/edit.png') }}" alt="Edit" width="14" height="14"></a>
+                    <form method="POST" action="{{ url_for('admin_quiz_delete', quiz_id=quiz.id) }}" onsubmit="return confirm('Delete this quiz?')" style="margin:0; display:inline;">
+                        <button type="submit" class="qx-icon-btn danger" title="Delete"><i class="fas fa-trash"></i></button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="qx-empty">No quizzes yet. <a href="{{ url_for('admin_quiz_create') }}">Create one →</a></div>
+    {% endif %}
+</div>
+{% endblock %}

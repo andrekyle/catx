@@ -1,0 +1,254 @@
+﻿{% extends "lms_base.html" %}
+{% block title %}{{ grade.name }} Courses - CAT LMS{% endblock %}
+{% block content %}
+<style>
+    /* â”€â”€ Premium grade page (Stripe / Linear inspired) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+    .gx-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 13px; font-weight: 500; color: #605E5C;
+        text-decoration: none; margin-bottom: 28px;
+        letter-spacing: -0.1px; transition: color .15s;
+    }
+    .gx-back:hover { color: #0078D4; }
+    .gx-back i { font-size: 11px; }
+    [data-theme="dark"] .gx-back { color: #A19F9D; }
+    [data-theme="dark"] .gx-back:hover { color: #4CC2FF; }
+
+    .gx-header { margin-bottom: 48px; }
+    .gx-eyebrow {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 12px; font-weight: 600; color: #605E5C;
+        text-transform: uppercase; letter-spacing: 1.4px;
+        margin: 0 0 14px;
+    }
+    .gx-eyebrow::before { content: none; }
+    [data-theme="dark"] .gx-eyebrow { color: #A19F9D; }
+
+    .gx-title-row { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+    .gx-num {
+        font-size: clamp(72px, 8vw, 120px); font-weight: 600;
+        line-height: 0.85; letter-spacing: -5px;
+        background: linear-gradient(180deg, var(--gx-accent), var(--gx-accent) 40%, transparent 130%);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: transparent;
+    }
+    .gx-title-block { flex: 1; min-width: 240px; padding-bottom: 6px; }
+    .gx-title {
+        font-size: clamp(28px, 3.4vw, 40px); font-weight: 600;
+        color: #1A1A1A; letter-spacing: -1.2px; line-height: 1.1;
+        margin: 0 0 8px;
+    }
+    .gx-desc {
+        font-size: 16px; color: #605E5C; line-height: 1.55;
+        max-width: 580px; margin: 0; letter-spacing: -0.2px;
+    }
+    [data-theme="dark"] .gx-title { color: #FFFFFF; }
+    [data-theme="dark"] .gx-desc { color: #A19F9D; }
+
+    /* Course grid -------------------------------------------------- */
+    .gx-grid {
+        display: grid; gap: 20px;
+        grid-template-columns: 1fr;
+    }
+    @media (min-width: 640px) { .gx-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 980px) { .gx-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .gx-course {
+        position: relative; isolation: isolate;
+        display: flex; flex-direction: column;
+        background: #fff;
+        border: 1px solid rgba(0,0,0,0.06);
+        border-radius: 16px; overflow: hidden;
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        transition: transform .25s cubic-bezier(.2,.8,.2,1),
+                    box-shadow .25s cubic-bezier(.2,.8,.2,1),
+                    border-color .25s;
+    }
+    .gx-course::after {
+        content: ''; position: absolute; left: 0; right: 0; top: 0;
+        height: 1px; opacity: 0;
+        background: linear-gradient(90deg, transparent, var(--cx, #0078D4), transparent);
+        transition: opacity .3s; z-index: 3;
+    }
+    .gx-course:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 40px -16px rgba(15,23,42,0.18),
+                    0 4px 12px -4px rgba(15,23,42,0.08);
+        border-color: rgba(0,0,0,0.1);
+    }
+    .gx-course:hover::after { opacity: 1; }
+
+    .gx-course-head {
+        position: relative;
+        padding: 22px 24px;
+        background: linear-gradient(135deg, var(--cx), color-mix(in srgb, var(--cx) 80%, #000));
+        color: #fff;
+        display: flex; align-items: center; gap: 14px;
+        overflow: hidden;
+    }
+    .gx-course-head::before {
+        content: ''; position: absolute; inset: 0;
+        background: none;
+        pointer-events: none;
+    }
+    .gx-course-icon {
+        position: relative;
+        width: 44px; height: 44px; border-radius: 12px;
+        background: rgba(255,255,255,0.18);
+        display: inline-flex; align-items: center; justify-content: center;
+        backdrop-filter: blur(4px); flex-shrink: 0;
+        border: 1px solid rgba(255,255,255,0.14);
+    }
+    .gx-course-icon i { font-size: 18px; }
+    .gx-course-head-text { position: relative; min-width: 0; }
+    .gx-course-title {
+        font-size: 16px; font-weight: 600; letter-spacing: -0.3px;
+        margin: 0 0 2px; color: #fff;
+    }
+    .gx-course-meta {
+        font-size: 13px; opacity: 0.82; font-weight: 500;
+        letter-spacing: -0.1px;
+    }
+
+    .gx-course-body {
+        padding: 22px 24px 22px;
+        display: flex; flex-direction: column; flex: 1 1 auto;
+    }
+    .gx-course-desc {
+        font-size: 14px; color: #605E5C; line-height: 1.55;
+        margin: 0 0 20px; letter-spacing: -0.1px; flex: 1;
+    }
+
+    .gx-progress {
+        margin-bottom: 18px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(0,0,0,0.06);
+    }
+    .gx-progress-row {
+        display: flex; justify-content: space-between; align-items: baseline;
+        margin-bottom: 8px;
+    }
+    .gx-progress-label {
+        font-size: 12px; font-weight: 600; color: #605E5C;
+        text-transform: uppercase; letter-spacing: 1px;
+    }
+    .gx-progress-pct {
+        font-size: 15px; font-weight: 700; color: #1A1A1A;
+        letter-spacing: -0.4px;
+    }
+    .gx-progress-track {
+        height: 6px; background: rgba(0,0,0,0.06);
+        border-radius: 999px; overflow: hidden;
+    }
+    .gx-progress-fill {
+        height: 100%; border-radius: 999px;
+        background: linear-gradient(90deg, var(--cx), color-mix(in srgb, var(--cx) 75%, #fff));
+        transition: width .4s ease;
+    }
+
+    .gx-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        gap: 8px; width: 100%;
+        padding: 10px 14px; border-radius: 8px;
+        font-size: 13px; font-weight: 600;
+        font-family: inherit; letter-spacing: -0.1px;
+        text-decoration: none; cursor: pointer;
+        transition: background .15s, border-color .15s, color .15s;
+        margin-top: auto;
+    }
+    .gx-btn-primary {
+        background: var(--cx); color: #fff; border: 1px solid var(--cx);
+    }
+    .gx-btn-primary:hover {
+        background: color-mix(in srgb, var(--cx) 88%, #000);
+        border-color: color-mix(in srgb, var(--cx) 88%, #000);
+    }
+    .gx-btn-outline {
+        background: transparent; color: var(--cx);
+        border: 1px solid color-mix(in srgb, var(--cx) 35%, transparent);
+    }
+    .gx-btn-outline:hover {
+        background: color-mix(in srgb, var(--cx) 6%, transparent);
+        border-color: color-mix(in srgb, var(--cx) 55%, transparent);
+    }
+    .gx-btn i { font-size: 11px; }
+
+    /* Dark mode -------------------------------------------------- */
+    [data-theme="dark"] .gx-course {
+        background: #1F1E1D;
+        border-color: transparent;
+    }
+    [data-theme="dark"] .gx-course:hover {
+        border-color: transparent;
+        box-shadow: 0 18px 40px -16px rgba(0,0,0,0.6),
+                    0 4px 12px -4px rgba(0,0,0,0.4);
+    }
+    [data-theme="dark"] .gx-course-desc { color: #A19F9D; }
+    [data-theme="dark"] .gx-progress { border-top-color: rgba(255,255,255,0.08); }
+    [data-theme="dark"] .gx-progress-label { color: #A19F9D; }
+    [data-theme="dark"] .gx-progress-pct { color: #FFFFFF; }
+    [data-theme="dark"] .gx-progress-track { background: rgba(255,255,255,0.08); }
+
+    /* Per-grade accent (drives eyebrow line + big number) -------- */
+    .gx-g10 { --gx-accent: #0078D4; }
+    .gx-g11 { --gx-accent: #8764B8; }
+    .gx-g12 { --gx-accent: #107C10; }
+    [data-theme="dark"] .gx-g10 { --gx-accent: #4CC2FF; }
+    [data-theme="dark"] .gx-g11 { --gx-accent: #B48CE0; }
+    [data-theme="dark"] .gx-g12 { --gx-accent: #6CCB5F; }
+</style>
+
+{% set grade_cls = 'gx-g10' if grade.number == 10 else ('gx-g11' if grade.number == 11 else 'gx-g12') %}
+
+<a href="{{ url_for('index') }}" class="gx-back">
+    <i class="fas fa-chevron-left"></i> Home
+</a>
+
+<header class="gx-header {{ grade_cls }}">
+    <p class="gx-eyebrow">CAPS Curriculum &middot; {{ courses|length }} courses</p>
+    <div class="gx-title-row">
+        <div class="gx-num">{{ grade.number }}</div>
+        <div class="gx-title-block">
+            <h1 class="gx-title">{{ grade.name }}.</h1>
+            <p class="gx-desc">{{ grade.description }}</p>
+        </div>
+    </div>
+</header>
+
+<div class="gx-grid">
+    {% for course in courses %}
+    {% set svg_info = course_svg_map.get(course.title) %}
+    {% set accent = svg_info.bg if svg_info else course.color %}
+    <article class="gx-course" style="--cx: {{ accent }};">
+        <div class="gx-course-head"{% if svg_info %} style="background:{{ svg_info.bg }} url('{{ url_for('static', filename='images/' + svg_info.svg) }}') no-repeat center center / 104% 104%; height:180px; padding:0;"{% endif %}>
+            {% if not svg_info %}
+            <div class="gx-course-icon">
+                <i class="fas {{ course.icon }}"></i>
+            </div>
+            <div class="gx-course-head-text">
+                <h3 class="gx-course-title">{{ course.title }}</h3>
+                <span class="gx-course-meta">{{ course.lessons|length }} lessons &middot; {{ course.quizzes|length }} assessments</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="gx-course-body">
+            <p class="gx-course-desc">{{ course.description }}</p>
+            {% set _enr = enrollment_map.get(course.id) %}
+            {% set _pct = (_enr.progress|round(0)|int) if _enr else 0 %}
+            <div class="gx-progress">
+                <div class="gx-progress-row">
+                    <span class="gx-progress-label">Progress</span>
+                    <span class="gx-progress-pct">{{ _pct }}%</span>
+                </div>
+                <div class="gx-progress-track">
+                    <div class="gx-progress-fill" style="width:{{ _pct }}%;"></div>
+                </div>
+            </div>
+            <a href="{{ url_for('course_detail', course_id=course.id) }}" class="gx-btn gx-btn-primary">
+                <i class="fas fa-play"></i> {{ 'Continue' if _pct > 0 else 'Start course' }}
+            </a>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% endblock %}

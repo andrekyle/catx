@@ -1,0 +1,280 @@
+{% extends "lms_base.html" %}
+{% block title %}Questions — {{ quiz.title }} — Admin{% endblock %}
+{% block content %}
+<style>
+    .qn-shell { max-width: 1200px; margin: 0 auto; padding: 28px 24px 80px; }
+
+    .qn-head {
+        display: flex; align-items: flex-end; justify-content: space-between;
+        gap: 16px; flex-wrap: wrap;
+        padding-bottom: 18px; border-bottom: 1px solid var(--separator-light);
+        margin-bottom: 22px;
+    }
+    .qn-back {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12px; font-weight: 400; letter-spacing: 0.05em;
+        color: var(--text-tertiary); text-decoration: none;
+        margin-bottom: 10px; transition: color .15s;
+    }
+    .qn-back:hover { color: var(--text); }
+    .qn-back i { font-size: 9px; }
+    .qn-eyebrow {
+        font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+        color: var(--text-tertiary); margin: 0 0 6px;
+    }
+    .qn-title {
+        font-size: clamp(36px, 4.2vw, 56px); font-weight: 700;
+        letter-spacing: -1.8px; line-height: 1.02;
+        margin: 0 0 10px; color: var(--text);
+    }
+    .qn-meta { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--text-tertiary); font-weight: 300; }
+    .qn-meta .qn-pill { font-weight: 400; color: var(--text-secondary); }
+    .qn-meta .qn-pill-type { color: #0078D4; }
+
+    .qn-head-right { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+    .qn-thin-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 7px 14px;
+        background: transparent;
+        border: 1px solid rgba(127,127,127,0.30);
+        border-radius: 6px;
+        color: inherit;
+        font-size: 13px; font-weight: 400;
+        cursor: pointer; text-decoration: none;
+        transition: color .15s, border-color .15s;
+    }
+    .qn-thin-btn:hover { color: #0078D4; border-color: #0078D4; }
+
+    /* Transparent list — no card */
+    .qn-list { }
+    .qn-row {
+        display: flex; align-items: flex-start; gap: 16px;
+        padding: 16px 4px;
+        border-bottom: 1px solid var(--separator-light);
+    }
+    .qn-row:last-child { border-bottom: none; }
+
+    .qn-num {
+        flex-shrink: 0; width: 24px; height: 24px;
+        color: var(--text-tertiary); font-size: 12px; font-weight: 400;
+        display: flex; align-items: center; justify-content: center;
+        margin-top: 2px;
+    }
+    .qn-body { flex: 1; min-width: 0; }
+    .qn-text {
+        font-size: 14px; font-weight: 600; color: var(--text);
+        letter-spacing: -0.1px; margin-bottom: 8px; line-height: 1.45;
+    }
+
+    /* Flat type label */
+    .qn-type-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-size: 13px; font-weight: 300;
+        background: transparent; border: 0; padding: 0;
+        margin-bottom: 8px;
+    }
+    .qn-type-badge.mc  { color: #0078D4; }
+    .qn-type-badge.tf  { color: #16A34A; }
+    .qn-type-badge.dd  { color: #D97706; }
+    .qn-type-badge.mtch{ color: #9b51c7; }
+    .qn-type-badge.sa  { color: #16A34A; }
+
+    /* Flat choices — no backgrounds, just thin text separated by dots */
+    .qn-choices { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .qn-choice {
+        display: inline-flex; align-items: center;
+        font-size: 13px; font-weight: 300;
+        color: var(--text-tertiary);
+        background: transparent; border: 0; padding: 0;
+    }
+    .qn-choice.correct { color: #16A34A; font-weight: 400; }
+
+    /* Action buttons — thin outlined square icons */
+    .qn-actions { display: inline-flex; gap: 6px; flex-shrink: 0; }
+    .qn-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 30px; height: 30px; border-radius: 6px;
+        background: transparent;
+        border: 1px solid rgba(127,127,127,0.30);
+        color: var(--text-secondary);
+        cursor: pointer; text-decoration: none;
+        font-size: 12px; font-family: inherit;
+        transition: color .15s, border-color .15s;
+        padding: 0;
+    }
+    .qn-btn:hover { color: #0078D4; border-color: #0078D4; }
+    .qn-btn.del:hover { color: #C42B1C; border-color: #C42B1C; }
+
+    .qn-empty {
+        padding: 56px 20px; text-align: center;
+        color: var(--text-tertiary); font-size: 14px;
+        border: 1px dashed var(--separator-light); border-radius: 14px;
+    }
+    .qn-empty i { font-size: 24px; display: block; margin-bottom: 10px; opacity: .5; }
+
+    /* Modal — kept mostly intact but toned down */
+    .qn-modal-bg {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.55); z-index: 1000;
+        align-items: center; justify-content: center;
+        padding: 24px;
+    }
+    .qn-modal-bg.open { display: flex; }
+    .qn-modal {
+        background: var(--bg-elevated, #161616); border: 1px solid var(--separator-light);
+        border-radius: 14px; padding: 28px 26px;
+        max-width: 540px; width: 100%;
+    }
+    .qn-modal-title { font-size: 20px; font-weight: 700; letter-spacing: -.4px; color: var(--text); margin: 0 0 6px; }
+    .qn-modal-sub   { font-size: 13px; color: var(--text-tertiary); margin: 0 0 20px; line-height: 1.5; }
+    .qn-modal-label {
+        font-size: 11px; font-weight: 500; text-transform: uppercase;
+        letter-spacing: 0.14em; color: var(--text-tertiary);
+        display: block; margin-bottom: 8px;
+    }
+    .qn-modal-file {
+        width: 100%; box-sizing: border-box;
+        background: var(--bg); border: 1px solid var(--separator-light);
+        border-radius: 10px; padding: 12px 14px;
+        color: var(--text); font-size: 13.5px; outline: none;
+    }
+    .qn-modal-file:focus { border-color: var(--blue, #0078D4); }
+    .qn-modal-footer { display: flex; gap: 10px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+    .qn-modal-submit {
+        flex: 1; padding: 10px; border-radius: 6px;
+        background: transparent; color: var(--text);
+        font-size: 13px; font-weight: 500;
+        border: 1px solid rgba(127,127,127,0.30); cursor: pointer;
+        font-family: inherit;
+        transition: color .15s, border-color .15s;
+    }
+    .qn-modal-submit:hover { color: #0078D4; border-color: #0078D4; }
+    .qn-modal-cancel {
+        padding: 10px 16px; border-radius: 6px;
+        background: transparent; color: var(--text-secondary);
+        font-size: 13px; font-weight: 400;
+        border: 1px solid rgba(127,127,127,0.30); cursor: pointer;
+        font-family: inherit;
+        transition: color .15s, border-color .15s;
+    }
+    .qn-modal-cancel:hover { color: var(--text); border-color: var(--text-secondary); }
+    .qn-modal-template { font-size: 12px; color: #0078D4; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+    .qn-modal-template:hover { text-decoration: underline; }
+    .qn-format-box {
+        background: transparent; border: 1px solid var(--separator-light);
+        border-radius: 10px; padding: 12px 14px; margin: 14px 0;
+        font-size: 12px; color: var(--text-secondary); line-height: 1.7;
+    }
+    .qn-format-box code { color: var(--text); font-family: 'SF Mono', Consolas, monospace; font-size: 11px; }
+</style>
+
+<!-- Bulk Upload Modal -->
+<div class="qn-modal-bg" id="bulkModal">
+  <div class="qn-modal">
+    <h2 class="qn-modal-title">Bulk Upload Questions</h2>
+    <p class="qn-modal-sub">Upload a CSV file to add multiple questions at once. Each row is one question.</p>
+    <div class="qn-format-box">
+      <strong style="color:var(--text);">Required columns:</strong><br>
+      <code>question_type</code> — <code>multiple_choice</code>, <code>drag_drop</code>, <code>match_columns</code>, <code>short_answer</code><br>
+      <code>question_text</code>, <code>option_a</code> … <code>option_e</code>, <code>correct_answer</code><br>
+      <code>keywords</code> (pipe-separated, short answer only), <code>min_ratio</code>, <code>points</code><br>
+      For <code>match_columns</code>: use <code>option_a</code> and <code>option_b</code> with items separated by <code>|</code>
+    </div>
+    <form method="POST" action="{{ url_for('admin_bulk_upload', quiz_id=quiz.id) }}" enctype="multipart/form-data">
+      <label class="qn-modal-label">CSV File</label>
+      <input type="file" name="csv_file" class="qn-modal-file" accept=".csv" required>
+      <div class="qn-modal-footer">
+        <button type="submit" class="qn-modal-submit"><i class="fas fa-upload"></i> Import questions</button>
+        <button type="button" class="qn-modal-cancel" onclick="closeBulkModal()">Cancel</button>
+        <a href="{{ url_for('admin_bulk_template', quiz_id=quiz.id) }}" class="qn-modal-template">
+          <i class="fas fa-download"></i> Download template
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="qn-shell">
+
+  <div class="qn-head">
+    <div>
+      <a href="{{ url_for('admin_quizzes') }}" class="qn-back">
+        <i class="fas fa-chevron-left"></i> Quizzes
+      </a>
+      <p class="qn-eyebrow">Admin workspace</p>
+      <h1 class="qn-title">{{ quiz.title }}</h1>
+      <div class="qn-meta">
+        <span class="qn-pill qn-pill-type">{{ quiz.quiz_type|replace('_',' ')|title }}</span>
+        <span class="qn-pill qn-pill-count">{{ quiz.questions|length }} question{{ 's' if quiz.questions|length != 1 }}</span>
+      </div>
+    </div>
+    <div class="qn-head-right">
+      <a href="{{ url_for('admin_question_create', quiz_id=quiz.id) }}" class="qn-thin-btn">
+        <i class="fas fa-plus"></i> Add question
+      </a>
+      <button type="button" class="qn-thin-btn" onclick="openBulkModal()">
+        <i class="fas fa-file-arrow-up"></i> Bulk upload
+      </button>
+    </div>
+  </div>
+
+  <div class="qn-list">
+    {% for q in questions %}
+    <div class="qn-row">
+      <div class="qn-num">{{ loop.index }}</div>
+      <div class="qn-body">
+        <div class="qn-text">{{ q.question_text }}</div>
+        {% set qt = q.question_type %}
+        <span class="qn-type-badge {% if qt=='multiple_choice' %}mc{% elif qt=='true_false' %}tf{% elif qt=='drag_drop' %}dd{% elif qt=='match_columns' %}mtch{% else %}sa{% endif %}">
+          {% if qt=='multiple_choice' %}<i class="fas fa-list-ul"></i> Multiple Choice
+          {% elif qt=='true_false' %}<i class="fas fa-circle-check"></i> True / False
+          {% elif qt=='drag_drop' %}<i class="fas fa-sort"></i> Ordering
+          {% elif qt=='match_columns' %}<i class="fas fa-link"></i> Matching
+          {% else %}<i class="fas fa-pen-to-square"></i> Short Answer{% endif %}
+        </span>
+        {% if q.parsed_options and q.question_type != 'short_answer' %}
+        <div class="qn-choices">
+          {% if q.question_type == 'match_columns' and q.parsed_options is mapping %}
+            {% for item in q.parsed_options.get('column_a', []) %}
+            <span class="qn-choice">{{ item }}</span>
+            {% endfor %}
+          {% else %}
+            {% for opt in q.parsed_options %}
+            <span class="qn-choice {% if opt in q.parsed_correct %}correct{% endif %}">{{ opt }}</span>
+            {% endfor %}
+          {% endif %}
+        </div>
+        {% elif q.question_type == 'short_answer' %}
+        <div class="qn-choices">
+          <span class="qn-choice correct">{{ q.parsed_correct }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="qn-actions">
+        <a href="{{ url_for('admin_question_edit', question_id=q.id) }}" class="qn-btn" title="Edit">
+          <img src="{{ url_for('static', filename='images/edit.png') }}" alt="Edit" width="14" height="14">
+        </a>
+        <form method="POST" action="{{ url_for('admin_question_delete', question_id=q.id) }}"
+              onsubmit="return confirm('Delete this question?')" style="margin:0; display:inline;">
+          <button type="submit" class="qn-btn del" title="Delete"><i class="fas fa-trash"></i></button>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <div class="qn-empty">
+      <i class="fas fa-circle-question"></i>
+      No questions yet — add one to get started.
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<script>
+function openBulkModal()  { document.getElementById('bulkModal').classList.add('open'); }
+function closeBulkModal() { document.getElementById('bulkModal').classList.remove('open'); }
+document.getElementById('bulkModal').addEventListener('click', function(e) {
+    if (e.target === this) closeBulkModal();
+});
+</script>
+{% endblock %}

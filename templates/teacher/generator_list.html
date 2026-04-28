@@ -1,0 +1,54 @@
+{% extends "teacher/_layout.html" %}
+{% block t_title %}Generated papers{% endblock %}
+{% block t_sub %}Build, preview and print examination papers with memos.{% endblock %}
+{% block t_action %}
+    <a class="t-btn primary" href="{{ url_for('teacher_paper_edit') }}"><i class="fas fa-plus"></i> New paper</a>
+{% endblock %}
+
+{% block t_body %}
+<style>
+.t-shell .t-title {
+    font-size: clamp(36px, 4.2vw, 56px) !important;
+    font-weight: 700 !important;
+    letter-spacing: -1px !important;
+    line-height: 1.05 !important;
+}
+</style>
+
+<div class="t-card">
+    {% if papers %}
+        <table class="t-table">
+            <thead><tr><th>Title</th><th>Grade</th><th>Date</th><th>Marks</th><th>Duration</th><th></th></tr></thead>
+            <tbody>
+            {% for p in papers %}
+                <tr>
+                    <td><strong>{{ p.title }}</strong>{% if p.school_name %}<div style="color:var(--text-tertiary); font-size:12px;">{{ p.school_name }}</div>{% endif %}</td>
+                    <td>{{ p.grade }}</td>
+                    <td>{{ p.exam_date.strftime('%d %b %Y') if p.exam_date else '–' }}</td>
+                    <td>{{ p.total_marks }}</td>
+                    <td>{{ p.duration_minutes }} min</td>
+                    <td style="text-align:right; white-space:nowrap;">
+                        <a class="t-icon-btn" title="Preview" href="{{ url_for('teacher_paper_preview', paper_id=p.id) }}" target="_blank">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </a>
+                        <a class="t-icon-btn" title="Memo" href="{{ url_for('teacher_paper_memo', paper_id=p.id) }}" target="_blank">
+                            <img src="{{ url_for('static', filename='images/key.png') }}" alt="Memo" width="16" height="16">
+                        </a>
+                        <a class="t-icon-btn" title="Edit" href="{{ url_for('teacher_paper_edit', paper_id=p.id) }}">
+                            <img src="{{ url_for('static', filename='images/edit.png') }}" alt="Edit" width="16" height="16">
+                        </a>
+                        <form method="post" action="{{ url_for('teacher_paper_remove', paper_id=p.id) }}" style="display:inline;" data-confirm="Delete this paper? This cannot be undone." data-confirm-no-backdrop="1">
+                            <button class="t-icon-btn danger" title="Delete">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="t-empty"><i class="fas fa-file-alt"></i>No papers yet. Create your first paper.</div>
+    {% endif %}
+</div>
+{% endblock %}
