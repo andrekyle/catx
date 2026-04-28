@@ -675,7 +675,15 @@ def logout():
 @app.route('/')
 def index():
     grades = Grade.query.order_by(Grade.number).all()
-    return render_template('index.html', grades=grades)
+    stats = {
+        'courses': Course.query.count(),
+        'lessons': Lesson.query.count(),
+        'quizzes': Quiz.query.count(),
+        'questions': QuestionBankItem.query.count(),
+        'past_papers': TeacherDocument.query.filter_by(paper_type='past_paper').count(),
+        'students': User.query.filter_by(is_admin=False, is_teacher=False).count(),
+    }
+    return render_template('index.html', grades=grades, stats=stats)
 
 @app.route('/grade/<int:grade_number>')
 def grade_courses(grade_number):

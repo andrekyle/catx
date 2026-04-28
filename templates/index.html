@@ -1,464 +1,1421 @@
-﻿{% extends "lms_base.html" %}
-{% block title %}CAT CAPS LMS â€” Computer Applications Technology{% endblock %}
-{% block body_class %}gridx-home{% endblock %}
+{% extends "lms_base.html" %}
+{% block title %}CATx — South Africa's Biggest CAT CAPS Learning Platform{% endblock %}
+{% block body_class %}catx-home{% endblock %}
+
+{% block head %}
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% endblock %}
+
+{# ─────────────────────────────────────────────────────────────────────────────
+   Override navbar with a kickass glass nav scoped to the home page only.
+   ──────────────────────────────────────────────────────────────────────────── #}
+{% block navbar %}
+<nav class="cx-nav" id="cxNav">
+    <div class="cx-nav-inner">
+        <a href="{{ url_for('index') }}" class="cx-brand">
+            <span class="cx-brand-mark">CAT<span class="cx-brand-x">x</span></span>
+        </a>
+        <div class="cx-nav-links">
+            <a href="#what">What</a>
+            <a href="#how">How</a>
+            <a href="#get">What you get</a>
+            <a href="#grades">Grades</a>
+            <a href="#price">Price</a>
+        </div>
+        <div class="cx-nav-cta">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard') }}" class="cx-btn cx-btn-primary">My dashboard <i class="fas fa-arrow-right"></i></a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="cx-btn cx-btn-ghost">Sign in</a>
+                <a href="{{ url_for('register') }}" class="cx-btn cx-btn-primary">Get started <i class="fas fa-arrow-right"></i></a>
+            {% endif %}
+            <button class="cx-mobile" id="cxMobile" aria-label="Menu"><span></span><span></span></button>
+        </div>
+    </div>
+</nav>
+{% endblock %}
 
 {% block hero %}
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
-    /* â”€â”€â”€ GridX-style dark home â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-    body.gridx-home {
-        background: #0A0A0A;
+    /* ═══════════════════════════════════════════════════════════════════════
+       CATx — One-page dark home. Scoped under .catx-home / cx- prefix.
+       ═══════════════════════════════════════════════════════════════════════ */
+    body.catx-home {
+        background: #050507;
         color: #F5F5F7;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        overflow-x: hidden;
+    }
+    body.catx-home main { padding: 0 !important; }
+    body.catx-home main .container { max-width: none; padding: 0; }
+
+    .catx-home ::selection { background: rgba(124, 92, 255, 0.45); color: #fff; }
+
+    :root {
+        --cx-bg: #050507;
+        --cx-bg-2: #0B0B12;
+        --cx-card: #11111A;
+        --cx-card-2: #15151F;
+        --cx-line: rgba(255,255,255,0.07);
+        --cx-line-strong: rgba(255,255,255,0.14);
+        --cx-text: #F5F5F7;
+        --cx-mute: rgba(245,245,247,0.62);
+        --cx-dim: rgba(245,245,247,0.42);
+        --cx-violet: #7C5CFF;
+        --cx-cyan: #4CC2FF;
+        --cx-pink: #FF4D8D;
+        --cx-lime: #B6F569;
+        --cx-amber: #FFB547;
+        --cx-grad-1: linear-gradient(135deg, #7C5CFF 0%, #4CC2FF 100%);
+        --cx-grad-2: linear-gradient(135deg, #FF4D8D 0%, #FFB547 100%);
+        --cx-grad-3: linear-gradient(135deg, #4CC2FF 0%, #B6F569 100%);
+        --cx-grad-text: linear-gradient(135deg, #fff 0%, #B0B0FF 50%, #7C5CFF 100%);
+        --cx-ease: cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .gx-wrap {
-        max-width: 1320px;
-        margin: 0 auto;
-        padding: 0px 24px 80px;
+    /* ═══ NAV ═══ */
+    .cx-nav {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+        padding: 18px 28px;
+        transition: all .35s var(--cx-ease);
     }
-
-    .gx-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 22px;
+    .cx-nav.scrolled {
+        padding: 10px 28px;
+        backdrop-filter: blur(20px) saturate(160%);
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        background: rgba(5,5,7,0.72);
+        border-bottom: 1px solid var(--cx-line);
     }
-
-    /* â”€â”€â”€ Card base â”€â”€â”€ */
-    .gx-card {
-        position: relative;
-        background: #161616;
-        border: 1px solid rgba(255,255,255,0.06);
-        border-radius: 28px;
-        overflow: hidden;
-        transition: transform .35s cubic-bezier(.2,.8,.2,1), border-color .25s, background .25s;
-        text-decoration: none;
-        color: inherit;
-        display: block;
+    .cx-nav-inner {
+        max-width: 1320px; margin: 0 auto;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 32px;
     }
-    .gx-card:hover {
-        transform: translateY(-3px);
-        border-color: rgba(255,255,255,0.14);
-        background: #1A1A1A;
-    }    .gx-card.gx-hero:hover {
-        transform: none;
-        border-color: transparent;
-        background: url('/static/images/leftImage.jpg') center/cover no-repeat;
+    .cx-brand { text-decoration: none; }
+    .cx-brand-mark {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700; font-size: 26px; letter-spacing: -1.2px;
+        color: #fff;
     }
-    /* â”€â”€â”€ Hero card (left, large) â”€â”€â”€ */
-    .gx-hero {
-        padding: 38px 38px 32px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        min-height: 550px;
-        position: relative;
-        background: url('/static/images/leftImage.jpg') right center/70% no-repeat;
-        overflow: hidden;
-        border: none !important;
-        transition: none !important;
-    }
-    .gx-hero:hover {
-        transform: none !important;
-        border-color: transparent !important;
-        background: url('/static/images/leftImage.jpg') right center/70% no-repeat !important;
-    }
-    .gx-hero::before {
-        content: '';
-        position: absolute; inset: 0;
-        background: linear-gradient(to right, #ffffff 0%, #ffffff 45%, rgba(255,255,255,0.0) 62%);
-        z-index: 0;
-    }
-    .gx-hero-visual { display: none; }
-    .gx-hero-content { position: relative; z-index: 1; padding-right: 0; min-height: auto; display: flex; flex-direction: column; max-width: 52%; padding-bottom: 24px; }
-    .gx-eyebrow {
-        font-size: clamp(22px, 3vw, 40px);
-        font-weight: 400;
-        font-family: 'Bebas Neue', sans-serif;
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        color: #e53935;
-        margin: 0;
-        line-height: 1;
-    }
-    .gx-hero-title {
-        font-size: clamp(40px, 6vw, 90px);
-        font-weight: 700;
-        letter-spacing: -1.2px;
-        line-height: 1.0;
-        color: rgba(0,0,0,0.90);
-        margin: 0 0 20px;
-        white-space: nowrap;
-        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    }
-    .gx-hero-title .intro {
-        display: block;
-        font-size: clamp(26px, 3.5vw, 44px);
-        font-weight: 400;
-        letter-spacing: -0.2px;
-        line-height: 1.4;
-        color: rgba(0,0,0,0.90);
-        margin-bottom: 4px;
-    }
-    .gx-hero-title .outline {
+    .cx-brand-x {
+        background: var(--cx-grad-1);
+        -webkit-background-clip: text; background-clip: text;
         -webkit-text-fill-color: transparent;
-        -webkit-text-stroke: 2px rgba(0,0,0,0.75);
-    }
-    .gx-hero-title .dot { color: rgba(0,0,0,0.90); }
-    .gx-hero-sub {
-        font-size: 24px;
-        line-height: 1.55;
-        color: rgba(0,0,0,0.90);
-        max-width: 400px;
-        margin: 0;
-        letter-spacing: -0.1px;
-    }
-    .gx-arrow {
-        position: absolute;
-        right: 28px; bottom: 18px;
-        width: 44px; height: 44px;
-        border-radius: 50%;
-        border: 1px solid rgba(255,255,255,0.12);
-        display: inline-flex; align-items: center; justify-content: center;
-        color: rgba(255,255,255,0.55);
-        background: rgba(255,255,255,0.02);
-        transition: all .25s var(--ease);
-    }
-    .gx-arrow i { font-size: 16px !important; }
-    .gx-card:hover .gx-arrow {
-        color: #0A0A0A; background: #fff; border-color: #fff;
-        transform: rotate(-45deg);
-    }
-
-    /* â”€â”€â”€ Right column â”€â”€â”€ */
-    .gx-right {
-        display: grid;
-        grid-template-rows: auto 1fr;
-        gap: 22px;
-    }
-
-    /* Marquee strip */
-    .gx-marquee {
-        position: relative;
-        background: #161616;
-        border: 1px solid rgba(255,255,255,0.06);
-        border-radius: 999px;
-        padding: 16px 0;
-        overflow: hidden;
-        mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-        -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-    }
-    .gx-marquee.gx-marquee-big {
-        background: #0A0A0A;
-        border-radius: 20px;
-        border: none;
-        padding: 32px 0;
-        margin-bottom: 0;
-    }
-    .gx-marquee-track {
-        display: flex;
-        align-items: center;
-        flex-wrap: nowrap;
-        white-space: nowrap;
-        width: max-content;
-        animation: gx-scroll 32s linear infinite;
-    }
-    .gx-marquee:hover .gx-marquee-track { animation-play-state: paused; }
-    .gx-marquee-item {
-        flex-shrink: 0;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 12.5px;
-        font-weight: 500;
-        letter-spacing: 2px;
-        color: rgba(255,255,255,0.55);
-        text-transform: uppercase;
-        padding: 0 28px;
-        white-space: nowrap;
-    }
-    .gx-marquee-big .gx-marquee-item {
-        font-size: clamp(36px, 5vw, 72px);
         font-weight: 800;
-        letter-spacing: -1px;
-        color: #fff;
-        padding: 0 24px;
-        text-transform: uppercase;
-        gap: 0;
     }
-    .gx-marquee-big .gx-marquee-item.outline-item {
-        -webkit-text-fill-color: transparent;
-        -webkit-text-stroke: 1.2px rgba(255,255,255,0.5);
-        color: transparent;
+    .cx-nav-links {
+        display: flex; gap: 4px; align-items: center;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--cx-line);
+        border-radius: 999px; padding: 6px;
     }
-    .gx-marquee-big .gx-marquee-sep {
-        display: inline-block;
-        width: 10px; height: 10px;
-        background: #fff;
-        border-radius: 50%;
-        margin: 0 8px;
-        flex-shrink: 0;
-        opacity: 0.4;
+    .cx-nav-links a {
+        font-size: 13.5px; font-weight: 500;
+        color: var(--cx-mute); text-decoration: none;
+        padding: 8px 16px; border-radius: 999px;
+        transition: all .25s var(--cx-ease);
     }
-    .gx-marquee-item i {
-        font-size: 9px;
-        color: rgba(255,255,255,0.25);
+    .cx-nav-links a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .cx-nav-cta { display: flex; gap: 10px; align-items: center; }
+    .cx-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-family: inherit; font-weight: 600; font-size: 13.5px;
+        letter-spacing: -0.1px; text-decoration: none;
+        padding: 10px 18px; border-radius: 999px;
+        border: 1px solid transparent;
+        transition: all .25s var(--cx-ease);
+        cursor: pointer;
+        white-space: nowrap;
     }
-    .gx-marquee-item strong {
-        color: #fff;
-        font-weight: 700;
-        letter-spacing: 2.4px;
+    .cx-btn-ghost { color: var(--cx-text); border-color: var(--cx-line-strong); background: rgba(255,255,255,0.02); }
+    .cx-btn-ghost:hover { background: rgba(255,255,255,0.08); }
+    .cx-btn-primary {
+        color: #0A0A0F; background: #fff;
+        box-shadow: 0 8px 30px rgba(124,92,255,0.18);
     }
-    .gx-marquee-sep { display: none; }
-    @keyframes gx-scroll {
-        from { transform: translateX(0); }
-        to   { transform: translateX(-50%); }
+    .cx-btn-primary:hover {
+        background: var(--cx-grad-1); color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 12px 40px rgba(124,92,255,0.45);
+    }
+    .cx-btn i { font-size: 11px; transition: transform .25s var(--cx-ease); }
+    .cx-btn:hover i { transform: translateX(3px); }
+    .cx-mobile {
+        display: none; background: transparent; border: 1px solid var(--cx-line-strong);
+        width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
+        flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    }
+    .cx-mobile span { display: block; width: 18px; height: 1.5px; background: #fff; }
+
+    @media (max-width: 920px) {
+        .cx-nav-links { display: none; }
+        .cx-mobile { display: flex; }
+        .cx-nav-cta .cx-btn-ghost { display: none; }
     }
 
-    /* Two small cards below marquee */
-    .gx-pair {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 22px;
-    }
-    .gx-mini {
+    /* ═══ HERO ═══ */
+    .cx-hero {
         position: relative;
-        padding: 32px 28px 26px;
-        min-height: 320px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-    .gx-mini-visual {
-        flex: 1;
-        display: flex; align-items: center; justify-content: center;
-        margin: -8px -8px 18px;
-        border-radius: 16px;
-        background: rgba(255,255,255,0.02);
-        min-height: 130px;
-        position: relative;
+        min-height: 100vh;
+        padding: 160px 28px 100px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center;
         overflow: hidden;
     }
-    .gx-mini-visual i {
-        font-size: 80px !important;
-        color: rgba(255,255,255,0.18);
-        transition: color .3s, transform .35s var(--ease);
+    .cx-hero-bg {
+        position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background:
+            radial-gradient(60% 50% at 20% 20%, rgba(124,92,255,0.35) 0%, transparent 60%),
+            radial-gradient(50% 40% at 85% 30%, rgba(76,194,255,0.28) 0%, transparent 65%),
+            radial-gradient(50% 40% at 50% 100%, rgba(255,77,141,0.22) 0%, transparent 60%);
+        animation: cx-pulse 12s ease-in-out infinite alternate;
     }
-    .gx-card:hover .gx-mini-visual i { color: rgba(255,255,255,0.32); transform: scale(1.04); }
-    .gx-mini-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-    .gx-mini-text { flex: 1; }
-    .gx-mini-eyebrow {
+    @keyframes cx-pulse {
+        0%   { transform: scale(1) translateY(0); opacity: 0.9; }
+        100% { transform: scale(1.15) translateY(-20px); opacity: 1; }
+    }
+    .cx-hero-grid {
+        position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background-image:
+            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+        background-size: 80px 80px;
+        mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 80%);
+        -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 80%);
+    }
+    .cx-hero-inner { position: relative; z-index: 2; max-width: 1080px; }
+
+    .cx-pill {
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 7px 14px 7px 7px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--cx-line-strong);
+        border-radius: 999px;
+        font-size: 12.5px; font-weight: 500;
+        color: var(--cx-mute);
+        letter-spacing: 0.2px;
+        margin-bottom: 28px;
+        backdrop-filter: blur(10px);
+        opacity: 0; transform: translateY(12px);
+        animation: cx-rise .8s var(--cx-ease) .1s forwards;
+    }
+    .cx-pill .cx-pill-tag {
+        background: var(--cx-grad-1); color: #fff;
+        padding: 4px 10px; border-radius: 999px;
+        font-weight: 700; font-size: 10.5px; letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+    .cx-pill .cx-dot {
+        width: 6px; height: 6px; border-radius: 50%; background: var(--cx-lime);
+        box-shadow: 0 0 12px var(--cx-lime);
+        animation: cx-blink 1.6s ease-in-out infinite;
+    }
+    @keyframes cx-blink { 50% { opacity: 0.4; } }
+
+    .cx-hero h1 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: clamp(48px, 8vw, 112px);
+        font-weight: 700;
+        line-height: 0.96;
+        letter-spacing: -3px;
+        margin: 0 0 28px;
+        color: #fff;
+        opacity: 0; transform: translateY(20px);
+        animation: cx-rise 1s var(--cx-ease) .25s forwards;
+    }
+    .cx-hero h1 .grad {
+        background: var(--cx-grad-text);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-size: 200% 200%;
+        animation: cx-shift 8s ease-in-out infinite;
+    }
+    @keyframes cx-shift {
+        0%, 100% { background-position: 0% 50%; }
+        50%      { background-position: 100% 50%; }
+    }
+    .cx-hero h1 .outline {
+        -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 2px rgba(255,255,255,0.45);
+    }
+
+    .cx-hero-sub {
+        font-size: clamp(17px, 1.6vw, 21px);
+        line-height: 1.55;
+        color: var(--cx-mute);
+        max-width: 720px;
+        margin: 0 auto 40px;
+        font-weight: 300;
+        opacity: 0; transform: translateY(16px);
+        animation: cx-rise 1s var(--cx-ease) .45s forwards;
+    }
+
+    .cx-hero-cta {
+        display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+        opacity: 0; transform: translateY(16px);
+        animation: cx-rise 1s var(--cx-ease) .6s forwards;
+    }
+    .cx-hero-cta .cx-btn { padding: 14px 24px; font-size: 14.5px; }
+    .cx-hero-cta .cx-btn-primary {
+        background: var(--cx-grad-1); color: #fff;
+        box-shadow: 0 12px 40px rgba(124,92,255,0.4);
+    }
+    .cx-hero-cta .cx-btn-primary:hover { box-shadow: 0 16px 50px rgba(124,92,255,0.65); }
+
+    .cx-trust {
+        display: flex; gap: 32px; justify-content: center; align-items: center; flex-wrap: wrap;
+        margin-top: 64px;
+        opacity: 0; transform: translateY(16px);
+        animation: cx-rise 1s var(--cx-ease) .8s forwards;
+    }
+    .cx-trust-item { display: flex; align-items: center; gap: 8px; color: var(--cx-dim); font-size: 13px; }
+    .cx-trust-item i { color: var(--cx-lime); font-size: 12px; }
+
+    @keyframes cx-rise {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Scroll indicator */
+    .cx-scroll-ind {
+        position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+        font-size: 11px; color: var(--cx-dim); letter-spacing: 3px;
+        text-transform: uppercase; font-weight: 500;
+        display: flex; flex-direction: column; gap: 8px; align-items: center;
+        animation: cx-bob 2.4s ease-in-out infinite;
+    }
+    .cx-scroll-ind .line { width: 1px; height: 36px; background: linear-gradient(to bottom, transparent, var(--cx-line-strong), transparent); }
+    @keyframes cx-bob { 50% { transform: translateX(-50%) translateY(8px); } }
+
+    /* ═══ STATS BAR ═══ */
+    .cx-stats {
+        position: relative; z-index: 3;
+        max-width: 1320px; margin: -40px auto 0; padding: 0 28px;
+    }
+    .cx-stats-grid {
+        display: grid; grid-template-columns: repeat(5, 1fr);
+        background: rgba(15,15,22,0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--cx-line-strong);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    }
+    .cx-stat {
+        padding: 28px 24px;
+        border-right: 1px solid var(--cx-line);
+        text-align: center;
+        position: relative;
+    }
+    .cx-stat:last-child { border-right: none; }
+    .cx-stat-num {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: clamp(28px, 3.4vw, 44px); font-weight: 700;
+        letter-spacing: -1.5px; line-height: 1;
+        background: var(--cx-grad-1);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 6px;
+    }
+    .cx-stat:nth-child(2) .cx-stat-num { background: var(--cx-grad-2); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .cx-stat:nth-child(3) .cx-stat-num { background: var(--cx-grad-3); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .cx-stat:nth-child(4) .cx-stat-num { background: linear-gradient(135deg, #FFB547, #FF4D8D); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .cx-stat:nth-child(5) .cx-stat-num { background: linear-gradient(135deg, #B6F569, #4CC2FF); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .cx-stat-label {
         font-size: 11px; font-weight: 600;
         text-transform: uppercase; letter-spacing: 2px;
-        color: rgba(255,255,255,0.38);
-        margin: 0 0 8px;
+        color: var(--cx-dim);
     }
-    .gx-mini-title {
-        font-size: 28px;
-        font-weight: 600;
-        color: #fff;
-        letter-spacing: -0.8px;
-        margin: 0;
-    }
-    .gx-mini .gx-arrow { position: static; }
-
-    /* â”€â”€â”€ Responsive â”€â”€â”€ */
-    @media (max-width: 1080px) {
-        .gx-grid { grid-template-columns: 1fr; }
-        .gx-hero { min-height: auto; }
-    }
-    @media (max-width: 720px) {
-        .gx-wrap { padding: 96px 16px 56px; }
-        .gx-hero {
-            grid-template-columns: 1fr;
-            gap: 24px;
-            padding: 28px 24px 26px;
-        }
-        .gx-hero-visual { width: 100%; height: 280px; }
-        .gx-hero-content { padding-right: 0; min-height: auto; padding-bottom: 56px; }
-        .gx-arrow { right: 22px; bottom: 22px; }
-        .gx-pair { grid-template-columns: 1fr; }
-        .gx-mini { min-height: 240px; }
+    @media (max-width: 880px) {
+        .cx-stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .cx-stat:nth-child(odd) { border-right: 1px solid var(--cx-line); }
+        .cx-stat:nth-child(even) { border-right: none; }
+        .cx-stat { border-bottom: 1px solid var(--cx-line); }
+        .cx-stat:last-child, .cx-stat:nth-last-child(2) { border-bottom: none; }
+        .cx-stat:nth-child(5) { grid-column: span 2; border-right: none; }
     }
 
-    /* â”€â”€â”€ Secondary section: grades â”€â”€â”€ */
-    .gx-section { margin-top: 80px; }
-    .gx-section-head {
-        display: flex; align-items: flex-end; justify-content: space-between;
-        gap: 24px; margin-bottom: 28px; flex-wrap: wrap;
-    }
-    .gx-section-title {
-        font-size: clamp(28px, 3vw, 40px);
-        font-weight: 700; letter-spacing: -1.2px;
-        color: #fff; margin: 0;
-    }
-    .gx-section-sub {
-        font-size: 15px; color: rgba(255,255,255,0.5);
-        max-width: 420px; margin: 8px 0 0; line-height: 1.55;
-    }
-    .gx-grade-grid {
-        display: grid; gap: 22px;
-        grid-template-columns: repeat(3, 1fr);
-    }
-    @media (max-width: 880px) { .gx-grade-grid { grid-template-columns: 1fr; } }
-
-    .gx-grade {
-        padding: 32px 28px 26px;
-        display: flex; flex-direction: column;
-        min-height: 240px;
+    /* ═══ SECTION SHELL ═══ */
+    .cx-sec {
+        max-width: 1320px; margin: 0 auto; padding: 140px 28px;
         position: relative;
     }
-    .gx-grade-num {
-        font-size: 96px; font-weight: 700;
-        line-height: 0.9; letter-spacing: -5px;
+    .cx-sec-head { margin-bottom: 64px; max-width: 720px; }
+    .cx-sec-tag {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 2.5px;
+        color: var(--cx-violet);
+        margin-bottom: 18px;
+    }
+    .cx-sec-tag::before {
+        content: ''; width: 24px; height: 1px; background: var(--cx-violet);
+    }
+    .cx-sec h2 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: clamp(36px, 5vw, 64px);
+        font-weight: 700;
+        line-height: 1.05;
+        letter-spacing: -2px;
         color: #fff;
+        margin: 0 0 20px;
+    }
+    .cx-sec h2 .grad {
+        background: var(--cx-grad-1);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .cx-sec-lead {
+        font-size: 18px; line-height: 1.55;
+        color: var(--cx-mute); font-weight: 300;
+    }
+
+    /* ═══ WHAT WE DO — feature cards ═══ */
+    .cx-features {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+    }
+    .cx-features .cx-feat:nth-child(1) { grid-column: span 2; }
+    @media (max-width: 980px) {
+        .cx-features { grid-template-columns: 1fr 1fr; }
+        .cx-features .cx-feat:nth-child(1) { grid-column: span 2; }
+    }
+    @media (max-width: 640px) {
+        .cx-features { grid-template-columns: 1fr; }
+        .cx-features .cx-feat:nth-child(1) { grid-column: span 1; }
+    }
+    .cx-feat {
+        position: relative;
+        background: var(--cx-card);
+        border: 1px solid var(--cx-line);
+        border-radius: 24px;
+        padding: 32px;
+        overflow: hidden;
+        transition: all .4s var(--cx-ease);
+        min-height: 260px;
+        display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .cx-feat::before {
+        content: ''; position: absolute; inset: 0;
+        background: radial-gradient(600px circle at var(--mx, 50%) var(--my, 0%), rgba(124,92,255,0.12), transparent 40%);
+        opacity: 0; transition: opacity .4s; pointer-events: none;
+    }
+    .cx-feat:hover {
+        border-color: var(--cx-line-strong);
+        transform: translateY(-4px);
+        background: var(--cx-card-2);
+    }
+    .cx-feat:hover::before { opacity: 1; }
+    .cx-feat-ico {
+        width: 52px; height: 52px; border-radius: 16px;
+        background: linear-gradient(135deg, rgba(124,92,255,0.18), rgba(76,194,255,0.10));
+        border: 1px solid rgba(124,92,255,0.25);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 22px; color: var(--cx-violet);
+        margin-bottom: 24px;
+        transition: transform .4s var(--cx-ease);
+    }
+    .cx-feat:hover .cx-feat-ico { transform: rotate(-6deg) scale(1.08); }
+    .cx-feat-title {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 22px; font-weight: 600;
+        color: #fff; letter-spacing: -0.5px;
+        margin: 0 0 10px;
+    }
+    .cx-feat-desc {
+        font-size: 14.5px; line-height: 1.6;
+        color: var(--cx-mute); font-weight: 300;
+        margin: 0;
+    }
+    .cx-feat-tags {
+        display: flex; gap: 6px; margin-top: 18px; flex-wrap: wrap;
+    }
+    .cx-feat-tag {
+        font-size: 10.5px; font-weight: 600; letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 4px 10px; border-radius: 999px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--cx-line);
+        color: var(--cx-dim);
+    }
+    /* Highlighted "biggest repository" feature */
+    .cx-feat.featured {
+        background: linear-gradient(135deg, rgba(124,92,255,0.15), rgba(76,194,255,0.08));
+        border-color: rgba(124,92,255,0.35);
+    }
+    .cx-feat.featured .cx-feat-ico {
+        background: var(--cx-grad-1); color: #fff; border-color: transparent;
+    }
+    .cx-feat.featured .cx-feat-num {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: clamp(56px, 7vw, 96px); font-weight: 700;
+        background: var(--cx-grad-1);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1; margin-bottom: 12px; letter-spacing: -3px;
+    }
+
+    /* ═══ HOW IT WORKS — timeline ═══ */
+    .cx-how {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+        position: relative;
+    }
+    .cx-how::before {
+        content: ''; position: absolute;
+        top: 38px; left: 5%; right: 5%; height: 1px;
+        background: linear-gradient(to right, transparent, var(--cx-violet), var(--cx-cyan), transparent);
+    }
+    @media (max-width: 880px) {
+        .cx-how { grid-template-columns: 1fr; gap: 18px; }
+        .cx-how::before { display: none; }
+    }
+    .cx-step {
+        position: relative; text-align: center;
+        padding: 0 16px;
+    }
+    .cx-step-num {
+        position: relative; z-index: 2;
+        width: 76px; height: 76px;
+        margin: 0 auto 24px;
+        border-radius: 50%;
+        background: var(--cx-bg);
+        border: 1px solid var(--cx-line-strong);
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 26px; font-weight: 700;
+        color: #fff;
+        box-shadow: inset 0 0 0 6px var(--cx-bg), 0 0 0 1px var(--cx-violet);
+        transition: all .4s var(--cx-ease);
+    }
+    .cx-step:hover .cx-step-num {
+        transform: scale(1.08);
+        box-shadow: inset 0 0 0 6px var(--cx-bg), 0 0 0 1px var(--cx-violet), 0 0 40px rgba(124,92,255,0.5);
+    }
+    .cx-step h3 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 18px; font-weight: 600;
+        color: #fff; margin: 0 0 8px; letter-spacing: -0.3px;
+    }
+    .cx-step p {
+        font-size: 13.5px; line-height: 1.55;
+        color: var(--cx-mute); font-weight: 300; margin: 0;
+    }
+
+    /* ═══ WHAT YOU GET ═══ */
+    .cx-get {
+        display: grid; grid-template-columns: 1.1fr 1fr; gap: 60px;
+        align-items: center;
+    }
+    @media (max-width: 980px) { .cx-get { grid-template-columns: 1fr; gap: 40px; } }
+    .cx-get-list { display: flex; flex-direction: column; gap: 4px; }
+    .cx-get-item {
+        display: flex; gap: 18px; align-items: flex-start;
+        padding: 20px 0;
+        border-bottom: 1px solid var(--cx-line);
+        transition: padding .3s var(--cx-ease);
+    }
+    .cx-get-item:hover { padding-left: 8px; }
+    .cx-get-item:last-child { border-bottom: none; }
+    .cx-get-check {
+        flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+        background: var(--cx-grad-3);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; color: #050507; font-weight: 700;
+        margin-top: 2px;
+    }
+    .cx-get-text strong {
+        display: block; font-size: 15.5px; font-weight: 600;
+        color: #fff; margin-bottom: 4px; letter-spacing: -0.2px;
+    }
+    .cx-get-text span {
+        font-size: 13.5px; color: var(--cx-mute); line-height: 1.55; font-weight: 300;
+    }
+    .cx-get-visual {
+        position: relative;
+        background: linear-gradient(160deg, rgba(124,92,255,0.18), rgba(76,194,255,0.06));
+        border: 1px solid var(--cx-line-strong);
+        border-radius: 28px;
+        padding: 36px;
+        overflow: hidden;
+        min-height: 480px;
+    }
+    .cx-get-visual::before {
+        content: '';
+        position: absolute; top: -50%; left: -20%;
+        width: 140%; height: 140%;
+        background: radial-gradient(circle, rgba(255,77,141,0.18), transparent 60%);
+        animation: cx-orbit 20s linear infinite;
+    }
+    @keyframes cx-orbit { to { transform: rotate(360deg); } }
+    .cx-mock {
+        position: relative; z-index: 1;
+        background: var(--cx-bg); border: 1px solid var(--cx-line-strong);
+        border-radius: 18px; padding: 22px;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+    }
+    .cx-mock-head {
+        display: flex; gap: 6px; margin-bottom: 18px;
+    }
+    .cx-mock-head span {
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--cx-line-strong);
+    }
+    .cx-mock-head span:nth-child(1) { background: #FF5F57; }
+    .cx-mock-head span:nth-child(2) { background: #FEBC2E; }
+    .cx-mock-head span:nth-child(3) { background: #28C840; }
+    .cx-mock-q {
+        font-size: 13.5px; color: var(--cx-mute); margin-bottom: 14px;
+    }
+    .cx-mock-q strong { color: #fff; font-weight: 600; }
+    .cx-mock-opts { display: flex; flex-direction: column; gap: 8px; }
+    .cx-mock-opt {
+        padding: 12px 14px; border: 1px solid var(--cx-line);
+        border-radius: 12px; font-size: 13px; color: var(--cx-mute);
+        background: rgba(255,255,255,0.02);
+        transition: all .25s var(--cx-ease);
+    }
+    .cx-mock-opt.correct {
+        border-color: rgba(182,245,105,0.4);
+        background: rgba(182,245,105,0.08);
+        color: #B6F569;
+    }
+    .cx-mock-opt.correct::after {
+        content: '✓'; float: right; font-weight: 700;
+    }
+    .cx-mock-progress {
+        margin-top: 18px; height: 6px; border-radius: 3px;
+        background: var(--cx-line); overflow: hidden;
+    }
+    .cx-mock-progress span {
+        display: block; height: 100%; width: 72%;
+        background: var(--cx-grad-1);
+        animation: cx-fill 2.4s var(--cx-ease) infinite alternate;
+    }
+    @keyframes cx-fill {
+        from { width: 18%; } to { width: 86%; }
+    }
+
+    /* ═══ GRADES ═══ */
+    .cx-grades {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;
+    }
+    @media (max-width: 880px) { .cx-grades { grid-template-columns: 1fr; } }
+    .cx-grade {
+        position: relative;
+        background: var(--cx-card);
+        border: 1px solid var(--cx-line);
+        border-radius: 24px;
+        padding: 36px 32px 28px;
+        text-decoration: none; color: inherit;
+        display: flex; flex-direction: column;
+        min-height: 280px;
+        overflow: hidden;
+        transition: all .4s var(--cx-ease);
+    }
+    .cx-grade::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(135deg, var(--c1, #7C5CFF) 0%, transparent 60%);
+        opacity: 0; transition: opacity .4s;
+    }
+    .cx-grade > * { position: relative; z-index: 1; }
+    .cx-grade:hover {
+        transform: translateY(-6px);
+        border-color: var(--cx-line-strong);
+    }
+    .cx-grade:hover::before { opacity: 0.18; }
+    .cx-grade.g10 { --c1: #4CC2FF; }
+    .cx-grade.g11 { --c1: #B48CE0; }
+    .cx-grade.g12 { --c1: #6CCB5F; }
+    .cx-grade-num {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 110px; font-weight: 700;
+        line-height: 0.9; letter-spacing: -6px;
+        background: linear-gradient(180deg, #fff 0%, var(--c1) 100%);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+    }
+    .cx-grade-name {
+        font-size: 18px; font-weight: 600;
+        color: #fff; margin: 6px 0 10px; letter-spacing: -0.3px;
+    }
+    .cx-grade-desc {
+        font-size: 13.5px; line-height: 1.55;
+        color: var(--cx-mute); font-weight: 300;
+        flex: 1; margin: 0 0 20px;
+    }
+    .cx-grade-foot {
+        display: flex; justify-content: space-between; align-items: center;
+        padding-top: 18px; border-top: 1px solid var(--cx-line);
+    }
+    .cx-grade-courses {
+        font-size: 11px; color: var(--cx-dim);
+        letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;
+    }
+    .cx-grade-courses strong { color: #fff; font-weight: 700; }
+    .cx-grade-arrow {
+        width: 36px; height: 36px; border-radius: 50%;
+        border: 1px solid var(--cx-line-strong);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 13px;
+        transition: all .3s var(--cx-ease);
+    }
+    .cx-grade:hover .cx-grade-arrow {
+        background: #fff; color: #050507; transform: rotate(-45deg);
+    }
+
+    /* ═══ PRICING ═══ */
+    .cx-price {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;
+    }
+    @media (max-width: 980px) { .cx-price { grid-template-columns: 1fr; max-width: 480px; margin: 0 auto; } }
+    .cx-tier {
+        position: relative;
+        background: var(--cx-card);
+        border: 1px solid var(--cx-line);
+        border-radius: 24px;
+        padding: 36px 32px;
+        display: flex; flex-direction: column;
+        transition: all .4s var(--cx-ease);
+    }
+    .cx-tier:hover { border-color: var(--cx-line-strong); transform: translateY(-4px); }
+    .cx-tier.popular {
+        background: linear-gradient(180deg, rgba(124,92,255,0.18), var(--cx-card));
+        border-color: rgba(124,92,255,0.45);
+        box-shadow: 0 20px 60px rgba(124,92,255,0.18);
+    }
+    .cx-tier-badge {
+        position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+        background: var(--cx-grad-1); color: #fff;
+        padding: 6px 14px; border-radius: 999px;
+        font-size: 10.5px; font-weight: 700; letter-spacing: 1.5px;
+        text-transform: uppercase;
+    }
+    .cx-tier-name {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 18px; font-weight: 600; color: #fff; letter-spacing: -0.2px;
         margin: 0 0 6px;
     }
-    .gx-grade.g10 .gx-grade-num { background: linear-gradient(180deg, #fff, #4CC2FF); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .gx-grade.g11 .gx-grade-num { background: linear-gradient(180deg, #fff, #B48CE0); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .gx-grade.g12 .gx-grade-num { background: linear-gradient(180deg, #fff, #6CCB5F); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .gx-grade-name {
-        font-size: 18px; font-weight: 600;
-        color: #fff; margin: 0 0 6px; letter-spacing: -0.3px;
+    .cx-tier-tag {
+        font-size: 13px; color: var(--cx-mute); font-weight: 300; margin: 0 0 24px;
     }
-    .gx-grade-desc {
-        font-size: 13.5px; color: rgba(255,255,255,0.5);
-        line-height: 1.55; margin: 0; flex: 1;
+    .cx-tier-price {
+        display: flex; align-items: baseline; gap: 6px; margin-bottom: 28px;
+        padding-bottom: 24px;
+        border-bottom: 1px solid var(--cx-line);
     }
-    .gx-grade-foot {
-        display: flex; align-items: center; justify-content: space-between;
-        margin-top: 18px; padding-top: 16px;
-        border-top: 1px solid rgba(255,255,255,0.06);
+    .cx-tier-price .num {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: 48px; font-weight: 700; color: #fff;
+        letter-spacing: -2px; line-height: 1;
     }
-    .gx-grade-courses {
-        font-size: 12px; color: rgba(255,255,255,0.45);
-        letter-spacing: 0.4px;
+    .cx-tier-price .cur { font-size: 18px; color: var(--cx-mute); font-weight: 500; }
+    .cx-tier-price .per { font-size: 13px; color: var(--cx-dim); font-weight: 400; }
+    .cx-tier-list { list-style: none; padding: 0; margin: 0 0 28px; flex: 1; }
+    .cx-tier-list li {
+        display: flex; align-items: flex-start; gap: 10px;
+        padding: 8px 0; font-size: 13.5px;
+        color: var(--cx-mute); font-weight: 300;
     }
-    .gx-grade-courses strong { color: #fff; font-weight: 700; }
-    .gx-grade .gx-arrow { position: static; width: 36px; height: 36px; }
-    .gx-grade .gx-arrow i { font-size: 13px !important; }
+    .cx-tier-list li i { color: var(--cx-lime); font-size: 11px; margin-top: 5px; flex-shrink: 0; }
+    .cx-tier-list li.muted { color: var(--cx-dim); }
+    .cx-tier-list li.muted i { color: var(--cx-dim); }
+    .cx-tier .cx-btn { justify-content: center; }
+    .cx-tier.popular .cx-btn-primary { background: var(--cx-grad-1); color: #fff; }
+
+    /* ═══ MARQUEE ═══ */
+    .cx-marquee {
+        position: relative;
+        padding: 60px 0;
+        overflow: hidden;
+        border-top: 1px solid var(--cx-line);
+        border-bottom: 1px solid var(--cx-line);
+        background: linear-gradient(180deg, transparent, rgba(124,92,255,0.04), transparent);
+    }
+    .cx-marquee-track {
+        display: flex; gap: 48px; align-items: center;
+        width: max-content;
+        animation: cx-scroll 40s linear infinite;
+    }
+    .cx-marquee:hover .cx-marquee-track { animation-play-state: paused; }
+    .cx-marq-item {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: clamp(32px, 5vw, 64px);
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -1px;
+        white-space: nowrap;
+    }
+    .cx-marq-item.outline {
+        -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 1.5px rgba(255,255,255,0.4);
+    }
+    .cx-marq-item.grad {
+        background: var(--cx-grad-1);
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .cx-marq-dot {
+        width: 12px; height: 12px; border-radius: 50%;
+        background: var(--cx-violet); flex-shrink: 0;
+    }
+    @keyframes cx-scroll { to { transform: translateX(-50%); } }
+
+    /* ═══ NEWSLETTER ═══ */
+    .cx-news {
+        max-width: 1320px; margin: 0 auto; padding: 100px 28px 140px;
+    }
+    .cx-news-card {
+        position: relative;
+        background: linear-gradient(135deg, #11111A 0%, #1A1530 50%, #0F1928 100%);
+        border: 1px solid var(--cx-line-strong);
+        border-radius: 36px;
+        padding: 80px 60px;
+        text-align: center;
+        overflow: hidden;
+    }
+    .cx-news-card::before {
+        content: ''; position: absolute; inset: 0;
+        background:
+            radial-gradient(circle at 20% 30%, rgba(124,92,255,0.4), transparent 40%),
+            radial-gradient(circle at 80% 70%, rgba(76,194,255,0.3), transparent 40%),
+            radial-gradient(circle at 50% 100%, rgba(255,77,141,0.25), transparent 50%);
+        opacity: 0.6;
+    }
+    .cx-news-card > * { position: relative; z-index: 1; }
+    .cx-news-card h2 {
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: clamp(32px, 4.5vw, 56px);
+        font-weight: 700; line-height: 1.05;
+        letter-spacing: -2px; color: #fff;
+        margin: 0 0 16px;
+    }
+    .cx-news-card p {
+        font-size: 17px; line-height: 1.55;
+        color: var(--cx-mute); font-weight: 300;
+        max-width: 540px; margin: 0 auto 36px;
+    }
+    .cx-form {
+        display: flex; gap: 8px; max-width: 480px; margin: 0 auto;
+        background: rgba(0,0,0,0.4);
+        border: 1px solid var(--cx-line-strong);
+        border-radius: 999px;
+        padding: 6px;
+        backdrop-filter: blur(20px);
+    }
+    .cx-form input {
+        flex: 1; background: transparent; border: none; outline: none;
+        padding: 12px 18px; color: #fff; font-family: inherit; font-size: 14px;
+    }
+    .cx-form input::placeholder { color: var(--cx-dim); }
+    .cx-form button {
+        background: #fff; color: #050507;
+        border: none; cursor: pointer;
+        padding: 12px 22px; border-radius: 999px;
+        font-family: inherit; font-weight: 600; font-size: 13.5px;
+        display: inline-flex; align-items: center; gap: 8px;
+        transition: all .25s var(--cx-ease);
+    }
+    .cx-form button:hover {
+        background: var(--cx-grad-1); color: #fff;
+        transform: translateY(-1px);
+    }
+    .cx-news-foot {
+        margin-top: 18px; font-size: 12px; color: var(--cx-dim);
+    }
+    .cx-thanks {
+        display: none;
+        margin-top: 18px;
+        padding: 14px 20px;
+        background: rgba(182,245,105,0.1);
+        border: 1px solid rgba(182,245,105,0.3);
+        border-radius: 14px;
+        color: var(--cx-lime); font-size: 14px; font-weight: 500;
+        max-width: 480px; margin-left: auto; margin-right: auto;
+    }
+    .cx-thanks.show { display: block; animation: cx-rise .4s var(--cx-ease) forwards; }
+    @media (max-width: 640px) {
+        .cx-news-card { padding: 60px 28px; }
+        .cx-form { flex-direction: column; border-radius: 20px; }
+        .cx-form button { justify-content: center; }
+    }
+
+    /* ═══ FOOTER ═══ */
+    .cx-footer {
+        background: #030305;
+        border-top: 1px solid var(--cx-line);
+        padding: 80px 28px 32px;
+    }
+    .cx-footer-inner {
+        max-width: 1320px; margin: 0 auto;
+        display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px;
+    }
+    @media (max-width: 880px) {
+        .cx-footer-inner { grid-template-columns: 1fr 1fr; }
+    }
+    .cx-footer-brand .cx-brand-mark { font-size: 28px; }
+    .cx-footer-brand p {
+        margin: 16px 0 0;
+        font-size: 13.5px; line-height: 1.6;
+        color: var(--cx-mute); font-weight: 300;
+        max-width: 320px;
+    }
+    .cx-footer-col h4 {
+        font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 2px;
+        color: var(--cx-dim); margin: 0 0 18px;
+    }
+    .cx-footer-col a {
+        display: block; padding: 6px 0;
+        font-size: 13.5px; color: var(--cx-mute);
+        text-decoration: none; font-weight: 400;
+        transition: color .2s;
+    }
+    .cx-footer-col a:hover { color: #fff; }
+    .cx-footer-bottom {
+        max-width: 1320px; margin: 56px auto 0;
+        padding-top: 28px; border-top: 1px solid var(--cx-line);
+        display: flex; justify-content: space-between; align-items: center;
+        flex-wrap: wrap; gap: 16px;
+    }
+    .cx-footer-bottom p {
+        font-size: 12px; color: var(--cx-dim);
+        margin: 0;
+    }
+    .cx-footer-social { display: flex; gap: 8px; }
+    .cx-footer-social a {
+        width: 36px; height: 36px; border-radius: 50%;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid var(--cx-line);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--cx-mute); text-decoration: none;
+        font-size: 13px;
+        transition: all .25s var(--cx-ease);
+    }
+    .cx-footer-social a:hover {
+        color: #fff; background: var(--cx-violet); border-color: var(--cx-violet);
+        transform: translateY(-2px);
+    }
+
+    /* ═══ FADE-IN ON SCROLL ═══ */
+    .cx-reveal { opacity: 0; transform: translateY(24px); transition: all .8s var(--cx-ease); }
+    .cx-reveal.in { opacity: 1; transform: translateY(0); }
 </style>
 
-<div class="gx-wrap">
-
-    <!-- Grades section — top -->
-    <section class="gx-section" style="padding-top:0;">
-        <div class="gx-section-head">
-            <div>
-                <h2 class="gx-section-title">Choose your grade.</h2>
-                <p class="gx-section-sub">Three years of structured CAT, aligned to the South African CAPS curriculum.</p>
-            </div>
+{# ═════════════ HERO ═════════════ #}
+<section class="cx-hero" id="top">
+    <div class="cx-hero-bg"></div>
+    <div class="cx-hero-grid"></div>
+    <div class="cx-hero-inner">
+        <span class="cx-pill">
+            <span class="cx-pill-tag">New</span>
+            <span class="cx-dot"></span>
+            South Africa's biggest CAT past-paper repository
+        </span>
+        <h1>
+            Pass <span class="grad">Computer<br>Applications Tech</span><br>
+            <span class="outline">like a pro.</span>
+        </h1>
+        <p class="cx-hero-sub">
+            CAPS-aligned lessons, interactive quizzes and the largest archive of past papers and memos
+            for South African Grade 10–12 — built by teachers, loved by students.
+        </p>
+        <div class="cx-hero-cta">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard') }}" class="cx-btn cx-btn-primary">Go to dashboard <i class="fas fa-arrow-right"></i></a>
+            {% else %}
+                <a href="{{ url_for('register') }}" class="cx-btn cx-btn-primary">Start learning free <i class="fas fa-arrow-right"></i></a>
+            {% endif %}
+            <a href="#what" class="cx-btn cx-btn-ghost">See how it works</a>
         </div>
-        <div class="gx-grade-grid">
-            {% for grade in grades %}
-            {% set cls = 'g10' if grade.number == 10 else ('g11' if grade.number == 11 else 'g12') %}
-            <a href="{{ url_for('grade_courses', grade_number=grade.number) }}" class="gx-card gx-grade {{ cls }}">
-                <div class="gx-grade-num">{{ grade.number }}</div>
-                <h3 class="gx-grade-name">{{ grade.name }}</h3>
-                <p class="gx-grade-desc">{{ grade.description }}</p>
-                <div class="gx-grade-foot">
-                    <span class="gx-grade-courses"><strong>{{ grade.courses|length }}</strong> COURSES</span>
-                    <span class="gx-arrow"><i class="fas fa-arrow-right"></i></span>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-    </section>
-
-    <div class="gx-grid" style="margin-top: 60px;">
-
-        <!-- LEFT: placeholder removed, hero moved below grades -->
-
-        <!-- RIGHT: two small cards only -->
-        <div class="gx-right">
-
-            <div class="gx-pair">
-                <a href="{{ url_for('grade_courses', grade_number=10) }}" class="gx-card gx-mini">
-                    <div class="gx-mini-visual"><i class="fas fa-book-open"></i></div>
-                    <div class="gx-mini-foot">
-                        <div class="gx-mini-text">
-                            <p class="gx-mini-eyebrow">Browse</p>
-                            <h3 class="gx-mini-title">Courses</h3>
-                        </div>
-                        <span class="gx-arrow"><i class="fas fa-arrow-right"></i></span>
-                    </div>
-                </a>
-                <a href="{% if current_user.is_authenticated %}{{ url_for('dashboard') }}{% else %}{{ url_for('login') }}{% endif %}" class="gx-card gx-mini">
-                    <div class="gx-mini-visual"><i class="fas fa-clipboard-question"></i></div>
-                    <div class="gx-mini-foot">
-                        <div class="gx-mini-text">
-                            <p class="gx-mini-eyebrow">Practice</p>
-                            <h3 class="gx-mini-title">Quizzes</h3>
-                        </div>
-                        <span class="gx-arrow"><i class="fas fa-arrow-right"></i></span>
-                    </div>
-                </a>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Hero card — full width below grades (HIDDEN, kept for later) -->
-    <section class="gx-section" style="padding-top:0; display:none;">
-        <a href="{% if current_user.is_authenticated %}{{ url_for('dashboard') }}{% else %}{{ url_for('register') }}{% endif %}" class="gx-card gx-hero">
-            <p class="gx-eyebrow" id="gx-eyebrow-scramble" style="position:relative;z-index:1;">She actually did it</p>
-            <div class="gx-hero-content">
-                <h1 class="gx-hero-title"><span class="intro">I passed my</span>CAT <span class="outline">Exam<span class="dot">!</span></span></h1>
-                <p class="gx-hero-sub">All those late nights, the quizzes, the lessons — it paid off. Start your own journey and make it happen too.</p>
-            </div>
-            <span class="gx-arrow"><i class="fas fa-arrow-right"></i></span>
-        </a>
-    </section>
-
-    <!-- Marquee banner — bottom -->
-    <div class="gx-marquee gx-marquee-big" style="margin-top:40px;">
-        <div class="gx-marquee-track">
-            <span class="gx-marquee-item">CAT CAPS</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item outline-item">PASS YOUR EXAM</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item">GRADE 10</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item outline-item">GRADE 11</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item">GRADE 12</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item outline-item">INTERACTIVE LESSONS</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item">CAT CAPS</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item outline-item">PASS YOUR EXAM</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item">GRADE 10</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item outline-item">GRADE 11</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item">GRADE 12</span>
-            <span class="gx-marquee-sep"></span>
-            <span class="gx-marquee-item outline-item">INTERACTIVE LESSONS</span>
-            <span class="gx-marquee-sep"></span>
+        <div class="cx-trust">
+            <div class="cx-trust-item"><i class="fas fa-check-circle"></i> 100% CAPS aligned</div>
+            <div class="cx-trust-item"><i class="fas fa-check-circle"></i> Grades 10 · 11 · 12</div>
+            <div class="cx-trust-item"><i class="fas fa-check-circle"></i> Auto-marked quizzes</div>
+            <div class="cx-trust-item"><i class="fas fa-check-circle"></i> Free to start</div>
         </div>
     </div>
+    <div class="cx-scroll-ind">
+        <span>Scroll</span>
+        <span class="line"></span>
+    </div>
+</section>
 
+{# ═════════════ STATS ═════════════ #}
+<div class="cx-stats">
+    <div class="cx-stats-grid">
+        <div class="cx-stat">
+            <div class="cx-stat-num" data-count="{{ stats.past_papers or 120 }}">{{ stats.past_papers or 120 }}+</div>
+            <div class="cx-stat-label">Past Papers</div>
+        </div>
+        <div class="cx-stat">
+            <div class="cx-stat-num" data-count="{{ stats.lessons or 240 }}">{{ stats.lessons or 240 }}+</div>
+            <div class="cx-stat-label">Lessons</div>
+        </div>
+        <div class="cx-stat">
+            <div class="cx-stat-num" data-count="{{ stats.quizzes or 90 }}">{{ stats.quizzes or 90 }}+</div>
+            <div class="cx-stat-label">Quizzes</div>
+        </div>
+        <div class="cx-stat">
+            <div class="cx-stat-num" data-count="{{ stats.questions or 1500 }}">{{ stats.questions or 1500 }}+</div>
+            <div class="cx-stat-label">Bank Questions</div>
+        </div>
+        <div class="cx-stat">
+            <div class="cx-stat-num">3</div>
+            <div class="cx-stat-label">Grades Covered</div>
+        </div>
+    </div>
 </div>
 
+{# ═════════════ WHAT WE DO ═════════════ #}
+<section class="cx-sec cx-reveal" id="what">
+    <div class="cx-sec-head">
+        <span class="cx-sec-tag">What we do</span>
+        <h2>Everything you need to <span class="grad">master CAT.</span></h2>
+        <p class="cx-sec-lead">
+            From the first Word lesson to your final exam — CATx is one platform for the
+            entire CAPS Computer Applications Technology curriculum.
+        </p>
+    </div>
+
+    <div class="cx-features">
+        <div class="cx-feat featured">
+            <div>
+                <div class="cx-feat-num">{{ stats.past_papers or 120 }}+</div>
+                <div class="cx-feat-title">The biggest CAT past paper archive in SA</div>
+                <p class="cx-feat-desc">
+                    Every past paper, memo and data file you need — neatly organised by grade,
+                    year and paper number. Search, filter and download in two clicks.
+                </p>
+            </div>
+            <div class="cx-feat-tags">
+                <span class="cx-feat-tag">DBE Papers</span>
+                <span class="cx-feat-tag">Memos</span>
+                <span class="cx-feat-tag">Data Files</span>
+                <span class="cx-feat-tag">Provincial</span>
+            </div>
+        </div>
+
+        <div class="cx-feat">
+            <div>
+                <div class="cx-feat-ico"><i class="fas fa-book-open"></i></div>
+                <div class="cx-feat-title">CAPS-aligned lessons</div>
+                <p class="cx-feat-desc">
+                    Word, Spreadsheets, Databases &amp; Presentations — structured rich-HTML
+                    lessons with progress tracking and "mark complete".
+                </p>
+            </div>
+        </div>
+
+        <div class="cx-feat">
+            <div>
+                <div class="cx-feat-ico" style="background:linear-gradient(135deg,rgba(255,77,141,0.18),rgba(255,181,71,0.10));border-color:rgba(255,77,141,0.25);color:var(--cx-pink);"><i class="fas fa-clipboard-question"></i></div>
+                <div class="cx-feat-title">Interactive quizzes</div>
+                <p class="cx-feat-desc">
+                    Multiple-choice, drag-to-order and matching pairs — instant results,
+                    explanations and unlimited retakes.
+                </p>
+            </div>
+        </div>
+
+        <div class="cx-feat">
+            <div>
+                <div class="cx-feat-ico" style="background:linear-gradient(135deg,rgba(76,194,255,0.18),rgba(182,245,105,0.10));border-color:rgba(76,194,255,0.25);color:var(--cx-cyan);"><i class="fas fa-wand-magic-sparkles"></i></div>
+                <div class="cx-feat-title">CAPS paper generator</div>
+                <p class="cx-feat-desc">
+                    Teachers assemble custom exam papers from a tagged question bank using
+                    saved instruction templates. Done in minutes.
+                </p>
+            </div>
+        </div>
+
+        <div class="cx-feat">
+            <div>
+                <div class="cx-feat-ico" style="background:linear-gradient(135deg,rgba(182,245,105,0.18),rgba(76,194,255,0.10));border-color:rgba(182,245,105,0.25);color:var(--cx-lime);"><i class="fas fa-calendar-check"></i></div>
+                <div class="cx-feat-title">Year planner</div>
+                <p class="cx-feat-desc">
+                    Schedule lessons, quizzes, exams and events with a year-at-a-glance view
+                    that keeps your whole class on track.
+                </p>
+            </div>
+        </div>
+
+        <div class="cx-feat">
+            <div>
+                <div class="cx-feat-ico" style="background:linear-gradient(135deg,rgba(255,181,71,0.18),rgba(255,77,141,0.10));border-color:rgba(255,181,71,0.25);color:var(--cx-amber);"><i class="fas fa-brain"></i></div>
+                <div class="cx-feat-title">Smart auto-grading</div>
+                <p class="cx-feat-desc">
+                    Keyword + synonym matching marks short-answer questions automatically —
+                    so teachers spend more time teaching.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ═════════════ HOW IT WORKS ═════════════ #}
+<section class="cx-sec cx-reveal" id="how" style="padding-top: 60px;">
+    <div class="cx-sec-head">
+        <span class="cx-sec-tag">How it works</span>
+        <h2>From sign-up to <span class="grad">distinction</span> in four steps.</h2>
+    </div>
+
+    <div class="cx-how">
+        <div class="cx-step">
+            <div class="cx-step-num">1</div>
+            <h3>Pick your grade</h3>
+            <p>Grade 10, 11 or 12 — every CAPS topic mapped and ready to go.</p>
+        </div>
+        <div class="cx-step">
+            <div class="cx-step-num">2</div>
+            <h3>Learn the lesson</h3>
+            <p>Read, watch and work through structured lessons at your own pace.</p>
+        </div>
+        <div class="cx-step">
+            <div class="cx-step-num">3</div>
+            <h3>Quiz yourself</h3>
+            <p>MCQ, drag-drop and matching quizzes with instant feedback.</p>
+        </div>
+        <div class="cx-step">
+            <div class="cx-step-num">4</div>
+            <h3>Smash the exam</h3>
+            <p>Practice every past paper. Walk in confident. Walk out with a distinction.</p>
+        </div>
+    </div>
+</section>
+
+{# ═════════════ WHAT YOU GET ═════════════ #}
+<section class="cx-sec cx-reveal" id="get" style="padding-top: 60px;">
+    <div class="cx-get">
+        <div>
+            <div class="cx-sec-head" style="margin-bottom: 32px;">
+                <span class="cx-sec-tag">What you get</span>
+                <h2>One platform.<br><span class="grad">Every CAT advantage.</span></h2>
+            </div>
+            <div class="cx-get-list">
+                <div class="cx-get-item">
+                    <div class="cx-get-check"><i class="fas fa-check"></i></div>
+                    <div class="cx-get-text">
+                        <strong>Full CAPS curriculum, Grades 10–12</strong>
+                        <span>Word, Spreadsheets, Databases, Presentations, Networks, Hardware &amp; Internet — all of it.</span>
+                    </div>
+                </div>
+                <div class="cx-get-item">
+                    <div class="cx-get-check"><i class="fas fa-check"></i></div>
+                    <div class="cx-get-text">
+                        <strong>Unlimited past paper downloads</strong>
+                        <span>Every paper, memo and data file. Filter by grade, year, paper number — free, forever.</span>
+                    </div>
+                </div>
+                <div class="cx-get-item">
+                    <div class="cx-get-check"><i class="fas fa-check"></i></div>
+                    <div class="cx-get-text">
+                        <strong>Interactive quizzes with instant feedback</strong>
+                        <span>Three quiz formats, time limits, explanations and as many retakes as you need.</span>
+                    </div>
+                </div>
+                <div class="cx-get-item">
+                    <div class="cx-get-check"><i class="fas fa-check"></i></div>
+                    <div class="cx-get-text">
+                        <strong>Personal learning dashboard</strong>
+                        <span>Track lessons completed, quiz scores and overall course progress in one place.</span>
+                    </div>
+                </div>
+                <div class="cx-get-item">
+                    <div class="cx-get-check"><i class="fas fa-check"></i></div>
+                    <div class="cx-get-text">
+                        <strong>Teacher tools, included</strong>
+                        <span>Course builder, paper generator, year planner, audit logs and a tagged question bank.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cx-get-visual">
+            <div class="cx-mock">
+                <div class="cx-mock-head"><span></span><span></span><span></span></div>
+                <div class="cx-mock-q">
+                    <strong>Question 4 of 12 · Spreadsheets</strong><br>
+                    Which function returns the matching value from a different column?
+                </div>
+                <div class="cx-mock-opts">
+                    <div class="cx-mock-opt">SUMIF()</div>
+                    <div class="cx-mock-opt correct">VLOOKUP()</div>
+                    <div class="cx-mock-opt">COUNTIF()</div>
+                    <div class="cx-mock-opt">CONCAT()</div>
+                </div>
+                <div class="cx-mock-progress"><span></span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{# ═════════════ GRADES ═════════════ #}
+<section class="cx-sec cx-reveal" id="grades" style="padding-top: 60px;">
+    <div class="cx-sec-head">
+        <span class="cx-sec-tag">Choose your grade</span>
+        <h2>Three years of <span class="grad">structured CAT.</span></h2>
+        <p class="cx-sec-lead">
+            Aligned to the South African CAPS curriculum. Jump straight in.
+        </p>
+    </div>
+    <div class="cx-grades">
+        {% for grade in grades %}
+        {% set cls = 'g10' if grade.number == 10 else ('g11' if grade.number == 11 else 'g12') %}
+        <a href="{{ url_for('grade_courses', grade_number=grade.number) }}" class="cx-grade {{ cls }}">
+            <div class="cx-grade-num">{{ grade.number }}</div>
+            <h3 class="cx-grade-name">{{ grade.name }}</h3>
+            <p class="cx-grade-desc">{{ grade.description }}</p>
+            <div class="cx-grade-foot">
+                <span class="cx-grade-courses"><strong>{{ grade.courses|length }}</strong> Courses</span>
+                <span class="cx-grade-arrow"><i class="fas fa-arrow-right"></i></span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+
+{# ═════════════ MARQUEE ═════════════ #}
+<div class="cx-marquee">
+    <div class="cx-marquee-track">
+        {% for _ in range(2) %}
+            <span class="cx-marq-item">CAPS Aligned</span>
+            <span class="cx-marq-dot"></span>
+            <span class="cx-marq-item outline">Pass Your Exam</span>
+            <span class="cx-marq-dot"></span>
+            <span class="cx-marq-item grad">Grade 10 · 11 · 12</span>
+            <span class="cx-marq-dot"></span>
+            <span class="cx-marq-item outline">Past Papers</span>
+            <span class="cx-marq-dot"></span>
+            <span class="cx-marq-item">Auto-Graded Quizzes</span>
+            <span class="cx-marq-dot"></span>
+            <span class="cx-marq-item outline">Built In SA</span>
+            <span class="cx-marq-dot"></span>
+        {% endfor %}
+    </div>
+</div>
+
+{# ═════════════ PRICING ═════════════ #}
+<section class="cx-sec cx-reveal" id="price" style="padding-top: 100px;">
+    <div class="cx-sec-head" style="text-align:center; margin-left:auto; margin-right:auto;">
+        <span class="cx-sec-tag" style="display:inline-flex;">For what price</span>
+        <h2>Simple, honest <span class="grad">pricing.</span></h2>
+        <p class="cx-sec-lead" style="margin-left:auto;margin-right:auto;">
+            Start free. Upgrade when you're ready. Cancel anytime.
+        </p>
+    </div>
+    <div class="cx-price">
+        <div class="cx-tier">
+            <h3 class="cx-tier-name">Student Free</h3>
+            <p class="cx-tier-tag">Everything you need to start.</p>
+            <div class="cx-tier-price">
+                <span class="num">R0</span>
+                <span class="per">/forever</span>
+            </div>
+            <ul class="cx-tier-list">
+                <li><i class="fas fa-check"></i> Browse all courses &amp; lessons</li>
+                <li><i class="fas fa-check"></i> Take quizzes with instant feedback</li>
+                <li><i class="fas fa-check"></i> Personal learning dashboard</li>
+                <li><i class="fas fa-check"></i> 10 past paper downloads / month</li>
+                <li class="muted"><i class="fas fa-check"></i> Smart auto-grading</li>
+            </ul>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard') }}" class="cx-btn cx-btn-ghost">Open dashboard</a>
+            {% else %}
+                <a href="{{ url_for('register') }}" class="cx-btn cx-btn-ghost">Sign up free</a>
+            {% endif %}
+        </div>
+
+        <div class="cx-tier popular">
+            <span class="cx-tier-badge">Most Popular</span>
+            <h3 class="cx-tier-name">Student Pro</h3>
+            <p class="cx-tier-tag">Unlock the full archive.</p>
+            <div class="cx-tier-price">
+                <span class="cur">R</span><span class="num">49</span>
+                <span class="per">/month</span>
+            </div>
+            <ul class="cx-tier-list">
+                <li><i class="fas fa-check"></i> Everything in Free</li>
+                <li><i class="fas fa-check"></i> Unlimited past paper downloads</li>
+                <li><i class="fas fa-check"></i> All memos &amp; data files</li>
+                <li><i class="fas fa-check"></i> Smart short-answer grading</li>
+                <li><i class="fas fa-check"></i> Detailed progress reports</li>
+            </ul>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard') }}" class="cx-btn cx-btn-primary">Upgrade now <i class="fas fa-arrow-right"></i></a>
+            {% else %}
+                <a href="{{ url_for('register') }}" class="cx-btn cx-btn-primary">Start 14-day trial <i class="fas fa-arrow-right"></i></a>
+            {% endif %}
+        </div>
+
+        <div class="cx-tier">
+            <h3 class="cx-tier-name">School / Teacher</h3>
+            <p class="cx-tier-tag">For classrooms &amp; departments.</p>
+            <div class="cx-tier-price">
+                <span class="num">Custom</span>
+            </div>
+            <ul class="cx-tier-list">
+                <li><i class="fas fa-check"></i> Course &amp; lesson builder</li>
+                <li><i class="fas fa-check"></i> CAPS paper generator</li>
+                <li><i class="fas fa-check"></i> Tagged question bank</li>
+                <li><i class="fas fa-check"></i> Year planner &amp; audit logs</li>
+                <li><i class="fas fa-check"></i> Bulk student licenses</li>
+            </ul>
+            <a href="#newsletter" class="cx-btn cx-btn-ghost">Talk to us</a>
+        </div>
+    </div>
+</section>
+
+{# ═════════════ NEWSLETTER ═════════════ #}
+<section class="cx-news" id="newsletter">
+    <div class="cx-news-card cx-reveal">
+        <h2>Find out more.<br>Be first to know.</h2>
+        <p>
+            Join the CATx newsletter for new past papers, study tips and CAPS updates —
+            straight to your inbox. No spam, ever.
+        </p>
+        <form class="cx-form" id="cxNewsForm" onsubmit="return cxSubscribe(event)">
+            <input type="email" name="email" placeholder="you@school.co.za" required>
+            <button type="submit">Subscribe <i class="fas fa-arrow-right"></i></button>
+        </form>
+        <p class="cx-news-foot">By subscribing you agree to receive occasional emails. Unsubscribe anytime.</p>
+        <div class="cx-thanks" id="cxThanks">
+            <i class="fas fa-check-circle"></i> &nbsp;You're in. Watch your inbox for your first drop.
+        </div>
+    </div>
+</section>
+
+{# ═════════════ FOOTER (overrides base) ═════════════ #}
+{% block footer %}{% endblock %}
+
+<footer class="cx-footer">
+    <div class="cx-footer-inner">
+        <div class="cx-footer-brand">
+            <a href="{{ url_for('index') }}" class="cx-brand">
+                <span class="cx-brand-mark">CAT<span class="cx-brand-x">x</span></span>
+            </a>
+            <p>South Africa's biggest CAPS-aligned Computer Applications Technology learning platform — for Grade 10, 11 and 12.</p>
+        </div>
+        <div class="cx-footer-col">
+            <h4>Learn</h4>
+            <a href="{{ url_for('grade_courses', grade_number=10) }}">Grade 10</a>
+            <a href="{{ url_for('grade_courses', grade_number=11) }}">Grade 11</a>
+            <a href="{{ url_for('grade_courses', grade_number=12) }}">Grade 12</a>
+            <a href="#what">All features</a>
+        </div>
+        <div class="cx-footer-col">
+            <h4>Platform</h4>
+            <a href="#how">How it works</a>
+            <a href="#price">Pricing</a>
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            {% else %}
+                <a href="{{ url_for('login') }}">Sign in</a>
+                <a href="{{ url_for('register') }}">Sign up</a>
+            {% endif %}
+        </div>
+        <div class="cx-footer-col">
+            <h4>Company</h4>
+            <a href="#newsletter">Newsletter</a>
+            <a href="#newsletter">Contact</a>
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+        </div>
+    </div>
+    <div class="cx-footer-bottom">
+        <p>© {{ 2026 }} CATx · Built in South Africa for South African learners.</p>
+        <div class="cx-footer-social">
+            <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+            <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+        </div>
+    </div>
+</footer>
+
 <script>
-(function() {
-    const el = document.getElementById('gx-eyebrow-scramble');
-    if (!el) return;
-    const final = el.textContent.trim();
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%&?';
-    let iterations = 0;
-    el.textContent = '';
-    const interval = setInterval(() => {
-        el.textContent = final.split('').map((ch, i) => {
-            if (ch === ' ') return ' ';
-            if (i < iterations) return final[i];
-            return chars[Math.floor(Math.random() * chars.length)];
-        }).join('');
-        if (iterations >= final.length) clearInterval(interval);
-        iterations += 0.4;
-    }, 40);
+(function () {
+    // Sticky-nav scroll state
+    var nav = document.getElementById('cxNav');
+    var onScroll = function () {
+        if (window.scrollY > 30) nav.classList.add('scrolled');
+        else nav.classList.remove('scrolled');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Smooth-scroll for in-page anchors
+    document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            var id = a.getAttribute('href');
+            if (id.length > 1) {
+                var t = document.querySelector(id);
+                if (t) {
+                    e.preventDefault();
+                    window.scrollTo({ top: t.offsetTop - 70, behavior: 'smooth' });
+                }
+            }
+        });
+    });
+
+    // Reveal-on-scroll
+    if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) {
+                if (en.isIntersecting) {
+                    en.target.classList.add('in');
+                    io.unobserve(en.target);
+                }
+            });
+        }, { threshold: 0.12 });
+        document.querySelectorAll('.cx-reveal').forEach(function (el) { io.observe(el); });
+    } else {
+        document.querySelectorAll('.cx-reveal').forEach(function (el) { el.classList.add('in'); });
+    }
+
+    // Spotlight cursor on feature cards
+    document.querySelectorAll('.cx-feat').forEach(function (card) {
+        card.addEventListener('mousemove', function (e) {
+            var r = card.getBoundingClientRect();
+            card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+            card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+        });
+    });
+
+    // Animated count-up for stats
+    var animateCount = function (el) {
+        var raw = el.getAttribute('data-count');
+        if (!raw) return;
+        var target = parseInt(raw, 10);
+        if (isNaN(target) || target <= 0) return;
+        var dur = 1400, start = performance.now();
+        var step = function (now) {
+            var p = Math.min(1, (now - start) / dur);
+            var eased = 1 - Math.pow(1 - p, 3);
+            el.textContent = Math.floor(target * eased) + '+';
+            if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    };
+    if ('IntersectionObserver' in window) {
+        var io2 = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) {
+                if (en.isIntersecting) {
+                    animateCount(en.target);
+                    io2.unobserve(en.target);
+                }
+            });
+        }, { threshold: 0.4 });
+        document.querySelectorAll('.cx-stat-num[data-count]').forEach(function (el) { io2.observe(el); });
+    }
 })();
+
+function cxSubscribe(e) {
+    e.preventDefault();
+    var f = document.getElementById('cxNewsForm');
+    var t = document.getElementById('cxThanks');
+    f.style.display = 'none';
+    t.classList.add('show');
+    return false;
+}
 </script>
 
 {% endblock %}

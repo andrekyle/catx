@@ -549,6 +549,437 @@
 .ui-modal .ui-btn:hover { border-color: rgba(127,127,127,0.65); }
 .ui-modal .ui-btn.danger { background: #C42B1C; border-color: #C42B1C; color: #fff; }
 .ui-modal .ui-btn.danger:hover { background: #A82218; border-color: #A82218; }
+
+/* ═════════════════════════════════════════════════════════════════
+   CATx DARK OVERRIDE for the Teacher shell.
+   Re-skins the previous Azure light theme to match the home page
+   (dark glass cards, violet accents, gradient title) without
+   changing any markup or functionality. Lives at the END of the
+   teacher style block so it wins the cascade over the Azure rules.
+   ═════════════════════════════════════════════════════════════════ */
+.t-shell, .t-shell * {
+    --az-bg:        #050507;
+    --az-surface:   #11111A;
+    --az-surface-2: #16161F;
+    --az-border:    rgba(255,255,255,0.08);
+    --az-border-2:  rgba(255,255,255,0.14);
+    --az-text:      #F5F5FA;
+    --az-text-2:    #B0B0BF;
+    --az-text-3:    #6E6E80;
+    --az-blue:      #7C5CFF;
+    --az-blue-dk:   #6A4DE6;
+    --az-blue-dr:   #B0B0FF;
+    --az-blue-bg:   rgba(124,92,255,0.14);
+    --az-nav:       #050507;
+    --az-red:       #FF4D8D;
+    --az-red-dr:    #E0407C;
+    --az-green:     #B6F569;
+    --az-amber:     #FFB547;
+
+    --bg:               #050507;
+    --bg-elevated:      #11111A;
+    --bg-card:          #11111A;
+    --bg-input:         #0E0E15;
+    --text:             #F5F5FA;
+    --text-secondary:   #B0B0BF;
+    --text-tertiary:    #6E6E80;
+    --separator:        rgba(255,255,255,0.08);
+    --separator-light:  rgba(255,255,255,0.06);
+    --fill:             rgba(255,255,255,0.04);
+    --blue:             #7C5CFF;
+}
+.t-shell {
+    background: transparent !important;
+    color: var(--az-text) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    padding-top: 36px !important;
+}
+/* Universal black-text rule from Azure layer → restore CATx text */
+.t-shell.t-shell,
+.t-shell.t-shell *:not(.navbar):not(.navbar *) {
+    color: var(--az-text) !important;
+}
+/* Header — gradient title, violet eyebrow line */
+.t-shell .t-head { border-bottom: 1px solid var(--az-border) !important; padding-bottom: 22px; }
+.t-shell.t-shell .t-eyebrow {
+    color: var(--cx-violet, #7C5CFF) !important;
+    font-size: 11px !important;
+    letter-spacing: 2.5px !important;
+    text-transform: uppercase;
+    font-weight: 700 !important;
+    display: inline-flex; align-items: center; gap: 10px;
+    margin-bottom: 10px !important;
+}
+.t-shell.t-shell .t-eyebrow::before {
+    content: ''; width: 24px; height: 1px;
+    background: var(--cx-violet, #7C5CFF);
+    display: inline-block;
+}
+.t-shell.t-shell .t-title {
+    font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+    font-size: 48px !important;
+    font-weight: 700 !important;
+    letter-spacing: -2px !important;
+    line-height: 1.05 !important;
+    background: linear-gradient(135deg, #fff 0%, #B0B0FF 60%, #7C5CFF 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+    margin: 6px 0 8px !important;
+}
+.t-shell.t-shell .t-sub {
+    color: var(--az-text-2) !important;
+    font-size: 15px !important;
+    font-weight: 300 !important;
+}
+/* Tabs */
+.t-shell .t-tabs { border-bottom: 1px solid var(--az-border) !important; }
+.t-shell .t-tabs a {
+    color: var(--az-text-2) !important;
+    border-bottom: 2px solid transparent !important;
+    font-weight: 500 !important;
+    transition: color .2s, border-color .2s;
+}
+.t-shell .t-tabs a:hover { color: #fff !important; background: rgba(124,92,255,0.06) !important; }
+.t-shell .t-tabs a.is-active,
+.t-shell .t-tabs a.is-active * {
+    color: var(--cx-violet, #7C5CFF) !important;
+    border-bottom-color: var(--cx-violet, #7C5CFF) !important;
+}
+/* Cards / rows */
+.t-shell .t-card,
+.t-shell .t-row {
+    background: var(--az-surface) !important;
+    border: 1px solid var(--az-border) !important;
+    border-radius: 22px !important;
+    box-shadow: none !important;
+    transition: border-color .3s, transform .3s, box-shadow .3s;
+}
+.t-shell .t-row:hover { background: rgba(124,92,255,0.05) !important; border-color: var(--az-border-2) !important; }
+.t-shell .t-empty {
+    background: var(--az-surface) !important;
+    border: 1px dashed var(--az-border-2) !important;
+    color: var(--az-text-3) !important;
+    border-radius: 22px !important;
+}
+.t-shell .t-table th { color: var(--az-text-3) !important; border-bottom-color: var(--az-border) !important; background: transparent !important; text-transform: uppercase; letter-spacing: 1.6px; font-size: 11px; }
+.t-shell .t-table td { color: var(--az-text) !important; border-bottom-color: var(--az-border) !important; }
+
+/* Buttons */
+.t-shell .t-btn {
+    background: rgba(255,255,255,0.04) !important;
+    color: var(--az-text) !important;
+    border: 1px solid var(--az-border-2) !important;
+    border-radius: 12px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 600 !important;
+    transition: all .2s var(--cx-ease-x, cubic-bezier(.22,1,.36,1));
+}
+.t-shell .t-btn:hover {
+    background: rgba(124,92,255,0.10) !important;
+    border-color: var(--cx-violet, #7C5CFF) !important;
+    color: #fff !important;
+    transform: translateY(-1px);
+}
+.t-shell .t-btn.primary,
+.t-shell .t-btn.primary * {
+    background: linear-gradient(135deg, #7C5CFF 0%, #4CC2FF 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 8px 24px rgba(124,92,255,0.35) !important;
+    border-radius: 12px !important;
+}
+.t-shell .t-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(124,92,255,0.55) !important;
+}
+.t-shell .t-btn.primary img { filter: brightness(0) invert(1); }
+.t-shell .t-btn.danger {
+    color: var(--az-red) !important;
+    background: rgba(255,77,141,0.06) !important;
+    border-color: rgba(255,77,141,0.30) !important;
+}
+.t-shell .t-btn.danger:hover {
+    background: var(--az-red) !important;
+    color: #fff !important;
+    border-color: var(--az-red) !important;
+}
+.t-shell .t-thin-btn,
+.t-shell .t-icon-btn {
+    border-color: var(--az-border-2) !important;
+    color: var(--az-text-2) !important;
+    background: rgba(255,255,255,0.03) !important;
+    border-radius: 10px !important;
+}
+.t-shell .t-thin-btn:hover,
+.t-shell .t-icon-btn:hover { color: #fff !important; border-color: var(--cx-violet, #7C5CFF) !important; background: rgba(124,92,255,0.10) !important; }
+
+/* Form fields */
+.t-shell .t-field label { color: var(--az-text-3) !important; text-transform: uppercase; letter-spacing: 1.4px; font-size: 11px; font-weight: 700; }
+.t-shell .t-field input,
+.t-shell .t-field select,
+.t-shell .t-field textarea {
+    background: var(--bg-input) !important;
+    color: var(--az-text) !important;
+    border: 1px solid var(--az-border-2) !important;
+    border-radius: 12px !important;
+    font-family: 'Inter', sans-serif !important;
+}
+.t-shell .t-field input:focus,
+.t-shell .t-field select:focus,
+.t-shell .t-field textarea:focus {
+    border-color: var(--cx-violet, #7C5CFF) !important;
+    box-shadow: 0 0 0 3px rgba(124,92,255,0.18) !important;
+}
+
+/* Chips */
+.t-shell .t-chip          { background: rgba(124,92,255,0.14) !important; color: #B0B0FF !important; border-radius: 999px !important; padding: 3px 10px !important; font-weight: 600 !important; }
+.t-shell .t-chip.gray     { background: rgba(255,255,255,0.06) !important; color: var(--az-text-2) !important; }
+.t-shell .t-chip.green    { background: rgba(182,245,105,0.14) !important; color: var(--az-green) !important; }
+.t-shell .t-chip.amber    { background: rgba(255,181,71,0.14) !important; color: var(--az-amber) !important; }
+.t-shell .t-chip.red      { background: rgba(255,77,141,0.14) !important; color: var(--az-red) !important; }
+
+/* Filter dropdown */
+.t-shell .fdd-toggle  { background: var(--az-surface) !important; border-color: var(--az-border-2) !important; color: var(--az-text) !important; border-radius: 10px !important; }
+.t-shell .fdd-toggle:hover { border-color: var(--cx-violet, #7C5CFF) !important; }
+.t-shell .fdd-panel   { background: var(--az-surface) !important; border-color: var(--az-border-2) !important; border-radius: 14px !important; box-shadow: 0 16px 48px rgba(0,0,0,0.5) !important; }
+.t-shell .fdd-item    { color: var(--az-text) !important; }
+.t-shell .fdd-item:hover    { background: rgba(124,92,255,0.08) !important; }
+.t-shell .fdd-item.selected { background: var(--az-blue-bg) !important; color: #fff !important; }
+.t-shell .fdd-actions a     { color: var(--cx-violet, #7C5CFF) !important; }
+
+/* Modal */
+.t-shell .ui-modal { background: var(--az-surface) !important; border: 1px solid var(--az-border-2) !important; border-radius: 18px !important; box-shadow: 0 24px 72px rgba(0,0,0,0.6) !important; }
+.t-shell.t-shell .ui-modal h3, .t-shell.t-shell .ui-modal h3 * { color: var(--az-text) !important; }
+.t-shell.t-shell .ui-modal p, .t-shell.t-shell .ui-modal p * { color: var(--az-text-2) !important; }
+.t-shell .ui-modal .ui-btn { background: rgba(255,255,255,0.04) !important; color: var(--az-text) !important; border: 1px solid var(--az-border-2) !important; border-radius: 10px !important; }
+.t-shell .ui-modal .ui-btn:hover { border-color: var(--cx-violet, #7C5CFF) !important; }
+.t-shell .ui-modal .ui-btn.danger,
+.t-shell .ui-modal .ui-btn.danger * { background: var(--az-red) !important; border-color: var(--az-red) !important; color: #fff !important; }
+
+/* Banner table headers — violet gradient instead of azure flat blue */
+.t-shell .t-table thead th,
+.t-shell table.t-table > thead > tr > th,
+.t-shell .t-card table thead th,
+.t-shell .t-card table > thead > tr > th {
+    background: linear-gradient(135deg, rgba(124,92,255,0.18), rgba(76,194,255,0.10)) !important;
+    color: #B0B0FF !important;
+    border-color: var(--az-border) !important;
+    font-weight: 700 !important;
+}
+.t-shell.t-shell .t-table thead th,
+.t-shell.t-shell .t-table thead th *,
+.t-shell.t-shell table.t-table > thead > tr > th,
+.t-shell.t-shell table.t-table > thead > tr > th *,
+.t-shell.t-shell .t-card table thead th,
+.t-shell.t-shell .t-card table thead th *,
+.t-shell.t-shell .cap-table thead th,
+.t-shell.t-shell .cap-table thead th *,
+.t-shell.t-shell table thead th,
+.t-shell.t-shell table thead th * { color: #B0B0FF !important; }
+
+/* Section banners (h2/h3/h4 first child of t-card, gen-h, yp-term-h) */
+.t-shell .t-card > h2:first-child,
+.t-shell .t-card > h3:first-child,
+.t-shell .t-card > h4:first-child,
+.t-shell .gen-h,
+.t-shell .yp-term-h {
+    background: linear-gradient(135deg, rgba(124,92,255,0.20), rgba(76,194,255,0.08)) !important;
+    color: #B0B0FF !important;
+    border-bottom: 1px solid var(--az-border) !important;
+    border-radius: 22px 22px 0 0 !important;
+    text-align: left !important;
+    padding: 14px 22px !important;
+}
+.t-shell.t-shell .t-card > h2:first-child,
+.t-shell.t-shell .t-card > h2:first-child *,
+.t-shell.t-shell .t-card > h3:first-child,
+.t-shell.t-shell .t-card > h3:first-child *,
+.t-shell.t-shell .t-card > h4:first-child,
+.t-shell.t-shell .t-card > h4:first-child *,
+.t-shell.t-shell .gen-h,
+.t-shell.t-shell .gen-h *,
+.t-shell.t-shell .yp-term-h,
+.t-shell.t-shell .yp-term-h * { color: #B0B0FF !important; }
+
+/* Stat tiles on the teacher overview (grey numbers in screenshot) */
+.t-shell .t-stat,
+.t-shell .t-metric,
+.t-shell [class*="stat"]:not(.t-stat-label) {
+    /* harmless if no match */
+}
+/* Generic teacher stat blocks — match dx-/ax- treatment */
+.t-shell .t-stat {
+    background: var(--az-surface) !important;
+    border: 1px solid var(--az-border) !important;
+    border-radius: 22px !important;
+    padding: 26px !important;
+    transition: all .35s var(--cx-ease-x, cubic-bezier(.22,1,.36,1));
+}
+.t-shell .t-stat:hover {
+    border-color: var(--az-border-2) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(124,92,255,0.18);
+    background: var(--az-surface-2) !important;
+}
+.t-shell.t-shell .t-stat-num {
+    font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 38px !important;
+    letter-spacing: -1.4px !important;
+    background: linear-gradient(135deg, #7C5CFF, #4CC2FF);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+}
+.t-shell.t-shell .t-stat-label {
+    color: var(--az-text-3) !important;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+}
+.t-shell .t-stat-icon {
+    background: linear-gradient(135deg, rgba(124,92,255,0.18), rgba(76,194,255,0.10)) !important;
+    border: 1px solid rgba(124,92,255,0.25) !important;
+    color: var(--cx-violet, #7C5CFF) !important;
+    border-radius: 14px !important;
+    transition: transform .35s var(--cx-ease-x, cubic-bezier(.22,1,.36,1));
+}
+.t-shell .t-stat:hover .t-stat-icon { transform: rotate(-6deg) scale(1.08); }
+
+/* Stat arrow (top-right in screenshot) */
+.t-shell .t-stat-arrow,
+.t-shell .t-stat .t-stat-link {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid var(--az-border) !important;
+    color: var(--az-text-2) !important;
+    border-radius: 999px !important;
+    transition: all .25s;
+}
+.t-shell .t-stat:hover .t-stat-arrow,
+.t-shell .t-stat:hover .t-stat-link {
+    background: linear-gradient(135deg, #7C5CFF, #4CC2FF) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    transform: rotate(-45deg);
+}
+
+/* Per-color stat variants (mirror admin) */
+.t-shell .t-stat.s-blue   .t-stat-num { background: linear-gradient(135deg, #7C5CFF, #4CC2FF); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.t-shell .t-stat.s-green  .t-stat-num { background: linear-gradient(135deg, #4CC2FF, #B6F569); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.t-shell .t-stat.s-purple .t-stat-num { background: linear-gradient(135deg, #B48CE0, #7C5CFF); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.t-shell .t-stat.s-amber  .t-stat-num { background: linear-gradient(135deg, #FF4D8D, #FFB547); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* ───── td- (teacher dashboard) overlay — gradient nums, glassy hover ───── */
+.t-shell .td-stat {
+    background: var(--az-surface) !important;
+    border: 1px solid var(--az-border) !important;
+    border-radius: 22px !important;
+    transition: all .35s var(--cx-ease-x, cubic-bezier(.22,1,.36,1)) !important;
+}
+.t-shell .td-stat:hover {
+    border-color: var(--az-border-2) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(124,92,255,0.22) !important;
+    background: var(--az-surface-2) !important;
+}
+.t-shell.t-shell .td-stat-num {
+    font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+    font-weight: 700 !important;
+    letter-spacing: -1.6px !important;
+    background: linear-gradient(135deg, #7C5CFF, #4CC2FF) !important;
+    -webkit-background-clip: text !important; background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+}
+.t-shell .td-stat.s-blue   .td-stat-num { background: linear-gradient(135deg, #7C5CFF, #4CC2FF) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; color: transparent !important; }
+.t-shell .td-stat.s-green  .td-stat-num { background: linear-gradient(135deg, #4CC2FF, #B6F569) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; color: transparent !important; }
+.t-shell .td-stat.s-purple .td-stat-num { background: linear-gradient(135deg, #B48CE0, #7C5CFF) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; color: transparent !important; }
+.t-shell .td-stat.s-amber  .td-stat-num { background: linear-gradient(135deg, #FF4D8D, #FFB547) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; color: transparent !important; }
+
+.t-shell .td-stat-icon {
+    border: 1px solid rgba(124,92,255,0.22) !important;
+    border-radius: 14px !important;
+    transition: transform .35s var(--cx-ease-x, cubic-bezier(.22,1,.36,1));
+}
+.t-shell .td-stat:hover .td-stat-icon { transform: rotate(-6deg) scale(1.08); }
+
+.t-shell .td-stat-arrow {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid var(--az-border) !important;
+}
+.t-shell .td-stat:hover .td-stat-arrow {
+    background: linear-gradient(135deg, #7C5CFF, #4CC2FF) !important;
+    border-color: transparent !important;
+    transform: rotate(-45deg);
+}
+.t-shell.t-shell .td-stat:hover .td-stat-arrow i { color: #fff !important; }
+
+.t-shell.t-shell .td-stat-label {
+    color: var(--az-text-3) !important;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    font-weight: 700 !important;
+}
+
+/* td-quick-btn → match home pill style */
+.t-shell .td-quick-btn {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid var(--az-border-2) !important;
+    border-radius: 999px !important;
+    padding: 10px 18px !important;
+    font-weight: 600 !important;
+    transition: all .25s var(--cx-ease-x, cubic-bezier(.22,1,.36,1)) !important;
+}
+.t-shell.t-shell .td-quick-btn,
+.t-shell.t-shell .td-quick-btn * { color: var(--az-text-2) !important; }
+.t-shell .td-quick-btn:hover {
+    background: rgba(124,92,255,0.10) !important;
+    border-color: var(--cx-violet, #7C5CFF) !important;
+    transform: translateY(-1px);
+}
+.t-shell.t-shell .td-quick-btn:hover,
+.t-shell.t-shell .td-quick-btn:hover * { color: #fff !important; }
+
+/* td-card → glassy unify */
+.t-shell .td-card {
+    background: var(--az-surface) !important;
+    border: 1px solid var(--az-border) !important;
+    border-radius: 22px !important;
+}
+.t-shell.t-shell .td-card-title {
+    color: var(--az-text-3) !important;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    font-weight: 700 !important;
+    display: inline-flex; align-items: center; gap: 10px;
+}
+.t-shell.t-shell .td-card-title::before {
+    content: ''; width: 24px; height: 1px;
+    background: var(--cx-violet, #7C5CFF);
+    display: inline-block;
+}
+.t-shell.t-shell .td-card-link,
+.t-shell.t-shell .td-card-link * { color: var(--cx-violet, #7C5CFF) !important; font-weight: 600 !important; }
+.t-shell.t-shell .td-card-link:hover,
+.t-shell.t-shell .td-card-link:hover * { color: var(--cx-cyan, #4CC2FF) !important; }
+
+.t-shell .td-row { border-top-color: var(--az-border) !important; }
+.t-shell .td-row:hover { background: rgba(124,92,255,0.06) !important; }
+.t-shell.t-shell .td-row-name { color: #fff !important; }
+.t-shell.t-shell a.td-row-name:hover { color: var(--cx-violet, #7C5CFF) !important; }
+.t-shell.t-shell .td-row-meta,
+.t-shell.t-shell .td-row-side { color: var(--az-text-3) !important; }
+.t-shell.t-shell .td-empty,
+.t-shell.t-shell .td-empty * { color: var(--az-text-3) !important; }
+
+/* Staggered rise-in for teacher overview blocks */
+.t-shell .td-quick-bar,
+.t-shell .td-stats,
+.t-shell .td-cols { animation: cxRise .6s var(--cx-ease-x, cubic-bezier(.22,1,.36,1)) both; }
+.t-shell .td-stats { animation-delay: .08s; }
+.t-shell .td-cols  { animation-delay: .16s; }
 </style>
 
 <div class="t-shell">

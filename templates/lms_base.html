@@ -512,27 +512,560 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.35s var(--ease) both; }
         .fade-in-delay { animation: fadeIn 0.35s var(--ease) 0.08s both; }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           CATx — Global theme overlay (applies to every page that extends
+           lms_base.html). Home page overrides nav/footer/hero blocks itself.
+           ═══════════════════════════════════════════════════════════════════ */
+        :root {
+            --cx-bg: #050507;
+            --cx-bg-2: #0B0B12;
+            --cx-card: #11111A;
+            --cx-card-2: #15151F;
+            --cx-line: rgba(255,255,255,0.07);
+            --cx-line-strong: rgba(255,255,255,0.14);
+            --cx-text: #F5F5F7;
+            --cx-mute: rgba(245,245,247,0.62);
+            --cx-dim: rgba(245,245,247,0.42);
+            --cx-violet: #7C5CFF;
+            --cx-cyan: #4CC2FF;
+            --cx-pink: #FF4D8D;
+            --cx-lime: #B6F569;
+            --cx-amber: #FFB547;
+            --cx-grad-1: linear-gradient(135deg, #7C5CFF 0%, #4CC2FF 100%);
+            --cx-grad-2: linear-gradient(135deg, #FF4D8D 0%, #FFB547 100%);
+            --cx-grad-3: linear-gradient(135deg, #4CC2FF 0%, #B6F569 100%);
+            --cx-ease-x: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* Body chrome — shared by all internal pages (gridx-home is the
+           default body class for non-home pages too). */
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+        body.gridx-home,
+        body.catx-page {
+            background: var(--cx-bg) !important;
+            color: var(--cx-text);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        body.gridx-home::before,
+        body.catx-page::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background:
+                radial-gradient(60% 50% at 10% -10%, rgba(124,92,255,0.18) 0%, transparent 60%),
+                radial-gradient(50% 40% at 100% 0%, rgba(76,194,255,0.12) 0%, transparent 60%),
+                radial-gradient(40% 30% at 50% 100%, rgba(255,77,141,0.08) 0%, transparent 60%);
+        }
+        body > * { position: relative; z-index: 1; }
+
+        /* Push all internal pages below the fixed CATx nav.
+           The home page overrides the navbar block & manages its own padding. */
+        body.gridx-home main { padding-top: 110px !important; }
+        body.catx-home main { padding-top: 0 !important; }
+
+        /* ─── CATx Navigation (replaces .navbar markup) ─── */
+        .cx-nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            padding: 14px 28px;
+            transition: all .35s var(--cx-ease-x);
+            background: rgba(5,5,7,0.72);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border-bottom: 1px solid var(--cx-line);
+        }
+        body.catx-home .cx-nav {
+            background: transparent;
+            backdrop-filter: none; -webkit-backdrop-filter: none;
+            border-bottom: none;
+            padding: 18px 28px;
+        }
+        body.catx-home .cx-nav.scrolled {
+            background: rgba(5,5,7,0.72);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+            border-bottom: 1px solid var(--cx-line);
+            padding: 10px 28px;
+        }
+        .cx-nav-inner {
+            max-width: 1320px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 32px;
+        }
+        .cx-brand { text-decoration: none; }
+        .cx-brand-mark {
+            font-family: 'Space Grotesk', 'Inter', sans-serif;
+            font-weight: 700; font-size: 24px; letter-spacing: -1.2px;
+            color: #fff;
+        }
+        .cx-brand-x {
+            background: var(--cx-grad-1);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .cx-nav-links {
+            display: flex; gap: 4px; align-items: center;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--cx-line);
+            border-radius: 999px; padding: 5px;
+        }
+        .cx-nav-links > a,
+        .cx-nav-links > .cx-dropdown > .cx-drop-toggle {
+            font-size: 13px; font-weight: 500;
+            color: var(--cx-mute); text-decoration: none;
+            padding: 8px 14px; border-radius: 999px;
+            transition: all .25s var(--cx-ease-x);
+            background: transparent; border: none; cursor: pointer;
+            font-family: inherit;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .cx-nav-links > a:hover,
+        .cx-nav-links > .cx-dropdown > .cx-drop-toggle:hover { color: #fff; background: rgba(255,255,255,0.06); }
+        .cx-nav-links > a.active { color: #fff; background: rgba(255,255,255,0.08); }
+        .cx-nav-links > a.cx-admin {
+            color: #fff;
+            background: linear-gradient(135deg, #FF4D8D, #FFB547);
+        }
+        .cx-nav-links > a.cx-admin:hover { filter: brightness(1.08); }
+
+        .cx-dropdown { position: relative; }
+        .cx-drop-toggle .fa-chevron-down { font-size: 9px; transition: transform .2s; }
+        .cx-dropdown.open .cx-drop-toggle .fa-chevron-down { transform: rotate(180deg); }
+        .cx-dropdown.open .cx-drop-toggle { color: #fff; background: rgba(255,255,255,0.06); }
+        .cx-drop-menu {
+            position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(-4px);
+            min-width: 200px;
+            background: rgba(15,15,22,0.96);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--cx-line-strong);
+            border-radius: 16px;
+            padding: 8px;
+            opacity: 0; pointer-events: none;
+            transition: opacity .18s var(--cx-ease-x), transform .18s var(--cx-ease-x);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+        .cx-dropdown.open .cx-drop-menu {
+            opacity: 1; pointer-events: auto;
+            transform: translateX(-50%) translateY(0);
+        }
+        .cx-drop-menu a {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: 10px;
+            font-size: 13.5px; color: var(--cx-mute);
+            text-decoration: none; white-space: nowrap;
+            transition: all .15s;
+        }
+        .cx-drop-menu a:hover { background: rgba(124,92,255,0.16); color: #fff; }
+        .cx-drop-menu .cx-grade-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+        .cx-nav-cta { display: flex; gap: 10px; align-items: center; }
+        .cx-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: inherit; font-weight: 600; font-size: 13px;
+            letter-spacing: -0.1px; text-decoration: none;
+            padding: 9px 16px; border-radius: 999px;
+            border: 1px solid transparent;
+            transition: all .25s var(--cx-ease-x);
+            cursor: pointer; white-space: nowrap;
+        }
+        .cx-btn-ghost { color: var(--cx-text); border-color: var(--cx-line-strong); background: rgba(255,255,255,0.02); }
+        .cx-btn-ghost:hover { background: rgba(255,255,255,0.08); }
+        .cx-btn-primary {
+            color: #0A0A0F; background: #fff;
+            box-shadow: 0 8px 30px rgba(124,92,255,0.18);
+        }
+        .cx-btn-primary:hover {
+            background: var(--cx-grad-1); color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 40px rgba(124,92,255,0.45);
+        }
+        .cx-btn i { font-size: 10px; transition: transform .25s var(--cx-ease-x); }
+        .cx-btn:hover i { transform: translateX(3px); }
+
+        .cx-mobile {
+            display: none; background: transparent; border: 1px solid var(--cx-line-strong);
+            width: 38px; height: 38px; border-radius: 12px; cursor: pointer;
+            flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+        }
+        .cx-mobile span { display: block; width: 16px; height: 1.5px; background: #fff; }
+
+        @media (max-width: 980px) {
+            .cx-nav-links {
+                display: none; position: absolute; top: 64px; left: 16px; right: 16px;
+                flex-direction: column; align-items: stretch;
+                background: rgba(15,15,22,0.96);
+                backdrop-filter: blur(24px);
+                border-radius: 18px; padding: 10px;
+                border: 1px solid var(--cx-line-strong);
+                box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            }
+            .cx-nav-links.open { display: flex; }
+            .cx-nav-links > a, .cx-nav-links > .cx-dropdown { width: 100%; }
+            .cx-nav-links > a, .cx-nav-links > .cx-dropdown > .cx-drop-toggle { padding: 12px 14px; border-radius: 12px; }
+            .cx-dropdown { display: block; }
+            .cx-drop-toggle { width: 100%; justify-content: space-between; }
+            .cx-drop-menu {
+                position: static; transform: none; opacity: 1; pointer-events: auto;
+                background: transparent; border: none; box-shadow: none;
+                padding: 4px 0 4px 12px; min-width: 0;
+                display: none;
+            }
+            .cx-dropdown.open .cx-drop-menu { display: block; transform: none; }
+            .cx-mobile { display: flex; }
+            .cx-nav-cta .cx-btn-ghost { display: none; }
+        }
+
+        /* ─── CATx footer ─── */
+        .cx-footer {
+            background: #030305;
+            border-top: 1px solid var(--cx-line);
+            padding: 64px 28px 28px;
+            margin-top: 80px;
+        }
+        .cx-footer-inner {
+            max-width: 1320px; margin: 0 auto;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px;
+        }
+        @media (max-width: 880px) { .cx-footer-inner { grid-template-columns: 1fr 1fr; } }
+        .cx-footer-brand p {
+            margin: 14px 0 0; font-size: 13px; line-height: 1.6;
+            color: var(--cx-mute); font-weight: 300; max-width: 320px;
+        }
+        .cx-footer-col h4 {
+            font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 2px;
+            color: var(--cx-dim); margin: 0 0 14px;
+        }
+        .cx-footer-col a {
+            display: block; padding: 5px 0;
+            font-size: 13px; color: var(--cx-mute);
+            text-decoration: none; transition: color .2s;
+        }
+        .cx-footer-col a:hover { color: #fff; }
+        .cx-footer-bottom {
+            max-width: 1320px; margin: 48px auto 0;
+            padding-top: 24px; border-top: 1px solid var(--cx-line);
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 16px;
+        }
+        .cx-footer-bottom p { font-size: 12px; color: var(--cx-dim); margin: 0; }
+        .cx-footer-social { display: flex; gap: 8px; }
+        .cx-footer-social a {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--cx-line);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--cx-mute); text-decoration: none; font-size: 12px;
+            transition: all .25s var(--cx-ease-x);
+        }
+        .cx-footer-social a:hover {
+            color: #fff; background: var(--cx-violet); border-color: var(--cx-violet);
+            transform: translateY(-2px);
+        }
+
+        /* ─── Generic dark-page polish for inner content (cards/buttons) ─── */
+        body.gridx-home .container { max-width: 1320px; padding: 0 24px; }
+        body.gridx-home .card,
+        body.gridx-home .card-grouped {
+            background: var(--cx-card);
+            border: 1px solid var(--cx-line);
+            box-shadow: none;
+            border-radius: 22px;
+        }
+        body.gridx-home a.card:hover,
+        body.gridx-home .card-hover:hover {
+            border-color: var(--cx-line-strong);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+            transform: translateY(-3px);
+        }
+        body.gridx-home .btn-primary {
+            background: var(--cx-grad-1); color: #fff;
+            box-shadow: 0 8px 24px rgba(124,92,255,0.3);
+        }
+        body.gridx-home .btn-primary:hover { box-shadow: 0 12px 36px rgba(124,92,255,0.5); transform: translateY(-1px); }
+        body.gridx-home .btn-ghost { background: rgba(124,92,255,0.14); color: #B0B0FF; }
+        body.gridx-home .btn-ghost:hover { background: rgba(124,92,255,0.24); color: #fff; }
+        body.gridx-home .btn-outline { border-color: var(--cx-line-strong); color: var(--cx-cyan); }
+        body.gridx-home .btn-outline:hover { border-color: var(--cx-cyan); background: rgba(76,194,255,0.08); }
+
+        /* Page section title helper used by some inner pages */
+        body.gridx-home .sf-large-title,
+        body.gridx-home .sf-title { color: var(--cx-text); }
+        body.gridx-home .text-secondary,
+        body.gridx-home .sf-subhead { color: var(--cx-mute); }
+
+        /* Tables on dark */
+        body.gridx-home table { color: var(--cx-text); }
+        body.gridx-home thead tr { background: rgba(255,255,255,0.03); }
+        body.gridx-home th { color: var(--cx-dim); }
+        body.gridx-home tbody tr { border-top-color: var(--cx-line); }
+        body.gridx-home tbody tr:hover { background: rgba(255,255,255,0.04); }
+
+        /* Hide legacy navbar entirely (replaced by .cx-nav). */
+        .navbar { display: none !important; }
+
+        /* ═════════════════════════════════════════════════════════════════
+           CATx UNIFY LAYER
+           Re-skins existing dx- / ax- / gx- inner-page chrome with the home
+           page palette: gradient titles, violet accent eyebrow, glassy cards
+           and micro-animations — without touching any page templates.
+           ═════════════════════════════════════════════════════════════════ */
+
+        /* Page wrappers — consistent breathing room under fixed nav */
+        body.gridx-home .dx-wrap,
+        body.gridx-home .ax-wrap,
+        body.gridx-home .gx-wrap,
+        body.gridx-home .cap-wrap { padding-top: 28px; }
+
+        /* ───── Eyebrows: home-style purple accent line + tag ───── */
+        body.gridx-home .dx-eyebrow,
+        body.gridx-home .ax-eyebrow,
+        body.gridx-home .gx-eyebrow {
+            display: inline-flex !important; align-items: center; gap: 10px;
+            font-family: 'Inter', inherit;
+            font-size: 11px !important; font-weight: 700 !important;
+            text-transform: uppercase; letter-spacing: 2.5px !important;
+            color: var(--cx-violet) !important;
+            margin-bottom: 18px !important;
+        }
+        body.gridx-home .dx-eyebrow::before,
+        body.gridx-home .ax-eyebrow::before,
+        body.gridx-home .gx-eyebrow::before {
+            content: ''; width: 24px; height: 1px; background: var(--cx-violet);
+            display: inline-block;
+        }
+        body.gridx-home .ax-eyebrow i { color: var(--cx-violet) !important; }
+
+        /* ───── Page titles: Space Grotesk + gradient last word ───── */
+        body.gridx-home .dx-title,
+        body.gridx-home .ax-title,
+        body.gridx-home .gx-title {
+            font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+            font-weight: 700 !important;
+            letter-spacing: -2px !important;
+            line-height: 1.05 !important;
+            color: #fff !important;
+            background: linear-gradient(135deg, #fff 0%, #B0B0FF 60%, #7C5CFF 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        body.gridx-home .dx-sub,
+        body.gridx-home .ax-sub {
+            color: var(--cx-mute) !important;
+            font-weight: 300 !important;
+            font-size: 16px !important;
+        }
+
+        /* ───── Stat tiles: gradient numbers + softer chrome ───── */
+        body.gridx-home .dx-stat,
+        body.gridx-home .ax-stat {
+            background: var(--cx-card) !important;
+            border: 1px solid var(--cx-line) !important;
+            border-radius: 22px !important;
+            padding: 26px !important;
+            position: relative;
+            overflow: hidden;
+            transition: all .4s var(--cx-ease-x);
+        }
+        body.gridx-home .dx-stat::before,
+        body.gridx-home .ax-stat::before {
+            content: ''; position: absolute; inset: -1px;
+            background: linear-gradient(135deg, transparent, transparent);
+            border-radius: 22px;
+            transition: background .4s; pointer-events: none;
+        }
+        body.gridx-home .dx-stat:hover,
+        body.gridx-home .ax-stat:hover {
+            border-color: var(--cx-line-strong) !important;
+            transform: translateY(-4px);
+            background: var(--cx-card-2) !important;
+            box-shadow: 0 16px 48px rgba(124,92,255,0.18);
+        }
+        body.gridx-home .dx-stat-num,
+        body.gridx-home .ax-stat-num {
+            font-family: 'Space Grotesk', 'Inter', sans-serif !important;
+            font-weight: 700 !important;
+            letter-spacing: -1.6px !important;
+            background: var(--cx-grad-1);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        /* Per-tile gradients to mirror the home stat bar */
+        body.gridx-home .dx-stat.sx-blue   .dx-stat-num,
+        body.gridx-home .ax-stat.s-blue    .ax-stat-num { background: var(--cx-grad-1); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        body.gridx-home .dx-stat.sx-green  .dx-stat-num,
+        body.gridx-home .ax-stat.s-green   .ax-stat-num { background: var(--cx-grad-3); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        body.gridx-home .dx-stat.sx-purple .dx-stat-num,
+        body.gridx-home .ax-stat.s-purple  .ax-stat-num { background: linear-gradient(135deg, #B48CE0, #7C5CFF); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        body.gridx-home .dx-stat.sx-amber  .dx-stat-num,
+        body.gridx-home .ax-stat.s-amber   .ax-stat-num { background: var(--cx-grad-2); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+        body.gridx-home .dx-stat-icon,
+        body.gridx-home .ax-stat-icon {
+            border-radius: 14px !important;
+            border: 1px solid var(--cx-line) !important;
+            transition: transform .4s var(--cx-ease-x);
+        }
+        body.gridx-home .dx-stat:hover .dx-stat-icon,
+        body.gridx-home .ax-stat:hover .ax-stat-icon { transform: rotate(-6deg) scale(1.08); }
+
+        body.gridx-home .dx-stat-label,
+        body.gridx-home .ax-stat-label {
+            color: var(--cx-dim) !important;
+            font-weight: 700 !important;
+            letter-spacing: 1.8px !important;
+        }
+        body.gridx-home .ax-stat-arrow {
+            background: rgba(255,255,255,0.04) !important;
+            border-color: var(--cx-line) !important;
+            color: var(--cx-mute) !important;
+        }
+        body.gridx-home .ax-stat:hover .ax-stat-arrow {
+            background: var(--cx-grad-1) !important; color: #fff !important;
+            border-color: transparent !important;
+            transform: rotate(-45deg);
+        }
+
+        /* ───── Cards & rows ───── */
+        body.gridx-home .ax-card,
+        body.gridx-home .dx-grid > .gx-course,
+        body.gridx-home .dx-results,
+        body.gridx-home .dx-empty {
+            background: var(--cx-card) !important;
+            border: 1px solid var(--cx-line) !important;
+            border-radius: 22px !important;
+        }
+        body.gridx-home .ax-row { border-top-color: var(--cx-line) !important; }
+        body.gridx-home .ax-row:hover { background: rgba(124,92,255,0.06) !important; }
+        body.gridx-home .ax-card-title,
+        body.gridx-home .dx-section-label {
+            color: var(--cx-dim) !important;
+            font-weight: 700 !important;
+            letter-spacing: 1.8px !important;
+        }
+        body.gridx-home .ax-card-link { color: var(--cx-violet) !important; font-weight: 600 !important; }
+        body.gridx-home .ax-card-link:hover { color: var(--cx-cyan) !important; }
+        body.gridx-home .ax-avatar {
+            background: var(--cx-grad-1) !important;
+            box-shadow: 0 4px 18px rgba(124,92,255,0.4);
+        }
+        body.gridx-home .ax-course-pill {
+            background: rgba(124,92,255,0.12) !important;
+            border-color: rgba(124,92,255,0.25) !important;
+            color: #B0B0FF !important;
+        }
+        body.gridx-home .ax-score.pass { color: var(--cx-lime) !important; }
+        body.gridx-home .ax-score.fail { color: var(--cx-pink) !important; }
+
+        /* ───── Dashboard "course" pills ───── */
+        body.gridx-home .gx-course {
+            background: var(--cx-card) !important;
+            border: 1px solid var(--cx-line) !important;
+            transition: all .35s var(--cx-ease-x);
+        }
+        body.gridx-home .gx-course:hover {
+            border-color: var(--cx-line-strong) !important;
+            transform: translateY(-3px);
+            background: var(--cx-card-2) !important;
+            box-shadow: 0 12px 40px rgba(124,92,255,0.2);
+        }
+        body.gridx-home .gx-course-icon {
+            background: linear-gradient(135deg, rgba(124,92,255,0.18), rgba(76,194,255,0.10)) !important;
+            border: 1px solid rgba(124,92,255,0.25) !important;
+            color: var(--cx-violet) !important;
+        }
+        body.gridx-home .gx-course-pct {
+            background: var(--cx-grad-1);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        /* ───── Header CTA buttons (dashboard etc) ───── */
+        body.gridx-home .dx-header-cta,
+        body.gridx-home .dx-empty-btn {
+            background: var(--cx-grad-1) !important;
+            color: #fff !important;
+            box-shadow: 0 12px 40px rgba(124,92,255,0.4) !important;
+            border-radius: 999px !important;
+            transition: all .25s var(--cx-ease-x);
+        }
+        body.gridx-home .dx-header-cta:hover,
+        body.gridx-home .dx-empty-btn:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 16px 50px rgba(124,92,255,0.6) !important;
+        }
+
+        /* ───── Grade page header — use home gradient ───── */
+        body.gridx-home .gx-header.g10 .gx-title,
+        body.gridx-home .gx-header.g11 .gx-title,
+        body.gridx-home .gx-header.g12 .gx-title {
+            background: linear-gradient(135deg, #fff 0%, #B0B0FF 50%, #7C5CFF 100%);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* ───── Sub-section pills (dx-section-label etc) ───── */
+        body.gridx-home .dx-section-label {
+            display: inline-flex; align-items: center; gap: 10px;
+            color: var(--cx-violet) !important;
+            text-transform: uppercase; letter-spacing: 2.5px !important;
+            font-size: 11px !important; font-weight: 700 !important;
+            margin-bottom: 18px;
+        }
+        body.gridx-home .dx-section-label::before {
+            content: ''; width: 24px; height: 1px; background: var(--cx-violet);
+        }
+
+        /* Reveal-on-scroll for any element opting in */
+        .cx-reveal { opacity: 0; transform: translateY(24px); transition: all .8s var(--cx-ease-x); }
+        .cx-reveal.in { opacity: 1; transform: translateY(0); }
+
+        /* Auto-fade child sections inside common page wrappers */
+        body.gridx-home .dx-wrap > *,
+        body.gridx-home .ax-wrap > *,
+        body.gridx-home .gx-wrap > * {
+            animation: cxRise .6s var(--cx-ease-x) both;
+        }
+        body.gridx-home .dx-wrap > *:nth-child(2) { animation-delay: .05s; }
+        body.gridx-home .dx-wrap > *:nth-child(3) { animation-delay: .10s; }
+        body.gridx-home .dx-wrap > *:nth-child(4) { animation-delay: .15s; }
+        body.gridx-home .dx-wrap > *:nth-child(5) { animation-delay: .20s; }
+        body.gridx-home .ax-wrap > *:nth-child(2) { animation-delay: .05s; }
+        body.gridx-home .ax-wrap > *:nth-child(3) { animation-delay: .10s; }
+        @keyframes cxRise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ───── Override teacher-page nav-text hack so the new glass nav
+                 stays consistent (prev rules forced white on scoped .navbar
+                 which no longer exists). Re-apply to .cx-nav for safety. ───── */
+        .t-shell .cx-nav-links > a,
+        .t-shell .cx-nav-links > .cx-dropdown > .cx-drop-toggle { color: var(--cx-mute); }
+
+        /* Tables look on dark for admin */
+        body.gridx-home table th { color: var(--cx-dim) !important; }
+        body.gridx-home table td { color: var(--cx-text); }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}gridx-home{% endblock %}">
     {% block navbar %}
-    <nav class="navbar">
-        <div class="container">
-            <a href="{{ url_for('index') }}" class="nav-brand">CAT<span style="color:var(--blue);">LMS</span></a>
-            <button class="mobile-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="nav-links">
+    <nav class="cx-nav" id="cxNav">
+        <div class="cx-nav-inner">
+            <a href="{{ url_for('index') }}" class="cx-brand">
+                <span class="cx-brand-mark">CAT<span class="cx-brand-x">x</span></span>
+            </a>
+            <div class="cx-nav-links" id="cxNavLinks">
                 <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">Home</a>
-                <div class="nav-dropdown">
-                    <button type="button" class="nav-dropdown-toggle" onclick="this.parentElement.classList.toggle('open')">
-                        Grade <i class="fas fa-chevron-down"></i>
+                <div class="cx-dropdown">
+                    <button type="button" class="cx-drop-toggle" onclick="this.parentElement.classList.toggle('open')">
+                        Grades <i class="fas fa-chevron-down"></i>
                     </button>
-                    <div class="nav-dropdown-menu">
-                        <a href="{{ url_for('grade_courses', grade_number=10) }}">Grade 10</a>
-                        <a href="{{ url_for('grade_courses', grade_number=11) }}">Grade 11</a>
-                        <a href="{{ url_for('grade_courses', grade_number=12) }}">Grade 12</a>
+                    <div class="cx-drop-menu">
+                        <a href="{{ url_for('grade_courses', grade_number=10) }}"><span class="cx-grade-dot" style="background:#4CC2FF;"></span> Grade 10</a>
+                        <a href="{{ url_for('grade_courses', grade_number=11) }}"><span class="cx-grade-dot" style="background:#B48CE0;"></span> Grade 11</a>
+                        <a href="{{ url_for('grade_courses', grade_number=12) }}"><span class="cx-grade-dot" style="background:#6CCB5F;"></span> Grade 12</a>
                     </div>
                 </div>
                 {% if current_user.is_authenticated %}
@@ -541,18 +1074,19 @@
                         <a href="{{ url_for('teacher_dashboard') }}" class="{% if request.endpoint and request.endpoint.startswith('teacher_') %}active{% endif %}">Teachers</a>
                     {% endif %}
                     {% if current_user.is_admin %}
-                        <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-btn">Admin</a>
+                        <a href="{{ url_for('admin_dashboard') }}" class="cx-admin {% if request.endpoint and request.endpoint.startswith('admin_') %}active{% endif %}">Admin</a>
                     {% endif %}
                 {% endif %}
             </div>
-            <div class="nav-cta">
+            <div class="cx-nav-cta">
                 {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('logout') }}" class="btn-ghost-pill">Sign out</a>
-                    <a href="{{ url_for('dashboard') }}" class="btn-talk">My account <i class="fas fa-arrow-right" style="font-size:11px;"></i></a>
+                    <a href="{{ url_for('logout') }}" class="cx-btn cx-btn-ghost">Sign out</a>
+                    <a href="{{ url_for('dashboard') }}" class="cx-btn cx-btn-primary">My account <i class="fas fa-arrow-right"></i></a>
                 {% else %}
-                    <a href="{{ url_for('login') }}" class="btn-ghost-pill">Sign in</a>
-                    <a href="{{ url_for('register') }}" class="btn-talk">Get started <i class="fas fa-arrow-right" style="font-size:11px;"></i></a>
+                    <a href="{{ url_for('login') }}" class="cx-btn cx-btn-ghost">Sign in</a>
+                    <a href="{{ url_for('register') }}" class="cx-btn cx-btn-primary">Get started <i class="fas fa-arrow-right"></i></a>
                 {% endif %}
+                <button class="cx-mobile" onclick="document.getElementById('cxNavLinks').classList.toggle('open')" aria-label="Menu"><span></span><span></span></button>
             </div>
         </div>
     </nav>
@@ -594,14 +1128,49 @@
     {% endwith %}
 
     {% block footer %}
-    <footer style="padding: 36px 0 28px; text-align: center; border-top: 0.5px solid var(--separator-light);">
-        <div class="container">
-            <p style="font-size: 13px; color: var(--text-tertiary); font-weight: 500; letter-spacing: -0.1px;">
-                CAT CAPS LMS &middot; Computer Applications Technology
-            </p>
-            <p style="font-size: 12px; color: var(--text-tertiary); margin-top: 4px; opacity: 0.6;">
-                CAPS Curriculum &middot; Grades 10, 11 &amp; 12
-            </p>
+    <footer class="cx-footer">
+        <div class="cx-footer-inner">
+            <div class="cx-footer-brand">
+                <a href="{{ url_for('index') }}" class="cx-brand">
+                    <span class="cx-brand-mark">CAT<span class="cx-brand-x">x</span></span>
+                </a>
+                <p>South Africa's biggest CAPS-aligned Computer Applications Technology learning platform — for Grade 10, 11 and 12.</p>
+            </div>
+            <div class="cx-footer-col">
+                <h4>Learn</h4>
+                <a href="{{ url_for('grade_courses', grade_number=10) }}">Grade 10</a>
+                <a href="{{ url_for('grade_courses', grade_number=11) }}">Grade 11</a>
+                <a href="{{ url_for('grade_courses', grade_number=12) }}">Grade 12</a>
+                <a href="{{ url_for('index') }}#what">All features</a>
+            </div>
+            <div class="cx-footer-col">
+                <h4>Platform</h4>
+                <a href="{{ url_for('index') }}#how">How it works</a>
+                <a href="{{ url_for('index') }}#price">Pricing</a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                    <a href="{{ url_for('logout') }}">Sign out</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Sign in</a>
+                    <a href="{{ url_for('register') }}">Sign up</a>
+                {% endif %}
+            </div>
+            <div class="cx-footer-col">
+                <h4>Company</h4>
+                <a href="{{ url_for('index') }}#newsletter">Newsletter</a>
+                <a href="{{ url_for('index') }}#newsletter">Contact</a>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </div>
+        </div>
+        <div class="cx-footer-bottom">
+            <p>© 2026 CATx · Built in South Africa for South African learners.</p>
+            <div class="cx-footer-social">
+                <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                <a href="#" aria-label="GitHub"><i class="fab fa-github"></i></a>
+            </div>
         </div>
     </footer>
     {% endblock %}
@@ -632,10 +1201,17 @@
             btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
         }
         document.addEventListener('click', function(e){
-            document.querySelectorAll('.nav-dropdown.open').forEach(function(dd){
+            document.querySelectorAll('.nav-dropdown.open, .cx-dropdown.open').forEach(function(dd){
                 if(!dd.contains(e.target)) dd.classList.remove('open');
             });
         });
+        (function(){
+            var nav = document.getElementById('cxNav');
+            if(!nav) return;
+            var on = function(){ nav.classList.toggle('scrolled', window.scrollY > 30); };
+            window.addEventListener('scroll', on, { passive: true });
+            on();
+        })();
     </script>
     {% block scripts %}{% endblock %}
 </body>
